@@ -1,0 +1,372 @@
+'use client'
+
+import { useState, useCallback } from 'react'
+import { useDropzone, type FileRejection } from 'react-dropzone'
+import { useRouter } from 'next/navigation'
+import { CloudUpload, Film, X, CircleCheck, CircleAlert } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { uploadWithProgress } from '@/lib/uploadWithProgress'
+import {
+  cn,
+  MAX_FILE_SIZE,
+  ALLOWED_MIME_TYPES,
+  formatFileSize,
+  generateStoragePath,
+} from '@/lib/utils'
+import type { VideoInsert } from '@/types/database'
+
+function generateThumbnailFromFile(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.preload = 'auto'
+    video.muted = true
+    video.playsInline = true
+    const url = URL.createObjectURL(file)
+    let captured = false
+
+    // Timeout de sécurité
+    const timeout = setTimeout(() => {
+      if (!captured) {
+        console.warn('[thumbnail] Timeout — capturing current frame')
+        captureFrame()
+      }
+    }, 10000)
+
+    function captureFrame() {
+      if (captured) return
+      captured = true
+      clearTimeout(timeout)
+
+      console.log('[thumbnail] Capturing frame:', video.videoWidth, 'x', video.videoHeight)
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth || 640
+      canvas.height = video.videoHeight || 360
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url)
+          video.src = ''
+          if (blob && blob.size > 0) {
+            console.log('[thumbnail] Generated:', (blob.size / 1024).toFixed(0), 'KB')
+            resolve(blob)
+          } else {
+            reject(new Error('Canvas toBlob returned empty'))
+          }
+        },
+        'image/jpeg',
+        0.7
+      )
+    }
+
+    video.onloadeddata = () => {
+      console.log('[thumbnail] loadeddata — duration:', video.duration, 'size:', video.videoWidth, 'x', video.videoHeight)
+      if (isFinite(video.duration) && video.duration > 1) {
+        video.currentTime = Math.min(1, video.duration * 0.1)
+      } else {
+        // Durée inconnue ou très courte : capturer la frame actuelle
+        captureFrame()
+      }
+    }
+
+    video.onseeked = () => {
+      console.log('[thumbnail] seeked to:', video.currentTime)
+      captureFrame()
+    }
+
+    video.onerror = () => {
+      clearTimeout(timeout)
+      URL.revokeObjectURL(url)
+      console.error('[thumbnail] Video load error')
+      reject(new Error('Video load failed'))
+    }
+
+    video.src = url
+  })
+}
+
+export function VideoUploader() {
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+
+  const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
+    setError(null)
+    setSuccess(false)
+
+    if (fileRejections.length > 0) {
+      const code = fileRejections[0].errors[0]?.code
+      if (code === 'file-too-large') {
+        setError('Le fichier dépasse la taille maximale de 500 Mo')
+      } else if (code === 'file-invalid-type') {
+        setError('Format non supporté. Utilisez MP4, MOV ou AVI')
+      } else {
+        setError('Fichier invalide')
+      }
+      return
+    }
+
+    if (acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0])
+    }
+  }, [])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: ALLOWED_MIME_TYPES,
+    maxSize: MAX_FILE_SIZE,
+    maxFiles: 1,
+    multiple: false,
+    disabled: uploading || success,
+  })
+
+  async function handleUpload() {
+    if (!file || uploading) return
+
+    setUploading(true)
+    setProgress(0)
+    setError(null)
+
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        setError('Vous devez être connecté pour importer une vidéo')
+        setUploading(false)
+        return
+      }
+
+      const storagePath = generateStoragePath(session.user.id, file.name)
+
+      // 1. Upload vers Supabase Storage
+      const { error: uploadError } = await uploadWithProgress({
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        bucket: 'videos',
+        path: storagePath,
+        file,
+        token: session.access_token,
+        onProgress: (percent) => setProgress(percent),
+      })
+
+      if (uploadError) {
+        setError(uploadError)
+        setUploading(false)
+        return
+      }
+
+      setProgress(100)
+
+      // 2. Création entrée DB
+      const title = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')
+
+      const videoInsert: VideoInsert = {
+        user_id: session.user.id,
+        title,
+        original_filename: file.name,
+        storage_path: storagePath,
+        duration_seconds: null,
+        file_size_bytes: file.size,
+        status: 'uploaded',
+        metadata: {},
+      }
+
+      const { data: video, error: dbError } = await supabase
+        .from('videos')
+        .insert(videoInsert)
+        .select('id')
+        .single()
+
+      if (dbError) {
+        console.error('Supabase error:', dbError)
+        setError("Erreur lors de l'enregistrement de la vidéo")
+        setUploading(false)
+        return
+      }
+
+      // 3. Générer et uploader la miniature
+      try {
+        const thumbBlob = await generateThumbnailFromFile(file)
+        console.log('[thumbnail] Blob ready:', (thumbBlob.size / 1024).toFixed(0), 'KB')
+        const thumbPath = `${session.user.id}/thumbnails/${video.id}.jpg`
+        const { error: thumbUploadError } = await supabase.storage.from('videos').upload(thumbPath, thumbBlob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        })
+        if (thumbUploadError) {
+          console.error('[thumbnail] Upload error:', thumbUploadError.message)
+        } else {
+          console.log('[thumbnail] Uploaded to:', thumbPath)
+        }
+      } catch (thumbErr) {
+        console.error('[thumbnail] Generation error (non-blocking):', thumbErr)
+      }
+
+      // 4. Trigger transcription (fire-and-forget)
+      const { data: { publicUrl } } = supabase.storage
+        .from('videos')
+        .getPublicUrl(storagePath)
+
+      fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: video.id,
+          storageUrl: publicUrl,
+        }),
+      }).catch(() => {
+        // Fire-and-forget : on ne bloque pas l'utilisateur
+      })
+
+      // 4. Succès
+      setUploading(false)
+      setSuccess(true)
+      setTimeout(() => router.push('/dashboard'), 2000)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue'
+      setError(message)
+      setUploading(false)
+    }
+  }
+
+  function removeFile() {
+    setFile(null)
+    setError(null)
+    setProgress(0)
+    setSuccess(false)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Dropzone */}
+      {!success && (
+        <div
+          {...getRootProps()}
+          className={cn(
+            'relative flex min-h-[400px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed text-center transition-all duration-300',
+            uploading && 'pointer-events-none',
+            isDragActive
+              ? 'border-purple-500 bg-purple-500/10 scale-[1.01]'
+              : 'border-white/20 hover:border-purple-500/50 hover:bg-white/5'
+          )}
+        >
+          <input {...getInputProps()} />
+
+          {/* Idle — no file */}
+          {!file && !uploading && (
+            <div className="flex flex-col items-center gap-4 px-6">
+              <div className="rounded-2xl bg-white/10 p-5">
+                <CloudUpload className="h-12 w-12 text-purple-400" />
+              </div>
+              {isDragActive ? (
+                <p className="text-lg font-semibold text-purple-300">
+                  Déposez votre vidéo ici
+                </p>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-lg font-semibold text-white">
+                      Glissez-déposez votre vidéo ici
+                    </p>
+                    <p className="mt-1 text-white/50">
+                      ou cliquez pour parcourir
+                    </p>
+                  </div>
+                  <p className="text-sm text-white/40">
+                    MP4, MOV, AVI — 500 Mo maximum
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* File selected — ready to upload */}
+          {file && !uploading && (
+            <div className="flex flex-col items-center gap-6 px-6">
+              <div className="rounded-2xl bg-purple-500/20 p-5">
+                <Film className="h-12 w-12 text-purple-400" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-white">{file.name}</p>
+                <p className="mt-1 text-sm text-white/50">{formatFileSize(file.size)}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleUpload()
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105"
+                >
+                  <CloudUpload className="h-5 w-5" />
+                  Importer la vidéo
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeFile()
+                  }}
+                  className="rounded-xl border border-white/20 bg-white/5 p-3 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Uploading */}
+          {uploading && (
+            <div className="flex w-full flex-col items-center gap-6 px-8">
+              <div className="rounded-2xl bg-purple-500/20 p-5">
+                <Film className="h-12 w-12 animate-pulse text-purple-400" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-white">{file?.name}</p>
+                <p className="mt-1 text-sm text-white/50">
+                  {progress < 100
+                    ? `Envoi en cours... ${progress}%`
+                    : 'Enregistrement...'}
+                </p>
+              </div>
+              <div className="h-3 w-full max-w-sm overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-600 transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Erreur */}
+      {error && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+          <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
+          <p className="text-sm text-red-300">{error}</p>
+        </div>
+      )}
+
+      {/* Succès */}
+      {success && (
+        <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
+          <CircleCheck className="h-16 w-16 text-emerald-400" />
+          <div className="text-center">
+            <p className="text-xl font-semibold text-white">
+              Upload réussi ! 🎉
+            </p>
+            <p className="mt-2 text-white/60">
+              Redirection vers le dashboard...
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
