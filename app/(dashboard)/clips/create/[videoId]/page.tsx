@@ -1,12 +1,27 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Sparkles, Plus, Clock, Loader2, CircleAlert, Film, TrendingUp, Check } from 'lucide-react'
+import {
+  Sparkles,
+  Plus,
+  Clock,
+  Loader2,
+  CircleAlert,
+  Film,
+  TrendingUp,
+  Check,
+  ArrowLeft,
+  Wand2,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize } from '@/lib/utils'
 import { trimAndCropVideo } from '@/lib/ffmpeg'
-import { generateSrt } from '@/lib/generateSrt'
+import { generateSrt, filterSegmentsForClip } from '@/lib/generateSrt'
+import { SubtitlePreview } from '@/components/SubtitlePreview'
+import { SubtitleEditor } from '@/components/SubtitleEditor'
+import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
+import type { SubtitleStyle } from '@/types/subtitles'
 import type { Video, ClipInsert, TranscriptionSegment } from '@/types/database'
 
 interface ClipSuggestion {
@@ -19,7 +34,6 @@ interface ClipSuggestion {
 }
 
 type GeneratingState = {
-  index: number
   step: 'creating' | 'loading-ffmpeg' | 'downloading' | 'processing' | 'uploading' | 'finalizing' | 'done'
   progress: number
 }
@@ -41,10 +55,19 @@ export default function CreateClipsPage() {
 
   const [video, setVideo] = useState<Video | null>(null)
   const [suggestions, setSuggestions] = useState<ClipSuggestion[]>([])
+  const [segments, setSegments] = useState<TranscriptionSegment[]>([])
+  const [videoSignedUrl, setVideoSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState<GeneratingState | null>(null)
   const [createdIndices, setCreatedIndices] = useState<Set<number>>(new Set())
+
+  // Étape de personnalisation des sous-titres
+  const [customizing, setCustomizing] = useState<{
+    suggestion: ClipSuggestion
+    index: number
+  } | null>(null)
+  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(DEFAULT_SUBTITLE_STYLE)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -66,24 +89,41 @@ export default function CreateClipsPage() {
         return
       }
 
-      setVideo(videoData as Video)
+      const vid = videoData as Video
+      setVideo(vid)
 
-      // Fetch suggestions via API
-      const response = await fetch('/api/clips/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId }),
-      })
+      // Fetch en parallèle : suggestions + transcription + signed URL
+      const [suggestionsRes, transcriptionRes, signedUrlRes] = await Promise.all([
+        fetch('/api/clips/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ videoId }),
+        }).then((r) => r.json()),
+        supabase
+          .from('transcriptions')
+          .select('segments')
+          .eq('video_id', videoId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single(),
+        supabase.storage
+          .from('videos')
+          .createSignedUrl(vid.storage_path, 3600),
+      ])
 
-      const result = await response.json()
-
-      if (!response.ok) {
-        setError(result.error || 'Erreur lors de la génération des suggestions')
-        setLoading(false)
-        return
+      if (suggestionsRes.error) {
+        setError(suggestionsRes.error)
+      } else {
+        setSuggestions(suggestionsRes.data?.suggestions ?? [])
       }
 
-      setSuggestions(result.data?.suggestions ?? [])
+      if (transcriptionRes.data?.segments) {
+        setSegments(transcriptionRes.data.segments as TranscriptionSegment[])
+      }
+
+      if (signedUrlRes.data?.signedUrl) {
+        setVideoSignedUrl(signedUrlRes.data.signedUrl)
+      }
     } catch {
       setError('Une erreur inattendue est survenue')
     } finally {
@@ -95,10 +135,32 @@ export default function CreateClipsPage() {
     loadData()
   }, [loadData])
 
-  async function createClip(suggestion: ClipSuggestion, index: number) {
-    if (generating) return
+  // Segments filtrés pour le clip en cours de personnalisation
+  const clipSegments = useMemo(() => {
+    if (!customizing) return []
+    return filterSegmentsForClip(
+      segments,
+      customizing.suggestion.start,
+      customizing.suggestion.end
+    )
+  }, [customizing, segments])
 
-    setGenerating({ index, step: 'creating', progress: 0 })
+  function openCustomizer(suggestion: ClipSuggestion, index: number) {
+    setCustomizing({ suggestion, index })
+    setSubtitleStyle(DEFAULT_SUBTITLE_STYLE)
+    setError(null)
+  }
+
+  function closeCustomizer() {
+    setCustomizing(null)
+    setGenerating(null)
+  }
+
+  async function generateClip() {
+    if (!customizing || generating) return
+    const { suggestion, index } = customizing
+
+    setGenerating({ step: 'creating', progress: 0 })
     setError(null)
 
     let clipId: string | null = null
@@ -124,7 +186,7 @@ export default function CreateClipsPage() {
         end_time_seconds: suggestion.end,
         storage_path: null,
         thumbnail_path: null,
-        subtitle_style: 'default',
+        subtitle_style: JSON.stringify(subtitleStyle),
         status: 'generating',
         virality_score: suggestion.score,
       }
@@ -144,58 +206,56 @@ export default function CreateClipsPage() {
 
       clipId = clip.id
 
-      // 2. Obtenir signed URL de la vidéo source
-      setGenerating({ index, step: 'loading-ffmpeg', progress: 5 })
+      // 2. Préparer les données pour FFmpeg
+      setGenerating({ step: 'loading-ffmpeg', progress: 5 })
 
-      const { data: videoRecord } = await supabase
-        .from('videos')
-        .select('storage_path')
-        .eq('id', videoId)
-        .single()
+      // Obtenir un signed URL frais si nécessaire
+      let ffmpegVideoUrl = videoSignedUrl
+      if (!ffmpegVideoUrl) {
+        const { data: videoRecord } = await supabase
+          .from('videos')
+          .select('storage_path')
+          .eq('id', videoId)
+          .single()
 
-      if (!videoRecord?.storage_path) {
-        throw new Error('Vidéo source introuvable')
+        if (!videoRecord?.storage_path) {
+          throw new Error('Vidéo source introuvable')
+        }
+
+        const { data: signedUrlData } = await supabase.storage
+          .from('videos')
+          .createSignedUrl(videoRecord.storage_path, 3600)
+
+        ffmpegVideoUrl = signedUrlData?.signedUrl ?? null
       }
 
-      const { data: signedUrlData } = await supabase.storage
-        .from('videos')
-        .createSignedUrl(videoRecord.storage_path, 3600)
-
-      if (!signedUrlData?.signedUrl) {
+      if (!ffmpegVideoUrl) {
         throw new Error('Impossible de générer le lien de téléchargement')
       }
 
-      // 3. Récupérer la transcription pour les sous-titres
+      // 3. Générer le SRT (seulement si sous-titres activés)
       let srtContent: string | null = null
-      const { data: transcription } = await supabase
-        .from('transcriptions')
-        .select('segments')
-        .eq('video_id', videoId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (transcription?.segments) {
-        const segments = transcription.segments as TranscriptionSegment[]
+      if (subtitleStyle.enabled && segments.length > 0) {
         srtContent = generateSrt(segments, suggestion.start, suggestion.end)
         console.log('[clip] SRT generated:', srtContent.split('\n').length, 'lines')
       }
 
       // 4. Traiter la vidéo avec FFmpeg WASM
-      setGenerating({ index, step: 'downloading', progress: 10 })
+      setGenerating({ step: 'downloading', progress: 10 })
 
       const { videoBlob, thumbnailBlob } = await trimAndCropVideo({
-        videoUrl: signedUrlData.signedUrl,
+        videoUrl: ffmpegVideoUrl,
         startSeconds: suggestion.start,
         endSeconds: suggestion.end,
         srtContent,
+        subtitleStyle: subtitleStyle.enabled ? subtitleStyle : undefined,
         onProgress: (p) => {
-          setGenerating({ index, step: 'processing', progress: 10 + Math.round(p * 0.6) })
+          setGenerating({ step: 'processing', progress: 10 + Math.round(p * 0.6) })
         },
       })
 
-      // 5. Uploader le clip + miniature vers Supabase Storage
-      setGenerating({ index, step: 'uploading', progress: 75 })
+      // 5. Uploader le clip + miniature
+      setGenerating({ step: 'uploading', progress: 75 })
 
       const clipStoragePath = `${session.user.id}/clips/${clip.id}.mp4`
       const thumbStoragePath = `${session.user.id}/thumbnails/clips/${clip.id}.jpg`
@@ -212,7 +272,6 @@ export default function CreateClipsPage() {
         throw new Error("Erreur lors de l'upload du clip")
       }
 
-      // Upload miniature (non-bloquant)
       if (thumbnailBlob.size > 0) {
         await supabase.storage
           .from('videos')
@@ -222,8 +281,8 @@ export default function CreateClipsPage() {
           })
       }
 
-      // 6. Finaliser : mettre à jour le status dans la DB
-      setGenerating({ index, step: 'finalizing', progress: 90 })
+      // 6. Finaliser
+      setGenerating({ step: 'finalizing', progress: 90 })
 
       const response = await fetch('/api/clips/generate', {
         method: 'POST',
@@ -239,33 +298,161 @@ export default function CreateClipsPage() {
         throw new Error('Erreur lors de la finalisation du clip')
       }
 
-      // 6. Succès
-      setGenerating({ index, step: 'done', progress: 100 })
+      // 7. Succès
+      setGenerating({ step: 'done', progress: 100 })
       setCreatedIndices((prev) => new Set(prev).add(index))
 
-      // Redirect après un court délai
       setTimeout(() => {
         setGenerating(null)
+        setCustomizing(null)
         router.push('/clips')
       }, 1500)
     } catch (err) {
       console.error('Clip generation error:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors de la génération du clip')
 
-      // Mettre le clip en statut 'failed' dans la DB si il a été créé
       if (clipId) {
-        const supabase = createClient()
-        await supabase
-          .from('clips')
-          .update({ status: 'failed' })
-          .eq('id', clipId)
-          .catch(() => { /* best-effort */ })
+        try {
+          const supabase = createClient()
+          await supabase
+            .from('clips')
+            .update({ status: 'failed' })
+            .eq('id', clipId)
+        } catch { /* best-effort */ }
       }
 
       setGenerating(null)
     }
   }
 
+  // ──────────────────────────────────────────────
+  // VUE : Personnalisation des sous-titres
+  // ──────────────────────────────────────────────
+  if (customizing) {
+    const { suggestion } = customizing
+
+    return (
+      <div>
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-4">
+          <button
+            onClick={closeCustomizer}
+            disabled={generating !== null}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/5 text-white transition-colors hover:bg-white/10 disabled:opacity-40"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Personnaliser le clip</h1>
+            <p className="mt-0.5 text-sm text-white/50">{suggestion.title}</p>
+          </div>
+        </div>
+
+        {/* Erreur */}
+        {error && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+            <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        )}
+
+        {/* Barre de progression */}
+        {generating && (
+          <div className="mb-6 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-medium text-purple-300">
+                {generating.step === 'done' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                {STEP_LABELS[generating.step]}
+              </span>
+              <span className="text-sm text-purple-400">{generating.progress}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                style={{ width: `${generating.progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Layout : Preview + Editor */}
+        <div className="flex flex-col gap-6 lg:flex-row">
+          {/* Preview */}
+          <div className="flex justify-center lg:w-2/5">
+            <div className="w-full max-w-[340px]">
+              {videoSignedUrl ? (
+                <SubtitlePreview
+                  videoUrl={videoSignedUrl}
+                  startSeconds={suggestion.start}
+                  endSeconds={suggestion.end}
+                  segments={clipSegments}
+                  style={subtitleStyle}
+                />
+              ) : (
+                <div className="flex aspect-[9/16] items-center justify-center rounded-2xl bg-white/5">
+                  <Loader2 className="h-8 w-8 animate-spin text-white/20" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Editor + actions */}
+          <div className="flex-1 space-y-6">
+            <SubtitleEditor style={subtitleStyle} onChange={setSubtitleStyle} />
+
+            {/* Info clip */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-white/50">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
+                </span>
+                {suggestion.score > 0 && (
+                  <span className="flex items-center gap-1 font-bold text-purple-400">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    {suggestion.score.toFixed(1)}
+                  </span>
+                )}
+                {suggestion.hashtags.slice(0, 3).map((tag) => (
+                  <span key={tag} className="rounded-full bg-purple-500/20 px-2 py-0.5 text-xs text-purple-300">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Bouton générer */}
+            <button
+              onClick={generateClip}
+              disabled={generating !== null}
+              className={cn(
+                'flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-semibold text-white transition-all',
+                'bg-gradient-to-r from-purple-600 to-pink-600',
+                generating
+                  ? 'opacity-70'
+                  : 'hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/25'
+              )}
+            >
+              {generating ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Wand2 className="h-5 w-5" />
+              )}
+              Générer le clip
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ──────────────────────────────────────────────
+  // VUE : Liste des suggestions
+  // ──────────────────────────────────────────────
   return (
     <div>
       {/* Header */}
@@ -296,29 +483,6 @@ export default function CreateClipsPage() {
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
           <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
           <p className="text-sm text-red-300">{error}</p>
-        </div>
-      )}
-
-      {/* Barre de progression globale pendant la génération */}
-      {generating && (
-        <div className="mb-6 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm font-medium text-purple-300">
-              {generating.step === 'done' ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              )}
-              {STEP_LABELS[generating.step]}
-            </span>
-            <span className="text-sm text-purple-400">{generating.progress}%</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
-              style={{ width: `${generating.progress}%` }}
-            />
-          </div>
         </div>
       )}
 
@@ -364,7 +528,6 @@ export default function CreateClipsPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {suggestions.map((suggestion, index) => {
             const isCreated = createdIndices.has(index)
-            const isGenerating = generating?.index === index
 
             return (
               <div
@@ -376,19 +539,16 @@ export default function CreateClipsPage() {
                     : 'border-white/10 hover:border-purple-500/50 hover:bg-white/[0.07]'
                 )}
               >
-                {/* Titre */}
                 <h3 className="mb-2 text-lg font-bold text-white">
                   {suggestion.title}
                 </h3>
 
-                {/* Description */}
                 {suggestion.description && (
                   <p className="mb-3 text-sm leading-relaxed text-white/60">
                     {suggestion.description}
                   </p>
                 )}
 
-                {/* Hashtags */}
                 {suggestion.hashtags.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2">
                     {suggestion.hashtags.map((tag) => (
@@ -402,7 +562,6 @@ export default function CreateClipsPage() {
                   </div>
                 )}
 
-                {/* Footer : timestamps + score + bouton */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 text-sm text-white/40">
                     <span className="flex items-center gap-1">
@@ -424,21 +583,10 @@ export default function CreateClipsPage() {
                     </span>
                   ) : (
                     <button
-                      onClick={() => createClip(suggestion, index)}
-                      disabled={generating !== null}
-                      className={cn(
-                        'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all',
-                        'bg-gradient-to-r from-purple-600 to-pink-600',
-                        isGenerating
-                          ? 'opacity-70'
-                          : 'hover:scale-105 disabled:opacity-40 disabled:hover:scale-100'
-                      )}
+                      onClick={() => openCustomizer(suggestion, index)}
+                      className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105"
                     >
-                      {isGenerating ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4" />
-                      )}
+                      <Plus className="h-4 w-4" />
                       Créer
                     </button>
                   )}

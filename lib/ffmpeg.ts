@@ -231,6 +231,7 @@ export interface TrimOptions {
   startSeconds: number
   endSeconds: number
   srtContent?: string | null
+  subtitleStyle?: import('@/types/subtitles').SubtitleStyle
   onProgress?: (progress: number) => void
 }
 
@@ -270,31 +271,41 @@ function parseSrtEntries(srt: string): SubtitleEntry[] {
 
 /**
  * Rend un texte de sous-titre en PNG transparent via Canvas API.
- * Le PNG fait 1080×200 avec texte blanc + contour noir, centré.
+ * Applique le SubtitleStyle pour police, taille, couleur, contour, fond, casse.
  * On utilise cette approche car drawtext (libfreetype) et subtitles (libass)
  * ne sont pas disponibles dans @ffmpeg/core WASM.
  */
 async function renderSubtitlePng(
   text: string,
+  style?: import('@/types/subtitles').SubtitleStyle,
   width: number = 1080,
-  height: number = 200
+  height: number = 250
 ): Promise<Uint8Array> {
+  const fontFamily = style?.fontFamily ?? 'Arial'
+  const fontSize = style?.fontSize === 'small' ? 36 : style?.fontSize === 'large' ? 62 : 48
+  const textColor = style?.textColor ?? '#FFFFFF'
+  const strokeColor = style?.strokeColor ?? '#000000'
+  const strokeWidth = (style?.strokeWidth ?? 4) * 2
+  const showBackground = style?.background === 'box'
+  const bgColor = style?.backgroundColor ?? 'rgba(0,0,0,0.6)'
+  const isUppercase = style?.textTransform === 'uppercase'
+
+  const displayText = isUppercase ? text.toUpperCase() : text
+
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext('2d')!
 
-  // Fond transparent
   ctx.clearRect(0, 0, width, height)
 
-  // Style du texte
-  ctx.font = 'bold 44px Arial, sans-serif'
+  ctx.font = `bold ${fontSize}px '${fontFamily}', sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
   // Word-wrap
   const maxWidth = width - 80
-  const words = text.split(' ')
+  const words = displayText.split(' ')
   const lines: string[] = []
   let currentLine = ''
 
@@ -309,26 +320,43 @@ async function renderSubtitlePng(
   }
   if (currentLine) lines.push(currentLine)
 
-  const lineHeight = 52
-  const totalHeight = lines.length * lineHeight
-  const startY = (height - totalHeight) / 2 + lineHeight / 2
+  const lineHeight = Math.round(fontSize * 1.25)
+  const totalTextHeight = lines.length * lineHeight
+  const startY = (height - totalTextHeight) / 2 + lineHeight / 2
+
+  // Fond box si activé
+  if (showBackground) {
+    const maxLineWidth = Math.max(...lines.map((l) => ctx.measureText(l).width))
+    const padX = 24
+    const padY = 12
+    const boxW = maxLineWidth + padX * 2
+    const boxH = totalTextHeight + padY * 2
+    const boxX = (width - boxW) / 2
+    const boxY = (height - boxH) / 2
+
+    ctx.fillStyle = bgColor
+    ctx.beginPath()
+    ctx.roundRect(boxX, boxY, boxW, boxH, 8)
+    ctx.fill()
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const y = startY + i * lineHeight
     const x = width / 2
 
-    // Contour noir
-    ctx.strokeStyle = 'black'
-    ctx.lineWidth = 8
-    ctx.lineJoin = 'round'
-    ctx.strokeText(lines[i], x, y)
+    // Contour
+    if (strokeWidth > 0 && strokeColor !== 'transparent') {
+      ctx.strokeStyle = strokeColor
+      ctx.lineWidth = strokeWidth
+      ctx.lineJoin = 'round'
+      ctx.strokeText(lines[i], x, y)
+    }
 
-    // Remplissage blanc
-    ctx.fillStyle = 'white'
+    // Remplissage
+    ctx.fillStyle = textColor
     ctx.fillText(lines[i], x, y)
   }
 
-  // Convertir en PNG
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
       if (b) resolve(b)
@@ -407,6 +435,7 @@ export async function trimAndCropVideo({
   startSeconds,
   endSeconds,
   srtContent,
+  subtitleStyle,
   onProgress,
 }: TrimOptions): Promise<TrimResult> {
   console.log('[ffmpeg] Starting trim...')
@@ -442,7 +471,7 @@ export async function trimAndCropVideo({
       console.log('[ffmpeg] Subtitles:', subtitleEntries.length, 'entries')
 
       for (let i = 0; i < subtitleEntries.length; i++) {
-        const png = await renderSubtitlePng(subtitleEntries[i].text)
+        const png = await renderSubtitlePng(subtitleEntries[i].text, subtitleStyle)
         await ffmpeg.writeFile(`sub_${i}.png`, png)
       }
       if (subtitleEntries.length > 0) {
@@ -468,6 +497,13 @@ export async function trimAndCropVideo({
     fc += `;[0:a]atrim=end=${duration},asetpts=PTS-STARTPTS[aout]`
 
     if (subtitleEntries.length > 0) {
+      // Position Y de l'overlay selon le style
+      const pos = subtitleStyle?.position ?? 'bottom'
+      const overlayY =
+        pos === 'top' ? '150' :
+        pos === 'center' ? '(main_h-overlay_h)/2' :
+        'main_h-300'
+
       let prevLabel = 'base'
       for (let i = 0; i < subtitleEntries.length; i++) {
         const inputIdx = i + 1
@@ -475,7 +511,7 @@ export async function trimAndCropVideo({
         // Les temps SRT sont déjà relatifs au début du clip (generateSrt les ajuste)
         const s = subtitleEntries[i].start.toFixed(3)
         const e = subtitleEntries[i].end.toFixed(3)
-        fc += `;[${inputIdx}:v]format=rgba[s${i}];[${prevLabel}][s${i}]overlay=(main_w-overlay_w)/2:main_h-250:enable='between(t,${s},${e})'[${outLabel}]`
+        fc += `;[${inputIdx}:v]format=rgba[s${i}];[${prevLabel}][s${i}]overlay=(main_w-overlay_w)/2:${overlayY}:enable='between(t,${s},${e})'[${outLabel}]`
         prevLabel = outLabel
       }
     } else {
