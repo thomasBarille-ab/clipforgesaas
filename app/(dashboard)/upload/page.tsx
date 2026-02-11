@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function UploadPage() {
   return (
-    <div>
+    <div className="mx-auto max-w-5xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white md:text-4xl">
           Importer une vidéo

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import {
   Film,
@@ -53,8 +53,8 @@ export default function VideosPage() {
   const [downloadingClipId, setDownloadingClipId] = useState<string | null>(null)
   const [previewClip, setPreviewClip] = useState<Clip | null>(null)
 
-  const loadVideos = useCallback(async () => {
-    setLoading(true)
+  const loadVideos = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
@@ -66,12 +66,33 @@ export default function VideosPage() {
       .order('created_at', { ascending: false })
 
     setVideos((data as VideoWithClips[]) ?? [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [])
 
   useEffect(() => {
     loadVideos()
   }, [loadVideos])
+
+  // Polling auto quand des vidéos sont en cours de traitement
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    const hasProcessing = videos.some((v) => v.status === 'processing' || v.status === 'uploaded')
+
+    if (hasProcessing && !pollingRef.current) {
+      pollingRef.current = setInterval(() => loadVideos(true), 5000)
+    } else if (!hasProcessing && pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+  }, [videos, loadVideos])
 
   async function downloadClip(clip: Clip) {
     if (!clip.storage_path) return
@@ -187,7 +208,7 @@ export default function VideosPage() {
   const videoToDelete = videos.find((v) => v.id === confirmDeleteId)
 
   return (
-    <div>
+    <div className="mx-auto max-w-5xl">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

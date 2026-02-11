@@ -226,12 +226,18 @@ export interface TrimResult {
   thumbnailBlob: Blob
 }
 
+export interface CropSegmentOption {
+  startTime: number
+  cropX: number // 0=gauche, 0.5=centre, 1=droite
+}
+
 export interface TrimOptions {
   videoUrl: string
   startSeconds: number
   endSeconds: number
   srtContent?: string | null
   subtitleStyle?: import('@/types/subtitles').SubtitleStyle
+  cropSegments?: CropSegmentOption[]
   onProgress?: (progress: number) => void
 }
 
@@ -427,7 +433,34 @@ function generateThumbnailFromBlob(videoBlob: Blob): Promise<Blob> {
     }
 
     video.src = url
+    video.load()
   })
+}
+
+/**
+ * Construit l'expression FFmpeg pour la position X du crop
+ * en fonction des segments de cadrage définis par l'utilisateur.
+ * Utilise gte/lt pour créer des plages de temps sans chevauchement.
+ */
+function buildCropXExpression(segments: CropSegmentOption[], duration: number): string {
+  if (segments.length === 0) return '(iw-ih*9/16)/2'
+  if (segments.length === 1) return `${segments[0].cropX.toFixed(4)}*(iw-ih*9/16)`
+
+  const sorted = [...segments].sort((a, b) => a.startTime - b.startTime)
+
+  const parts = sorted.map((seg, i) => {
+    const isLast = i === sorted.length - 1
+    const start = seg.startTime.toFixed(3)
+    const x = seg.cropX.toFixed(4)
+
+    if (isLast) {
+      return `gte(t\\,${start})*${x}`
+    }
+    const end = sorted[i + 1].startTime.toFixed(3)
+    return `gte(t\\,${start})*lt(t\\,${end})*${x}`
+  })
+
+  return `(${parts.join('+')})*(iw-ih*9/16)`
 }
 
 export async function trimAndCropVideo({
@@ -436,6 +469,7 @@ export async function trimAndCropVideo({
   endSeconds,
   srtContent,
   subtitleStyle,
+  cropSegments,
   onProgress,
 }: TrimOptions): Promise<TrimResult> {
   console.log('[ffmpeg] Starting trim...')
@@ -493,7 +527,16 @@ export async function trimAndCropVideo({
     }
 
     // filter_complex : trim relatif (timestamps commencent à ~0 grâce au -ss input)
-    let fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[base]`
+    let fc: string
+
+    if (cropSegments && cropSegments.length > 0) {
+      // Cadrage dynamique : crop 9:16 avec position X variable dans le temps
+      const cropXExpr = buildCropXExpression(cropSegments, duration)
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[base]`
+    } else {
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[base]`
+    }
+
     fc += `;[0:a]atrim=end=${duration},asetpts=PTS-STARTPTS[aout]`
 
     if (subtitleEntries.length > 0) {

@@ -93,7 +93,7 @@ export default function DashboardPage() {
   }, [loadData])
 
   return (
-    <div className="space-y-10">
+    <div className="mx-auto max-w-5xl space-y-10">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

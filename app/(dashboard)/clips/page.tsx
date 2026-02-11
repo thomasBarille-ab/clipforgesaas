@@ -12,6 +12,11 @@ import {
   Loader2,
   Scissors,
   DownloadCloud,
+  Pencil,
+  Save,
+  X,
+  AlignLeft,
+  Hash,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime } from '@/lib/utils'
@@ -28,6 +33,11 @@ export default function ClipsPage() {
   const [loading, setLoading] = useState(true)
   const [previewClip, setPreviewClip] = useState<ClipWithVideo | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editHashtags, setEditHashtags] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
 
   const loadClips = useCallback(async () => {
     setLoading(true)
@@ -92,10 +102,58 @@ export default function ClipsPage() {
     }
   }
 
+  function startEditing(clip: ClipWithVideo) {
+    setEditingId(clip.id)
+    setEditTitle(clip.title)
+    setEditDescription(clip.description ?? '')
+    setEditHashtags(clip.hashtags.join(', '))
+  }
+
+  function cancelEditing() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(clipId: string) {
+    setSavingId(clipId)
+    try {
+      const supabase = createClient()
+      const hashtags = editHashtags.trim()
+        ? editHashtags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean)
+        : []
+
+      const { error } = await supabase
+        .from('clips')
+        .update({
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
+          hashtags,
+        })
+        .eq('id', clipId)
+
+      if (error) {
+        console.error('Update error:', error)
+        return
+      }
+
+      setClips((prev) =>
+        prev.map((c) =>
+          c.id === clipId
+            ? { ...c, title: editTitle.trim(), description: editDescription.trim() || null, hashtags }
+            : c
+        )
+      )
+      setEditingId(null)
+    } catch (err) {
+      console.error('Save error:', err)
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   const readyCount = clips.length
 
   return (
-    <div>
+    <div className="mx-auto max-w-5xl">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -187,83 +245,159 @@ export default function ClipsPage() {
                     </p>
                   )}
 
-                  {/* Titre */}
-                  <h3 className="mb-1 text-xl font-bold text-white">
-                    {clip.title}
-                  </h3>
-
-                  {/* Description */}
-                  {clip.description && (
-                    <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-white/60">
-                      {clip.description}
-                    </p>
-                  )}
-
-                  {/* Hashtags */}
-                  {clip.hashtags.length > 0 && (
-                    <div className="mb-4 flex flex-wrap gap-1.5">
-                      {clip.hashtags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-300"
+                  {editingId === clip.id ? (
+                    /* Mode édition */
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-white/50">
+                          <Pencil className="h-3 w-3" />
+                          Titre
+                        </label>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-white/50">
+                          <AlignLeft className="h-3 w-3" />
+                          Description
+                        </label>
+                        <textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          rows={3}
+                          className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-white/50">
+                          <Hash className="h-3 w-3" />
+                          Hashtags
+                        </label>
+                        <input
+                          type="text"
+                          value={editHashtags}
+                          onChange={(e) => setEditHashtags(e.target.value)}
+                          placeholder="marketing, business, tips"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none"
+                        />
+                        <p className="mt-1 text-[10px] text-white/30">Séparés par des virgules</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => saveEdit(clip.id)}
+                          disabled={savingId === clip.id || !editTitle.trim()}
+                          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                         >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Meta : durée + score + plateformes */}
-                  <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-white/40">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {formatTime(clip.start_time_seconds)} → {formatTime(clip.end_time_seconds)}
-                    </span>
-                    {clip.virality_score && (
-                      <span className="flex items-center gap-1 font-bold text-purple-400">
-                        <TrendingUp className="h-3.5 w-3.5" />
-                        {clip.virality_score.toFixed(1)}
-                      </span>
-                    )}
-                    {/* Platform badges */}
-                    <div className="flex gap-1">
-                      {['TikTok', 'Reels', 'Shorts'].map((p) => (
-                        <span
-                          key={p}
-                          className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/50"
+                          {savingId === clip.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                          Enregistrer
+                        </button>
+                        <button
+                          onClick={cancelEditing}
+                          disabled={savingId === clip.id}
+                          className="flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
                         >
-                          {p}
-                        </span>
-                      ))}
+                          <X className="h-4 w-4" />
+                          Annuler
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    /* Mode affichage */
+                    <>
+                      {/* Titre */}
+                      <h3 className="mb-1 text-xl font-bold text-white">
+                        {clip.title}
+                      </h3>
 
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPreviewClip(clip)}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Prévisualiser
-                    </button>
-                    <button
-                      onClick={() => downloadClip(clip)}
-                      disabled={downloadingId === clip.id}
-                      className={cn(
-                        'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all',
-                        'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105',
-                        downloadingId === clip.id && 'opacity-70 hover:scale-100'
+                      {/* Description */}
+                      {clip.description && (
+                        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-white/60">
+                          {clip.description}
+                        </p>
                       )}
-                    >
-                      {downloadingId === clip.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4" />
+
+                      {/* Hashtags */}
+                      {clip.hashtags.length > 0 && (
+                        <div className="mb-4 flex flex-wrap gap-1.5">
+                          {clip.hashtags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-300"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
                       )}
-                      Télécharger
-                    </button>
-                  </div>
+
+                      {/* Meta : durée + score + plateformes */}
+                      <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-white/40">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {formatTime(clip.start_time_seconds)} → {formatTime(clip.end_time_seconds)}
+                        </span>
+                        {clip.virality_score && (
+                          <span className="flex items-center gap-1 font-bold text-purple-400">
+                            <TrendingUp className="h-3.5 w-3.5" />
+                            {clip.virality_score.toFixed(1)}
+                          </span>
+                        )}
+                        {/* Platform badges */}
+                        <div className="flex gap-1">
+                          {['TikTok', 'Reels', 'Shorts'].map((p) => (
+                            <span
+                              key={p}
+                              className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/50"
+                            >
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setPreviewClip(clip)}
+                          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Prévisualiser
+                        </button>
+                        <button
+                          onClick={() => startEditing(clip)}
+                          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => downloadClip(clip)}
+                          disabled={downloadingId === clip.id}
+                          className={cn(
+                            'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all',
+                            'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105',
+                            downloadingId === clip.id && 'opacity-70 hover:scale-100'
+                          )}
+                        >
+                          {downloadingId === clip.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          Télécharger
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )

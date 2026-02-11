@@ -16,6 +16,8 @@ import {
   Save,
   X,
   BookmarkCheck,
+  ChevronDown,
+  Captions,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -76,6 +78,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
   const [presets, setPresets] = useState<SubtitlePreset[]>([])
   const [saving, setSaving] = useState(false)
   const [presetName, setPresetName] = useState('')
+  const [open, setOpen] = useState(true)
 
   useEffect(() => {
     setPresets(loadPresets())
@@ -103,24 +106,34 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
   }
 
   return (
-    <div className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
-      {/* Toggle sous-titres */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Sous-titres</h3>
-        <button
-          onClick={() => update('enabled', !style.enabled)}
+    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+      {/* Header collapsible */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-3 p-5 text-left"
+      >
+        <Captions className="h-4 w-4 text-white/50" />
+        <span className="text-sm font-semibold text-white">Sous-titres</span>
+        {/* Toggle ON/OFF */}
+        <span
+          onClick={(e) => { e.stopPropagation(); update('enabled', !style.enabled) }}
           className={cn(
-            'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
-            style.enabled
-              ? 'bg-purple-500/20 text-purple-300'
-              : 'bg-white/10 text-white/40'
+            'ml-auto mr-2 cursor-pointer rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors',
+            style.enabled ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'
           )}
         >
-          <Power className="h-3.5 w-3.5" />
-          {style.enabled ? 'Activés' : 'Désactivés'}
-        </button>
-      </div>
+          {style.enabled ? 'ON' : 'OFF'}
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 text-white/40 transition-transform duration-200',
+            open && 'rotate-180'
+          )}
+        />
+      </button>
 
+      {open && (
+      <div className="space-y-6 px-5 pb-5">
       {/* Presets */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
@@ -388,6 +401,8 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
             </div>
           </div>
         </>
+      )}
+    </div>
       )}
     </div>
   )

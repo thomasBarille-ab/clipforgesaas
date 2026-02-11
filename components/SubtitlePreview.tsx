@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { FONT_SIZE_MAP } from '@/types/subtitles'
 import type { SubtitleStyle } from '@/types/subtitles'
 import type { TranscriptionSegment } from '@/types/database'
+import type { CropTimelineConfig } from '@/components/CropTimelineEditor'
 
 interface SubtitlePreviewProps {
   videoUrl: string
@@ -13,6 +14,7 @@ interface SubtitlePreviewProps {
   endSeconds: number
   segments: TranscriptionSegment[]
   style: SubtitleStyle
+  cropTimeline?: CropTimelineConfig
 }
 
 export function SubtitlePreview({
@@ -21,6 +23,7 @@ export function SubtitlePreview({
   endSeconds,
   segments,
   style,
+  cropTimeline,
 }: SubtitlePreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -134,6 +137,18 @@ export function SubtitlePreview({
         ? 'top-1/2 -translate-y-1/2'
         : 'bottom-[8%]'
 
+  // Calculer la position de crop active en fonction du temps
+  const activeCropX = useMemo(() => {
+    if (!cropTimeline?.enabled || cropTimeline.segments.length === 0) return 0.5
+    const sorted = [...cropTimeline.segments].sort((a, b) => a.time - b.time)
+    let active = sorted[0]
+    for (const seg of sorted) {
+      if (relativeTime >= seg.time) active = seg
+      else break
+    }
+    return active.cropX
+  }, [cropTimeline, relativeTime])
+
   const duration = endSeconds - startSeconds
   const progressPercent = duration > 0 ? (relativeTime / duration) * 100 : 0
 
@@ -148,6 +163,9 @@ export function SubtitlePreview({
           ref={videoRef}
           src={videoUrl}
           className="h-full w-full object-cover"
+          style={{
+            objectPosition: cropTimeline?.enabled ? `${activeCropX * 100}% 50%` : undefined,
+          }}
           muted
           playsInline
           preload="auto"

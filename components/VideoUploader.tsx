@@ -82,6 +82,7 @@ function generateThumbnailFromFile(file: File): Promise<Blob> {
     }
 
     video.src = url
+    video.load()
   })
 }
 
@@ -222,10 +223,10 @@ export function VideoUploader() {
         // Fire-and-forget : on ne bloque pas l'utilisateur
       })
 
-      // 4. Succès
+      // 5. Succès
       setUploading(false)
       setSuccess(true)
-      setTimeout(() => router.push('/dashboard'), 2000)
+      setTimeout(() => router.push('/videos'), 2500)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue'
       setError(message)
@@ -359,10 +360,13 @@ export function VideoUploader() {
           <CircleCheck className="h-16 w-16 text-emerald-400" />
           <div className="text-center">
             <p className="text-xl font-semibold text-white">
-              Upload réussi ! 🎉
+              Upload réussi !
             </p>
             <p className="mt-2 text-white/60">
-              Redirection vers le dashboard...
+              La transcription a été lancée automatiquement.
+            </p>
+            <p className="mt-1 text-sm text-white/40">
+              Redirection vers vos vidéos...
             </p>
           </div>
         </div>

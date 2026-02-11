@@ -13,6 +13,12 @@ import {
   Check,
   ArrowLeft,
   Wand2,
+  Search,
+  MessageSquare,
+  Send,
+  Pencil,
+  AlignLeft,
+  Hash,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize } from '@/lib/utils'
@@ -20,8 +26,11 @@ import { trimAndCropVideo } from '@/lib/ffmpeg'
 import { generateSrt, filterSegmentsForClip } from '@/lib/generateSrt'
 import { SubtitlePreview } from '@/components/SubtitlePreview'
 import { SubtitleEditor } from '@/components/SubtitleEditor'
+import { CropTimelineEditor, DEFAULT_CROP_TIMELINE } from '@/components/CropTimelineEditor'
+import { CollapsibleBlock } from '@/components/CollapsibleBlock'
 import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
 import type { SubtitleStyle } from '@/types/subtitles'
+import type { CropTimelineConfig } from '@/components/CropTimelineEditor'
 import type { Video, ClipInsert, TranscriptionSegment } from '@/types/database'
 
 interface ClipSuggestion {
@@ -62,12 +71,21 @@ export default function CreateClipsPage() {
   const [generating, setGenerating] = useState<GeneratingState | null>(null)
   const [createdIndices, setCreatedIndices] = useState<Set<number>>(new Set())
 
+  // Recherche par prompt
+  const [searchPrompt, setSearchPrompt] = useState('')
+  const [searchResults, setSearchResults] = useState<ClipSuggestion[]>([])
+  const [searching, setSearching] = useState(false)
+
   // Étape de personnalisation des sous-titres
   const [customizing, setCustomizing] = useState<{
     suggestion: ClipSuggestion
     index: number
   } | null>(null)
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(DEFAULT_SUBTITLE_STYLE)
+  const [cropTimeline, setCropTimeline] = useState<CropTimelineConfig>(DEFAULT_CROP_TIMELINE)
+  const [clipTitle, setClipTitle] = useState('')
+  const [clipDescription, setClipDescription] = useState('')
+  const [clipHashtags, setClipHashtags] = useState('')
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -148,12 +166,43 @@ export default function CreateClipsPage() {
   function openCustomizer(suggestion: ClipSuggestion, index: number) {
     setCustomizing({ suggestion, index })
     setSubtitleStyle(DEFAULT_SUBTITLE_STYLE)
+    setCropTimeline(DEFAULT_CROP_TIMELINE)
+    setClipTitle(suggestion.title)
+    setClipDescription(suggestion.description)
+    setClipHashtags(suggestion.hashtags.join(', '))
     setError(null)
   }
 
   function closeCustomizer() {
     setCustomizing(null)
     setGenerating(null)
+  }
+
+  async function handleSearch() {
+    if (!searchPrompt.trim() || searching) return
+    setSearching(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/clips/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, prompt: searchPrompt.trim() }),
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        setError(data.error)
+        setSearchResults([])
+      } else {
+        setSearchResults(data.data?.suggestions ?? [])
+      }
+    } catch {
+      setError('Erreur lors de la recherche')
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
   }
 
   async function generateClip() {
@@ -179,9 +228,11 @@ export default function CreateClipsPage() {
       const clipInsert: ClipInsert = {
         video_id: videoId,
         user_id: session.user.id,
-        title: suggestion.title,
-        description: suggestion.description,
-        hashtags: suggestion.hashtags,
+        title: clipTitle.trim() || suggestion.title,
+        description: clipDescription.trim() || suggestion.description,
+        hashtags: clipHashtags.trim()
+          ? clipHashtags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean)
+          : suggestion.hashtags,
         start_time_seconds: suggestion.start,
         end_time_seconds: suggestion.end,
         storage_path: null,
@@ -249,6 +300,9 @@ export default function CreateClipsPage() {
         endSeconds: suggestion.end,
         srtContent,
         subtitleStyle: subtitleStyle.enabled ? subtitleStyle : undefined,
+        cropSegments: cropTimeline.enabled
+          ? cropTimeline.segments.map((s) => ({ startTime: s.time, cropX: s.cropX }))
+          : undefined,
         onProgress: (p) => {
           setGenerating({ step: 'processing', progress: 10 + Math.round(p * 0.6) })
         },
@@ -272,13 +326,20 @@ export default function CreateClipsPage() {
         throw new Error("Erreur lors de l'upload du clip")
       }
 
+      let finalThumbPath: string | null = null
       if (thumbnailBlob.size > 0) {
-        await supabase.storage
+        const { error: thumbUploadError } = await supabase.storage
           .from('videos')
           .upload(thumbStoragePath, thumbnailBlob, {
             contentType: 'image/jpeg',
             upsert: true,
           })
+        if (thumbUploadError) {
+          console.error('[clip-thumb] Upload error:', thumbUploadError.message)
+        } else {
+          finalThumbPath = thumbStoragePath
+          console.log('[clip-thumb] Uploaded to:', thumbStoragePath)
+        }
       }
 
       // 6. Finaliser
@@ -290,7 +351,7 @@ export default function CreateClipsPage() {
         body: JSON.stringify({
           clipId: clip.id,
           storagePath: clipStoragePath,
-          thumbnailPath: thumbStoragePath,
+          thumbnailPath: finalThumbPath,
         }),
       })
 
@@ -344,7 +405,6 @@ export default function CreateClipsPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-white">Personnaliser le clip</h1>
-            <p className="mt-0.5 text-sm text-white/50">{suggestion.title}</p>
           </div>
         </div>
 
@@ -379,32 +439,73 @@ export default function CreateClipsPage() {
           </div>
         )}
 
-        {/* Layout : Preview + Editor */}
-        <div className="flex flex-col gap-6 lg:flex-row">
-          {/* Preview */}
-          <div className="flex justify-center lg:w-2/5">
-            <div className="w-full max-w-[340px]">
-              {videoSignedUrl ? (
-                <SubtitlePreview
-                  videoUrl={videoSignedUrl}
-                  startSeconds={suggestion.start}
-                  endSeconds={suggestion.end}
-                  segments={clipSegments}
-                  style={subtitleStyle}
-                />
-              ) : (
-                <div className="flex aspect-[9/16] items-center justify-center rounded-2xl bg-white/5">
-                  <Loader2 className="h-8 w-8 animate-spin text-white/20" />
+        {/* Layout 3 colonnes : Infos | Preview | Sous-titres */}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_4fr_5fr] xl:gap-8">
+          {/* Colonne gauche : Infos du clip */}
+          <div className="space-y-4">
+            <CollapsibleBlock title="Informations" icon={Pencil}>
+              <div className="space-y-4">
+                {/* Titre */}
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/70">
+                    <Pencil className="h-4 w-4" />
+                    Titre
+                  </label>
+                  <input
+                    type="text"
+                    value={clipTitle}
+                    onChange={(e) => setClipTitle(e.target.value)}
+                    placeholder="Titre du clip"
+                    disabled={generating !== null}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
+                  />
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Editor + actions */}
-          <div className="flex-1 space-y-6">
-            <SubtitleEditor style={subtitleStyle} onChange={setSubtitleStyle} />
+                {/* Description */}
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/70">
+                    <AlignLeft className="h-4 w-4" />
+                    Description
+                  </label>
+                  <textarea
+                    value={clipDescription}
+                    onChange={(e) => setClipDescription(e.target.value)}
+                    placeholder="Description pour les réseaux sociaux"
+                    disabled={generating !== null}
+                    rows={4}
+                    className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
+                  />
+                </div>
 
-            {/* Info clip */}
+                {/* Hashtags */}
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/70">
+                    <Hash className="h-4 w-4" />
+                    Hashtags
+                  </label>
+                  <input
+                    type="text"
+                    value={clipHashtags}
+                    onChange={(e) => setClipHashtags(e.target.value)}
+                    placeholder="marketing, business, tips"
+                    disabled={generating !== null}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
+                  />
+                  <p className="mt-1.5 text-xs text-white/30">Séparés par des virgules</p>
+                </div>
+              </div>
+            </CollapsibleBlock>
+
+            {/* Cadrage */}
+            <CropTimelineEditor
+              config={cropTimeline}
+              onChange={setCropTimeline}
+              videoUrl={videoSignedUrl}
+              startSeconds={suggestion.start}
+              clipDuration={suggestion.end - suggestion.start}
+            />
+
+            {/* Info clip (durée / score) */}
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <div className="flex flex-wrap items-center gap-3 text-sm text-white/50">
                 <span className="flex items-center gap-1">
@@ -417,12 +518,27 @@ export default function CreateClipsPage() {
                     {suggestion.score.toFixed(1)}
                   </span>
                 )}
-                {suggestion.hashtags.slice(0, 3).map((tag) => (
-                  <span key={tag} className="rounded-full bg-purple-500/20 px-2 py-0.5 text-xs text-purple-300">
-                    #{tag}
-                  </span>
-                ))}
               </div>
+            </div>
+          </div>
+
+          {/* Colonne centre : Preview + Bouton */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-full max-w-[300px]">
+              {videoSignedUrl ? (
+                <SubtitlePreview
+                  videoUrl={videoSignedUrl}
+                  startSeconds={suggestion.start}
+                  endSeconds={suggestion.end}
+                  segments={clipSegments}
+                  style={subtitleStyle}
+                  cropTimeline={cropTimeline}
+                />
+              ) : (
+                <div className="flex aspect-[9/16] items-center justify-center rounded-2xl bg-white/5">
+                  <Loader2 className="h-8 w-8 animate-spin text-white/20" />
+                </div>
+              )}
             </div>
 
             {/* Bouton générer */}
@@ -430,7 +546,7 @@ export default function CreateClipsPage() {
               onClick={generateClip}
               disabled={generating !== null}
               className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-semibold text-white transition-all',
+                'flex w-full max-w-[300px] items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-semibold text-white transition-all',
                 'bg-gradient-to-r from-purple-600 to-pink-600',
                 generating
                   ? 'opacity-70'
@@ -444,6 +560,11 @@ export default function CreateClipsPage() {
               )}
               Générer le clip
             </button>
+          </div>
+
+          {/* Colonne droite : Sous-titres */}
+          <div>
+            <SubtitleEditor style={subtitleStyle} onChange={setSubtitleStyle} />
           </div>
         </div>
       </div>
@@ -483,6 +604,132 @@ export default function CreateClipsPage() {
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
           <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
           <p className="text-sm text-red-300">{error}</p>
+        </div>
+      )}
+
+      {/* Recherche par prompt */}
+      <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/70">
+          <MessageSquare className="h-4 w-4 text-pink-400" />
+          Décrivez le clip que vous voulez
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchPrompt}
+            onChange={(e) => setSearchPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="Ex: le moment où il parle de marketing, la blague sur les chats, un passage motivant..."
+            disabled={searching || loading}
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
+          />
+          <button
+            onClick={handleSearch}
+            disabled={searching || !searchPrompt.trim() || loading}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {searching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">Chercher</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Résultats de recherche */}
+      {searchResults.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-xl bg-pink-500/20 p-2.5">
+              <Search className="h-5 w-5 text-pink-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Résultats</h2>
+              <p className="text-sm text-white/50">
+                {searchResults.length} clip{searchResults.length > 1 ? 's' : ''} trouvé{searchResults.length > 1 ? 's' : ''} pour &quot;{searchPrompt}&quot;
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {searchResults.map((suggestion, i) => {
+              const globalIndex = suggestions.length + i
+              const isCreated = createdIndices.has(globalIndex)
+
+              return (
+                <div
+                  key={`search-${i}`}
+                  className={cn(
+                    'group rounded-xl border bg-white/5 p-6 transition-all duration-200',
+                    isCreated
+                      ? 'border-emerald-500/30 bg-emerald-500/5'
+                      : 'border-pink-500/20 hover:border-pink-500/40 hover:bg-white/[0.07]'
+                  )}
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-[10px] font-semibold text-pink-300">
+                      Recherche
+                    </span>
+                  </div>
+
+                  <h3 className="mb-2 text-lg font-bold text-white">
+                    {suggestion.title}
+                  </h3>
+
+                  {suggestion.description && (
+                    <p className="mb-3 text-sm leading-relaxed text-white/60">
+                      {suggestion.description}
+                    </p>
+                  )}
+
+                  {suggestion.hashtags.length > 0 && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {suggestion.hashtags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-pink-500/20 px-3 py-1 text-xs font-medium text-pink-300"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 text-sm text-white/40">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
+                      </span>
+                      {suggestion.score > 0 && (
+                        <span className="flex items-center gap-1 font-bold text-pink-400">
+                          <TrendingUp className="h-3.5 w-3.5" />
+                          {suggestion.score.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+
+                    {isCreated ? (
+                      <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
+                        <Check className="h-4 w-4" />
+                        Créé
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => openCustomizer(suggestion, globalIndex)}
+                        className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Créer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
