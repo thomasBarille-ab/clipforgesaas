@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import type { TranscriptionSegment } from '@/types/database'
+import { snapAllClipsToSentences } from '@/lib/clipBoundaries'
+import type { TranscriptionSegment, ClipSuggestion } from '@/types/database'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -12,40 +13,60 @@ interface SearchRequestBody {
   prompt: string
 }
 
-interface ClipSuggestion {
-  start: number
-  end: number
-  title: string
-  description: string
-  hashtags: string[]
-  score: number
+/**
+ * Formate les segments en texte avec timestamps, regroupés par phrases.
+ */
+function formatSegmentsForPrompt(segments: TranscriptionSegment[]): string {
+  const lines: string[] = []
+  let currentSentence = ''
+  let sentenceStart = segments[0]?.start ?? 0
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]
+    currentSentence += (currentSentence ? ' ' : '') + seg.text
+
+    const endsWithPunctuation = /[.!?…»"]$/.test(seg.text.trimEnd())
+    const isLast = i === segments.length - 1
+
+    if (endsWithPunctuation || isLast) {
+      lines.push(`[${sentenceStart.toFixed(1)}s → ${seg.end.toFixed(1)}s] ${currentSentence}`)
+      currentSentence = ''
+      if (i + 1 < segments.length) {
+        sentenceStart = segments[i + 1].start
+      }
+    }
+  }
+
+  return lines.join('\n')
 }
 
 function buildSearchPrompt(
   userPrompt: string,
-  fullText: string,
   segments: TranscriptionSegment[]
 ): string {
-  const segmentsJson = JSON.stringify(segments, null, 2)
+  const formattedSegments = formatSegmentsForPrompt(segments)
 
   return `Tu es un expert en création de contenu viral pour TikTok/Reels/Shorts.
 
-Voici la transcription complète d'une vidéo :
-${fullText}
+Voici la transcription complète d'une vidéo, organisée par phrases avec leurs timestamps :
 
-Segments avec timestamps (en secondes) :
-${segmentsJson}
+${formattedSegments}
 
 L'utilisateur cherche un clip spécifique. Voici sa demande :
 "${userPrompt}"
 
-Ta mission : Trouve dans la transcription les 1 à 3 meilleurs passages qui correspondent à cette demande. Chaque clip doit durer entre 15 et 90 secondes.
+Ta mission : Trouve dans la transcription les 1 à 3 meilleurs passages qui correspondent à cette demande. Chaque clip doit durer entre 30 et 90 secondes MINIMUM 30 SECONDES.
 
-Règles :
-- Les timestamps start/end DOIVENT correspondre à des segments existants dans la transcription
-- Le clip doit être compréhensible de manière autonome
-- Privilégie les passages avec un hook fort au début
-- Si aucun passage ne correspond vraiment à la demande, retourne un tableau vide
+RÈGLES CRITIQUES POUR LES TIMESTAMPS :
+1. Le "start" DOIT correspondre au DÉBUT d'une phrase (le timestamp de gauche d'une ligne ci-dessus)
+2. Le "end" DOIT correspondre à la FIN d'une phrase (le timestamp de droite d'une ligne ci-dessus)
+3. JAMAIS couper au milieu d'une phrase — chaque clip doit commencer et finir sur des phrases complètes
+4. Utilise EXACTEMENT les timestamps fournis dans les segments, ne les invente pas
+5. Le clip doit être compréhensible de manière autonome
+6. Privilégie les passages avec un hook fort au début
+7. La fin doit conclure une idée, pas rester en suspens
+
+Si aucun passage ne correspond vraiment à la demande, retourne un tableau vide.
 
 Réponds UNIQUEMENT en JSON valide :
 {
@@ -130,7 +151,6 @@ export async function POST(request: Request) {
     )
   }
 
-  // Vérifier ownership de la vidéo
   const { data: video } = await supabase
     .from('videos')
     .select('id')
@@ -145,7 +165,6 @@ export async function POST(request: Request) {
     )
   }
 
-  // Récupérer la transcription
   const { data: transcription } = await supabase
     .from('transcriptions')
     .select('full_text, segments')
@@ -161,11 +180,12 @@ export async function POST(request: Request) {
     )
   }
 
+  const segments = transcription.segments as TranscriptionSegment[]
+
   try {
     const prompt = buildSearchPrompt(
       body.prompt.trim(),
-      transcription.full_text,
-      transcription.segments as TranscriptionSegment[]
+      segments
     )
 
     const message = await anthropic.messages.create({
@@ -184,7 +204,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const suggestions = parseResponse(responseText)
+    // Parser puis recaler sur les frontières de phrases
+    const rawSuggestions = parseResponse(responseText)
+    const suggestions = snapAllClipsToSentences(rawSuggestions, segments)
 
     return NextResponse.json({
       success: true,
