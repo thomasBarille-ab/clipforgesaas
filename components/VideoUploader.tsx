@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useDropzone, type FileRejection } from 'react-dropzone'
 import { useRouter } from 'next/navigation'
-import { CloudUpload, Film, X, CircleCheck, CircleAlert } from 'lucide-react'
+import { CloudUpload, Film, X, CircleCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { uploadWithProgress } from '@/lib/uploadWithProgress'
 import {
@@ -13,6 +13,7 @@ import {
   formatFileSize,
   generateStoragePath,
 } from '@/lib/utils'
+import { AlertBanner, Button, ProgressBar } from '@/components/ui'
 import type { VideoInsert } from '@/types/database'
 
 function generateThumbnailFromFile(file: File): Promise<Blob> {
@@ -24,7 +25,6 @@ function generateThumbnailFromFile(file: File): Promise<Blob> {
     const url = URL.createObjectURL(file)
     let captured = false
 
-    // Timeout de sécurité
     const timeout = setTimeout(() => {
       if (!captured) {
         console.warn('[thumbnail] Timeout — capturing current frame')
@@ -37,7 +37,6 @@ function generateThumbnailFromFile(file: File): Promise<Blob> {
       captured = true
       clearTimeout(timeout)
 
-      console.log('[thumbnail] Capturing frame:', video.videoWidth, 'x', video.videoHeight)
       const canvas = document.createElement('canvas')
       canvas.width = video.videoWidth || 640
       canvas.height = video.videoHeight || 360
@@ -48,7 +47,6 @@ function generateThumbnailFromFile(file: File): Promise<Blob> {
           URL.revokeObjectURL(url)
           video.src = ''
           if (blob && blob.size > 0) {
-            console.log('[thumbnail] Generated:', (blob.size / 1024).toFixed(0), 'KB')
             resolve(blob)
           } else {
             reject(new Error('Canvas toBlob returned empty'))
@@ -60,24 +58,18 @@ function generateThumbnailFromFile(file: File): Promise<Blob> {
     }
 
     video.onloadeddata = () => {
-      console.log('[thumbnail] loadeddata — duration:', video.duration, 'size:', video.videoWidth, 'x', video.videoHeight)
       if (isFinite(video.duration) && video.duration > 1) {
         video.currentTime = Math.min(1, video.duration * 0.1)
       } else {
-        // Durée inconnue ou très courte : capturer la frame actuelle
         captureFrame()
       }
     }
 
-    video.onseeked = () => {
-      console.log('[thumbnail] seeked to:', video.currentTime)
-      captureFrame()
-    }
+    video.onseeked = () => captureFrame()
 
     video.onerror = () => {
       clearTimeout(timeout)
       URL.revokeObjectURL(url)
-      console.error('[thumbnail] Video load error')
       reject(new Error('Video load failed'))
     }
 
@@ -143,7 +135,6 @@ export function VideoUploader() {
 
       const storagePath = generateStoragePath(session.user.id, file.name)
 
-      // 1. Upload vers Supabase Storage
       const { error: uploadError } = await uploadWithProgress({
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
         supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -162,7 +153,6 @@ export function VideoUploader() {
 
       setProgress(100)
 
-      // 2. Création entrée DB
       const title = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')
 
       const videoInsert: VideoInsert = {
@@ -189,10 +179,8 @@ export function VideoUploader() {
         return
       }
 
-      // 3. Générer et uploader la miniature
       try {
         const thumbBlob = await generateThumbnailFromFile(file)
-        console.log('[thumbnail] Blob ready:', (thumbBlob.size / 1024).toFixed(0), 'KB')
         const thumbPath = `${session.user.id}/thumbnails/${video.id}.jpg`
         const { error: thumbUploadError } = await supabase.storage.from('videos').upload(thumbPath, thumbBlob, {
           contentType: 'image/jpeg',
@@ -200,14 +188,11 @@ export function VideoUploader() {
         })
         if (thumbUploadError) {
           console.error('[thumbnail] Upload error:', thumbUploadError.message)
-        } else {
-          console.log('[thumbnail] Uploaded to:', thumbPath)
         }
       } catch (thumbErr) {
         console.error('[thumbnail] Generation error (non-blocking):', thumbErr)
       }
 
-      // 4. Trigger transcription (fire-and-forget)
       const { data: { publicUrl } } = supabase.storage
         .from('videos')
         .getPublicUrl(storagePath)
@@ -219,11 +204,8 @@ export function VideoUploader() {
           videoId: video.id,
           storageUrl: publicUrl,
         }),
-      }).catch(() => {
-        // Fire-and-forget : on ne bloque pas l'utilisateur
-      })
+      }).catch(() => {})
 
-      // 5. Succès
       setUploading(false)
       setSuccess(true)
       setTimeout(() => router.push('/videos'), 2500)
@@ -257,7 +239,7 @@ export function VideoUploader() {
         >
           <input {...getInputProps()} />
 
-          {/* Idle — no file */}
+          {/* Idle */}
           {!file && !uploading && (
             <div className="flex flex-col items-center gap-4 px-6">
               <div className="rounded-2xl bg-white/10 p-5">
@@ -285,7 +267,7 @@ export function VideoUploader() {
             </div>
           )}
 
-          {/* File selected — ready to upload */}
+          {/* File selected */}
           {file && !uploading && (
             <div className="flex flex-col items-center gap-6 px-6">
               <div className="rounded-2xl bg-purple-500/20 p-5">
@@ -296,17 +278,16 @@ export function VideoUploader() {
                 <p className="mt-1 text-sm text-white/50">{formatFileSize(file.size)}</p>
               </div>
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
+                <Button
                   onClick={(e) => {
                     e.stopPropagation()
                     handleUpload()
                   }}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105"
+                  icon={CloudUpload}
+                  size="lg"
                 >
-                  <CloudUpload className="h-5 w-5" />
                   Importer la vidéo
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -346,15 +327,9 @@ export function VideoUploader() {
         </div>
       )}
 
-      {/* Erreur */}
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-          <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
-          <p className="text-sm text-red-300">{error}</p>
-        </div>
-      )}
+      {error && <AlertBanner message={error} />}
 
-      {/* Succès */}
+      {/* Success */}
       {success && (
         <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
           <CircleCheck className="h-16 w-16 text-emerald-400" />

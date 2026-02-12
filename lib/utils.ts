@@ -33,3 +33,12 @@ export function generateStoragePath(userId: string, fileName: string): string {
   const sanitized = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
   return `${userId}/${timestamp}-${sanitized}`
 }
+
+export function formatDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}

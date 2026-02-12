@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Mail, Loader2, CircleCheck, ArrowLeft } from 'lucide-react'
+import { Mail, CircleCheck, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { AlertBanner, Button, Input } from '@/components/ui'
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('')
@@ -76,40 +77,28 @@ export default function ResetPasswordPage() {
         onSubmit={handleSubmit}
         className="space-y-5 rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur-xl"
       >
-        <div>
-          <label htmlFor="email" className="mb-2 block text-sm font-medium text-white/70">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            placeholder="vous@exemple.com"
-            className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:border-purple-500 transition-colors"
-          />
-        </div>
+        <Input
+          id="email"
+          type="email"
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          placeholder="vous@exemple.com"
+        />
 
-        {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
-            <p className="text-sm text-red-300">{error}</p>
-          </div>
-        )}
+        {error && <AlertBanner message={error} />}
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          loading={loading}
+          icon={Mail}
+          size="lg"
+          className="w-full"
         >
-          {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <Mail className="h-5 w-5" />
-          )}
           Envoyer le lien
-        </button>
+        </Button>
 
         <p className="text-center text-sm text-white/50">
           <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">

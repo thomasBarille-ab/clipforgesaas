@@ -13,11 +13,10 @@ import {
   Crown,
   Zap,
   Shield,
-  CircleCheck,
-  CircleAlert,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { PageHeader, AlertBanner, Button, Input, GoogleAuthButton } from '@/components/ui'
 import type { Profile, PlanType } from '@/types/database'
 
 const PLAN_CONFIG: Record<PlanType, { label: string; color: string; icon: React.ElementType }> = {
@@ -32,13 +31,11 @@ export default function SettingsPage() {
   const [authProvider, setAuthProvider] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Edit name
   const [editing, setEditing] = useState(false)
   const [fullName, setFullName] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
-  // Sign out / delete
   const [signingOut, setSigningOut] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -51,7 +48,6 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Déterminer le provider d'auth
       const provider = user.app_metadata?.provider ?? 'email'
       setAuthProvider(provider)
 
@@ -159,66 +155,44 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white md:text-4xl">Paramètres</h1>
-        <p className="mt-1 text-white/50">Gérez votre compte et vos préférences</p>
-      </div>
+      <PageHeader title="Paramètres" subtitle="Gérez votre compte et vos préférences" />
 
-      {/* Messages */}
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-          <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
-          <p className="text-sm text-red-300">{error}</p>
-        </div>
-      )}
-
-      {saveSuccess && (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-          <CircleCheck className="h-5 w-5 shrink-0 text-emerald-400" />
-          <p className="text-sm text-emerald-300">Profil mis à jour</p>
-        </div>
-      )}
+      {error && <AlertBanner message={error} />}
+      {saveSuccess && <AlertBanner variant="success" message="Profil mis à jour" />}
 
       {/* Profil */}
       <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
         <h2 className="mb-5 text-lg font-semibold text-white">Profil</h2>
 
         <div className="flex items-start gap-5">
-          {/* Avatar */}
           {profile?.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt=""
-              className="h-16 w-16 rounded-full object-cover"
-            />
+            <img src={profile.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover" />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-lg font-bold text-white">
               {initials}
             </div>
           )}
 
-          {/* Info */}
           <div className="flex-1 space-y-3">
-            {/* Nom */}
             {editing ? (
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
+                <Input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
                   placeholder="Votre nom"
                   autoFocus
-                  className="w-full max-w-xs rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none"
+                  className="max-w-xs px-3 py-2 text-sm"
                 />
-                <button
+                <Button
                   onClick={handleSaveName}
-                  disabled={saving}
-                  className="flex items-center gap-1 rounded-lg bg-purple-500/20 px-3 py-2 text-sm font-medium text-purple-300 transition-colors hover:bg-purple-500/30 disabled:opacity-50"
+                  loading={saving}
+                  icon={Save}
+                  variant="secondary"
+                  size="sm"
                 >
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                   Enregistrer
-                </button>
+                </Button>
                 <button
                   onClick={() => {
                     setEditing(false)
@@ -244,13 +218,11 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Email */}
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-white/40" />
               <span className="text-sm text-white/60">{profile?.email}</span>
             </div>
 
-            {/* Provider */}
             {authProvider && (
               <div className="flex items-center gap-2">
                 {authProvider === 'google' ? (
@@ -293,13 +265,9 @@ export default function SettingsPage() {
           </div>
 
           {plan === 'free' && (
-            <button
-              disabled
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 text-sm font-semibold text-white opacity-50 cursor-not-allowed"
-            >
-              <Crown className="h-4 w-4" />
+            <Button disabled icon={Crown} size="sm">
               Passer en Pro — bientôt disponible
-            </button>
+            </Button>
           )}
         </div>
 
@@ -324,7 +292,6 @@ export default function SettingsPage() {
         <h2 className="mb-5 text-lg font-semibold text-white">Compte</h2>
 
         <div className="space-y-3">
-          {/* Déconnexion */}
           <button
             onClick={handleSignOut}
             disabled={signingOut}
@@ -338,7 +305,6 @@ export default function SettingsPage() {
             Se déconnecter
           </button>
 
-          {/* Suppression du compte */}
           {!confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
@@ -353,14 +319,15 @@ export default function SettingsPage() {
                 Cette action est irréversible. Toutes vos vidéos, clips et données seront supprimés définitivement.
               </p>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="danger"
                   onClick={handleDeleteAccount}
-                  disabled={deleting}
-                  className="flex items-center gap-2 rounded-lg bg-red-500/20 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/30 disabled:opacity-50"
+                  loading={deleting}
+                  icon={Trash2}
+                  size="sm"
                 >
-                  {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   Confirmer la suppression
-                </button>
+                </Button>
                 <button
                   onClick={() => setConfirmDelete(false)}
                   className="rounded-lg px-4 py-2 text-sm text-white/40 transition-colors hover:text-white/60"

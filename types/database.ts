@@ -96,3 +96,23 @@ export type ProcessingJobInsert = Omit<ProcessingJob, 'id' | 'created_at'>
 // Client-side UI types
 // ============================================================
 export type UploadStatus = 'idle' | 'uploading' | 'saving' | 'success' | 'error'
+
+// ============================================================
+// Shared join types (used across multiple pages)
+// ============================================================
+export interface VideoWithClips extends Video {
+  clips: Clip[]
+}
+
+export interface ClipWithVideo extends Clip {
+  video: { title: string } | null
+}
+
+export interface ClipSuggestion {
+  start: number
+  end: number
+  title: string
+  description: string
+  hashtags: string[]
+  score: number
+}
