@@ -4,10 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Sparkles,
-  Plus,
   Clock,
   Loader2,
-  CircleAlert,
   Film,
   TrendingUp,
   Check,
@@ -24,23 +22,16 @@ import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize } from '@/lib/utils'
 import { trimAndCropVideo } from '@/lib/ffmpeg'
 import { generateSrt, filterSegmentsForClip } from '@/lib/generateSrt'
+import { AlertBanner, Button, Input, Textarea, ProgressBar } from '@/components/ui'
 import { SubtitlePreview } from '@/components/SubtitlePreview'
 import { SubtitleEditor } from '@/components/SubtitleEditor'
 import { CropTimelineEditor, DEFAULT_CROP_TIMELINE } from '@/components/CropTimelineEditor'
 import { CollapsibleBlock } from '@/components/CollapsibleBlock'
+import { SuggestionCard } from '@/components/SuggestionCard'
 import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
 import type { SubtitleStyle } from '@/types/subtitles'
 import type { CropTimelineConfig } from '@/components/CropTimelineEditor'
-import type { Video, ClipInsert, TranscriptionSegment } from '@/types/database'
-
-interface ClipSuggestion {
-  start: number
-  end: number
-  title: string
-  description: string
-  hashtags: string[]
-  score: number
-}
+import type { Video, ClipInsert, TranscriptionSegment, ClipSuggestion } from '@/types/database'
 
 type GeneratingState = {
   step: 'creating' | 'loading-ffmpeg' | 'downloading' | 'processing' | 'uploading' | 'finalizing' | 'done'
@@ -76,7 +67,7 @@ export default function CreateClipsPage() {
   const [searchResults, setSearchResults] = useState<ClipSuggestion[]>([])
   const [searching, setSearching] = useState(false)
 
-  // Étape de personnalisation des sous-titres
+  // Personnalisation
   const [customizing, setCustomizing] = useState<{
     suggestion: ClipSuggestion
     index: number
@@ -94,7 +85,6 @@ export default function CreateClipsPage() {
     try {
       const supabase = createClient()
 
-      // Fetch video
       const { data: videoData, error: videoError } = await supabase
         .from('videos')
         .select('*')
@@ -110,7 +100,6 @@ export default function CreateClipsPage() {
       const vid = videoData as Video
       setVideo(vid)
 
-      // Fetch en parallèle : suggestions + transcription + signed URL
       const [suggestionsRes, transcriptionRes, signedUrlRes] = await Promise.all([
         fetch('/api/clips/suggest', {
           method: 'POST',
@@ -153,7 +142,6 @@ export default function CreateClipsPage() {
     loadData()
   }, [loadData])
 
-  // Segments filtrés pour le clip en cours de personnalisation
   const clipSegments = useMemo(() => {
     if (!customizing) return []
     return filterSegmentsForClip(
@@ -224,7 +212,6 @@ export default function CreateClipsPage() {
         return
       }
 
-      // 1. Insérer le clip dans la DB
       const clipInsert: ClipInsert = {
         video_id: videoId,
         user_id: session.user.id,
@@ -257,10 +244,8 @@ export default function CreateClipsPage() {
 
       clipId = clip.id
 
-      // 2. Préparer les données pour FFmpeg
       setGenerating({ step: 'loading-ffmpeg', progress: 5 })
 
-      // Obtenir un signed URL frais si nécessaire
       let ffmpegVideoUrl = videoSignedUrl
       if (!ffmpegVideoUrl) {
         const { data: videoRecord } = await supabase
@@ -284,14 +269,11 @@ export default function CreateClipsPage() {
         throw new Error('Impossible de générer le lien de téléchargement')
       }
 
-      // 3. Générer le SRT (seulement si sous-titres activés)
       let srtContent: string | null = null
       if (subtitleStyle.enabled && segments.length > 0) {
         srtContent = generateSrt(segments, suggestion.start, suggestion.end)
-        console.log('[clip] SRT generated:', srtContent.split('\n').length, 'lines')
       }
 
-      // 4. Traiter la vidéo avec FFmpeg WASM
       setGenerating({ step: 'downloading', progress: 10 })
 
       const { videoBlob, thumbnailBlob } = await trimAndCropVideo({
@@ -308,7 +290,6 @@ export default function CreateClipsPage() {
         },
       })
 
-      // 5. Uploader le clip + miniature
       setGenerating({ step: 'uploading', progress: 75 })
 
       const clipStoragePath = `${session.user.id}/clips/${clip.id}.mp4`
@@ -338,11 +319,9 @@ export default function CreateClipsPage() {
           console.error('[clip-thumb] Upload error:', thumbUploadError.message)
         } else {
           finalThumbPath = thumbStoragePath
-          console.log('[clip-thumb] Uploaded to:', thumbStoragePath)
         }
       }
 
-      // 6. Finaliser
       setGenerating({ step: 'finalizing', progress: 90 })
 
       const response = await fetch('/api/clips/generate', {
@@ -359,7 +338,6 @@ export default function CreateClipsPage() {
         throw new Error('Erreur lors de la finalisation du clip')
       }
 
-      // 7. Succès
       setGenerating({ step: 'done', progress: 100 })
       setCreatedIndices((prev) => new Set(prev).add(index))
 
@@ -387,7 +365,7 @@ export default function CreateClipsPage() {
   }
 
   // ──────────────────────────────────────────────
-  // VUE : Personnalisation des sous-titres
+  // VUE : Personnalisation
   // ──────────────────────────────────────────────
   if (customizing) {
     const { suggestion } = customizing
@@ -403,100 +381,63 @@ export default function CreateClipsPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Personnaliser le clip</h1>
-          </div>
+          <h1 className="text-2xl font-bold text-white">Personnaliser le clip</h1>
         </div>
 
-        {/* Erreur */}
-        {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-            <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
-            <p className="text-sm text-red-300">{error}</p>
-          </div>
-        )}
+        {error && <AlertBanner message={error} className="mb-6" />}
 
-        {/* Barre de progression */}
         {generating && (
-          <div className="mb-6 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm font-medium text-purple-300">
-                {generating.step === 'done' ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                {STEP_LABELS[generating.step]}
-              </span>
-              <span className="text-sm text-purple-400">{generating.progress}%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
-                style={{ width: `${generating.progress}%` }}
-              />
-            </div>
-          </div>
+          <ProgressBar
+            progress={generating.progress}
+            label={STEP_LABELS[generating.step]}
+            sublabel={`${generating.progress}%`}
+            icon={
+              generating.step === 'done'
+                ? <Check className="h-4 w-4" />
+                : <Loader2 className="h-4 w-4 animate-spin" />
+            }
+            className="mb-6"
+          />
         )}
 
-        {/* Layout 3 colonnes : Infos | Preview | Sous-titres */}
+        {/* Layout 3 colonnes */}
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_4fr_5fr] xl:gap-8">
-          {/* Colonne gauche : Infos du clip */}
+          {/* Colonne gauche : Infos */}
           <div className="space-y-4">
             <CollapsibleBlock title="Informations" icon={Pencil}>
               <div className="space-y-4">
-                {/* Titre */}
-                <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/70">
-                    <Pencil className="h-4 w-4" />
-                    Titre
-                  </label>
-                  <input
-                    type="text"
-                    value={clipTitle}
-                    onChange={(e) => setClipTitle(e.target.value)}
-                    placeholder="Titre du clip"
-                    disabled={generating !== null}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/70">
-                    <AlignLeft className="h-4 w-4" />
-                    Description
-                  </label>
-                  <textarea
-                    value={clipDescription}
-                    onChange={(e) => setClipDescription(e.target.value)}
-                    placeholder="Description pour les réseaux sociaux"
-                    disabled={generating !== null}
-                    rows={4}
-                    className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
-                  />
-                </div>
-
-                {/* Hashtags */}
-                <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/70">
-                    <Hash className="h-4 w-4" />
-                    Hashtags
-                  </label>
-                  <input
-                    type="text"
-                    value={clipHashtags}
-                    onChange={(e) => setClipHashtags(e.target.value)}
-                    placeholder="marketing, business, tips"
-                    disabled={generating !== null}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
-                  />
-                  <p className="mt-1.5 text-xs text-white/30">Séparés par des virgules</p>
-                </div>
+                <Input
+                  icon={Pencil}
+                  label="Titre"
+                  value={clipTitle}
+                  onChange={(e) => setClipTitle(e.target.value)}
+                  placeholder="Titre du clip"
+                  disabled={generating !== null}
+                  className="px-4 py-2.5 text-sm border-white/10"
+                />
+                <Textarea
+                  icon={AlignLeft}
+                  label="Description"
+                  value={clipDescription}
+                  onChange={(e) => setClipDescription(e.target.value)}
+                  placeholder="Description pour les réseaux sociaux"
+                  disabled={generating !== null}
+                  rows={4}
+                  className="px-4 py-2.5 text-sm border-white/10"
+                />
+                <Input
+                  icon={Hash}
+                  label="Hashtags"
+                  value={clipHashtags}
+                  onChange={(e) => setClipHashtags(e.target.value)}
+                  placeholder="marketing, business, tips"
+                  hint="Séparés par des virgules"
+                  disabled={generating !== null}
+                  className="px-4 py-2.5 text-sm border-white/10"
+                />
               </div>
             </CollapsibleBlock>
 
-            {/* Cadrage */}
             <CropTimelineEditor
               config={cropTimeline}
               onChange={setCropTimeline}
@@ -505,7 +446,6 @@ export default function CreateClipsPage() {
               clipDuration={suggestion.end - suggestion.start}
             />
 
-            {/* Info clip (durée / score) */}
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <div className="flex flex-wrap items-center gap-3 text-sm text-white/50">
                 <span className="flex items-center gap-1">
@@ -522,7 +462,7 @@ export default function CreateClipsPage() {
             </div>
           </div>
 
-          {/* Colonne centre : Preview + Bouton */}
+          {/* Colonne centre : Preview */}
           <div className="flex flex-col items-center gap-4">
             <div className="w-full max-w-[300px]">
               {videoSignedUrl ? (
@@ -541,25 +481,15 @@ export default function CreateClipsPage() {
               )}
             </div>
 
-            {/* Bouton générer */}
-            <button
+            <Button
               onClick={generateClip}
-              disabled={generating !== null}
-              className={cn(
-                'flex w-full max-w-[300px] items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-semibold text-white transition-all',
-                'bg-gradient-to-r from-purple-600 to-pink-600',
-                generating
-                  ? 'opacity-70'
-                  : 'hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/25'
-              )}
+              loading={generating !== null}
+              icon={Wand2}
+              size="lg"
+              className="w-full max-w-[300px]"
             >
-              {generating ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Wand2 className="h-5 w-5" />
-              )}
               Générer le clip
-            </button>
+            </Button>
           </div>
 
           {/* Colonne droite : Sous-titres */}
@@ -599,13 +529,7 @@ export default function CreateClipsPage() {
         )}
       </div>
 
-      {/* Erreur globale */}
-      {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-          <CircleAlert className="h-5 w-5 shrink-0 text-red-400" />
-          <p className="text-sm text-red-300">{error}</p>
-        </div>
-      )}
+      {error && <AlertBanner message={error} className="mb-6" />}
 
       {/* Recherche par prompt */}
       <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
@@ -614,27 +538,24 @@ export default function CreateClipsPage() {
           Décrivez le clip que vous voulez
         </div>
         <div className="flex gap-2">
-          <input
-            type="text"
+          <Input
             value={searchPrompt}
             onChange={(e) => setSearchPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="Ex: le moment où il parle de marketing, la blague sur les chats, un passage motivant..."
             disabled={searching || loading}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none disabled:opacity-50"
+            className="flex-1 rounded-xl px-4 py-3 text-sm border-white/10"
           />
-          <button
+          <Button
             onClick={handleSearch}
-            disabled={searching || !searchPrompt.trim() || loading}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+            disabled={!searchPrompt.trim() || loading}
+            loading={searching}
+            icon={Send}
+            size="md"
+            className="rounded-xl bg-gradient-to-r from-pink-600 to-purple-600"
           >
-            {searching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
             <span className="hidden sm:inline">Chercher</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -656,77 +577,14 @@ export default function CreateClipsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {searchResults.map((suggestion, i) => {
               const globalIndex = suggestions.length + i
-              const isCreated = createdIndices.has(globalIndex)
-
               return (
-                <div
+                <SuggestionCard
                   key={`search-${i}`}
-                  className={cn(
-                    'group rounded-xl border bg-white/5 p-6 transition-all duration-200',
-                    isCreated
-                      ? 'border-emerald-500/30 bg-emerald-500/5'
-                      : 'border-pink-500/20 hover:border-pink-500/40 hover:bg-white/[0.07]'
-                  )}
-                >
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-[10px] font-semibold text-pink-300">
-                      Recherche
-                    </span>
-                  </div>
-
-                  <h3 className="mb-2 text-lg font-bold text-white">
-                    {suggestion.title}
-                  </h3>
-
-                  {suggestion.description && (
-                    <p className="mb-3 text-sm leading-relaxed text-white/60">
-                      {suggestion.description}
-                    </p>
-                  )}
-
-                  {suggestion.hashtags.length > 0 && (
-                    <div className="mb-4 flex flex-wrap gap-2">
-                      {suggestion.hashtags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-pink-500/20 px-3 py-1 text-xs font-medium text-pink-300"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 text-sm text-white/40">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
-                      </span>
-                      {suggestion.score > 0 && (
-                        <span className="flex items-center gap-1 font-bold text-pink-400">
-                          <TrendingUp className="h-3.5 w-3.5" />
-                          {suggestion.score.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-
-                    {isCreated ? (
-                      <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
-                        <Check className="h-4 w-4" />
-                        Créé
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => openCustomizer(suggestion, globalIndex)}
-                        className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Créer
-                      </button>
-                    )}
-                  </div>
-                </div>
+                  suggestion={suggestion}
+                  isCreated={createdIndices.has(globalIndex)}
+                  onSelect={() => openCustomizer(suggestion, globalIndex)}
+                  variant="search"
+                />
               )
             })}
           </div>
@@ -773,74 +631,14 @@ export default function CreateClipsPage() {
       {/* Grille de suggestions */}
       {!loading && suggestions.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
-          {suggestions.map((suggestion, index) => {
-            const isCreated = createdIndices.has(index)
-
-            return (
-              <div
-                key={index}
-                className={cn(
-                  'group rounded-xl border bg-white/5 p-6 transition-all duration-200',
-                  isCreated
-                    ? 'border-emerald-500/30 bg-emerald-500/5'
-                    : 'border-white/10 hover:border-purple-500/50 hover:bg-white/[0.07]'
-                )}
-              >
-                <h3 className="mb-2 text-lg font-bold text-white">
-                  {suggestion.title}
-                </h3>
-
-                {suggestion.description && (
-                  <p className="mb-3 text-sm leading-relaxed text-white/60">
-                    {suggestion.description}
-                  </p>
-                )}
-
-                {suggestion.hashtags.length > 0 && (
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {suggestion.hashtags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-purple-500/20 px-3 py-1 text-xs font-medium text-purple-300"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 text-sm text-white/40">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
-                    </span>
-                    {suggestion.score > 0 && (
-                      <span className="flex items-center gap-1 font-bold text-purple-400">
-                        <TrendingUp className="h-3.5 w-3.5" />
-                        {suggestion.score.toFixed(1)}
-                      </span>
-                    )}
-                  </div>
-
-                  {isCreated ? (
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
-                      <Check className="h-4 w-4" />
-                      Créé
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => openCustomizer(suggestion, index)}
-                      className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Créer
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+          {suggestions.map((suggestion, index) => (
+            <SuggestionCard
+              key={index}
+              suggestion={suggestion}
+              isCreated={createdIndices.has(index)}
+              onSelect={() => openCustomizer(suggestion, index)}
+            />
+          ))}
         </div>
       )}
 

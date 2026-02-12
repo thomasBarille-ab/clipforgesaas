@@ -10,17 +10,14 @@ import {
   Loader2,
   TrendingUp,
   ArrowRight,
-  Sparkles,
   CircleAlert,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize } from '@/lib/utils'
+import { VIDEO_STATUS_LABELS, VIDEO_STATUS_COLORS } from '@/lib/constants'
+import { PageHeader, EmptyState, Badge } from '@/components/ui'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
-import type { Video, Clip, VideoStatus } from '@/types/database'
-
-interface ClipWithVideo extends Clip {
-  video: { title: string } | null
-}
+import type { Video, ClipWithVideo } from '@/types/database'
 
 interface Stats {
   totalVideos: number
@@ -28,19 +25,11 @@ interface Stats {
   processingJobs: number
 }
 
-const STATUS_LABELS: Record<VideoStatus, string> = {
-  uploaded: 'En attente',
-  processing: 'Transcription...',
-  ready: 'Prête',
-  failed: 'Erreur',
-}
-
-const STATUS_COLORS: Record<VideoStatus, string> = {
-  uploaded: 'bg-yellow-500/20 text-yellow-300',
-  processing: 'bg-blue-500/20 text-blue-300',
-  ready: 'bg-emerald-500/20 text-emerald-300',
-  failed: 'bg-red-500/20 text-red-300',
-}
+const STAT_CARDS = [
+  { key: 'totalVideos' as const, label: 'Vidéos importées', icon: Film, color: 'bg-purple-500/20', iconColor: 'text-purple-400' },
+  { key: 'readyClips' as const, label: 'Clips prêts', icon: Scissors, color: 'bg-pink-500/20', iconColor: 'text-pink-400' },
+  { key: 'processingJobs' as const, label: 'En cours de traitement', icon: Loader2, color: 'bg-blue-500/20', iconColor: 'text-blue-400' },
+]
 
 export default function DashboardPage() {
   const [videos, setVideos] = useState<Video[]>([])
@@ -94,14 +83,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-10">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white md:text-4xl">Dashboard</h1>
-          <p className="mt-1 text-white/50">
-            Gérez vos vidéos et clips en un coup d&apos;oeil
-          </p>
-        </div>
+      <PageHeader title="Dashboard" subtitle="Gérez vos vidéos et clips en un coup d'oeil">
         <Link
           href="/upload"
           className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
@@ -109,45 +91,23 @@ export default function DashboardPage() {
           <Upload className="h-5 w-5" />
           Importer une vidéo
         </Link>
-      </div>
+      </PageHeader>
 
       {/* Stats cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20">
-            <Film className="h-5 w-5 text-purple-400" />
+        {STAT_CARDS.map(({ key, label, icon: Icon, color, iconColor }) => (
+          <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+            <div className={cn('mb-3 flex h-10 w-10 items-center justify-center rounded-xl', color)}>
+              <Icon className={cn('h-5 w-5', iconColor, key === 'processingJobs' && stats.processingJobs > 0 && 'animate-spin')} />
+            </div>
+            {loading ? (
+              <div className="h-8 w-12 animate-pulse rounded bg-white/10" />
+            ) : (
+              <p className="text-2xl font-bold text-white">{stats[key]}</p>
+            )}
+            <p className="mt-1 text-sm text-white/50">{label}</p>
           </div>
-          {loading ? (
-            <div className="h-8 w-12 animate-pulse rounded bg-white/10" />
-          ) : (
-            <p className="text-2xl font-bold text-white">{stats.totalVideos}</p>
-          )}
-          <p className="mt-1 text-sm text-white/50">Vidéos importées</p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/20">
-            <Scissors className="h-5 w-5 text-pink-400" />
-          </div>
-          {loading ? (
-            <div className="h-8 w-12 animate-pulse rounded bg-white/10" />
-          ) : (
-            <p className="text-2xl font-bold text-white">{stats.readyClips}</p>
-          )}
-          <p className="mt-1 text-sm text-white/50">Clips prêts</p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20">
-            <Loader2 className={cn('h-5 w-5 text-blue-400', stats.processingJobs > 0 && 'animate-spin')} />
-          </div>
-          {loading ? (
-            <div className="h-8 w-12 animate-pulse rounded bg-white/10" />
-          ) : (
-            <p className="text-2xl font-bold text-white">{stats.processingJobs}</p>
-          )}
-          <p className="mt-1 text-sm text-white/50">En cours de traitement</p>
-        </div>
+        ))}
       </div>
 
       {/* Vidéos récentes */}
@@ -177,18 +137,15 @@ export default function DashboardPage() {
         )}
 
         {!loading && videos.length === 0 && (
-          <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-white/5 py-12 text-center">
-            <Film className="mb-3 h-12 w-12 text-white/15" />
-            <p className="mb-1 text-white/50">Aucune vidéo importée</p>
-            <p className="mb-4 text-sm text-white/30">Commencez par importer votre première vidéo</p>
-            <Link
-              href="/upload"
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-105"
-            >
-              <Upload className="h-4 w-4" />
-              Importer
-            </Link>
-          </div>
+          <EmptyState
+            icon={Film}
+            title="Aucune vidéo importée"
+            description="Commencez par importer votre première vidéo"
+            actionLabel="Importer"
+            actionHref="/upload"
+            actionIcon={Upload}
+            className="py-12"
+          />
         )}
 
         {!loading && videos.length > 0 && (
@@ -199,7 +156,6 @@ export default function DashboardPage() {
                 href={video.status === 'ready' ? `/clips/create/${video.id}` : '/videos'}
                 className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all hover:border-purple-500/30 hover:bg-white/[0.07]"
               >
-                {/* Miniature carrée */}
                 <div className="relative aspect-square overflow-hidden bg-white/5">
                   {video.status === 'processing' ? (
                     <div className="flex h-full w-full items-center justify-center bg-purple-500/10">
@@ -213,15 +169,13 @@ export default function DashboardPage() {
                     <VideoThumbnail storagePath={`${video.user_id}/thumbnails/${video.id}.jpg`} className="h-full w-full" />
                   )}
 
-                  {/* Badge statut */}
-                  <span className={cn(
-                    'absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm',
-                    STATUS_COLORS[video.status]
-                  )}>
-                    {STATUS_LABELS[video.status]}
-                  </span>
+                  <Badge
+                    variant={video.status === 'ready' ? 'emerald' : video.status === 'processing' ? 'blue' : video.status === 'failed' ? 'red' : 'yellow'}
+                    className="absolute left-1.5 top-1.5 px-2 py-0.5 text-[10px] backdrop-blur-sm"
+                  >
+                    {VIDEO_STATUS_LABELS[video.status]}
+                  </Badge>
 
-                  {/* Durée */}
                   {video.duration_seconds && (
                     <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
                       {formatTime(video.duration_seconds)}
@@ -229,7 +183,6 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Titre */}
                 <div className="p-2.5">
                   <p className="truncate text-sm font-medium text-white">{video.title}</p>
                   <p className="mt-0.5 text-xs text-white/40">{formatFileSize(video.file_size_bytes)}</p>
@@ -267,13 +220,12 @@ export default function DashboardPage() {
         )}
 
         {!loading && clips.length === 0 && (
-          <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-white/5 py-12 text-center">
-            <Scissors className="mb-3 h-12 w-12 text-white/15" />
-            <p className="text-white/50">Aucun clip généré</p>
-            <p className="mt-1 text-sm text-white/30">
-              Vos clips apparaîtront ici une fois générés
-            </p>
-          </div>
+          <EmptyState
+            icon={Scissors}
+            title="Aucun clip généré"
+            description="Vos clips apparaîtront ici une fois générés"
+            className="py-12"
+          />
         )}
 
         {!loading && clips.length > 0 && (
@@ -286,7 +238,6 @@ export default function DashboardPage() {
                   href="/clips"
                   className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all hover:border-purple-500/30 hover:bg-white/[0.07]"
                 >
-                  {/* Miniature carrée */}
                   <div className="relative aspect-square overflow-hidden bg-white/5">
                     {clip.thumbnail_path ? (
                       <VideoThumbnail storagePath={clip.thumbnail_path} className="h-full w-full" />
@@ -296,19 +247,16 @@ export default function DashboardPage() {
                       </div>
                     )}
 
-                    {/* Badge vidéo source */}
                     {clip.video?.title && (
                       <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white/70 backdrop-blur-sm">
                         {clip.video.title}
                       </span>
                     )}
 
-                    {/* Durée */}
                     <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
                       {formatTime(duration)}
                     </span>
 
-                    {/* Score viralité */}
                     {clip.virality_score && (
                       <span className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-md bg-purple-500/80 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
                         <TrendingUp className="h-2.5 w-2.5" />
@@ -317,7 +265,6 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  {/* Info */}
                   <div className="p-2.5">
                     <p className="truncate text-sm font-medium text-white">{clip.title}</p>
                     {clip.hashtags.length > 0 && (

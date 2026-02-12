@@ -15,29 +15,25 @@ import {
   Pencil,
   Save,
   X,
-  AlignLeft,
-  Hash,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime } from '@/lib/utils'
+import { PageHeader, EmptyState, Button, Input, Textarea, Badge } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
-import type { Clip } from '@/types/database'
-
-interface ClipWithVideo extends Clip {
-  video: { title: string } | null
-}
+import { useClipDownload } from '@/hooks/useClipDownload'
+import type { ClipWithVideo } from '@/types/database'
 
 export default function ClipsPage() {
   const [clips, setClips] = useState<ClipWithVideo[]>([])
   const [loading, setLoading] = useState(true)
   const [previewClip, setPreviewClip] = useState<ClipWithVideo | null>(null)
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editHashtags, setEditHashtags] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
+  const { downloadingId, downloadClip } = useClipDownload()
 
   const loadClips = useCallback(async () => {
     setLoading(true)
@@ -60,44 +56,10 @@ export default function ClipsPage() {
     loadClips()
   }, [loadClips])
 
-  async function downloadClip(clip: ClipWithVideo) {
-    if (!clip.storage_path) return
-    setDownloadingId(clip.id)
-
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase.storage
-        .from('videos')
-        .createSignedUrl(clip.storage_path, 300)
-
-      if (error) {
-        console.error('Download signed URL error:', error)
-        return
-      }
-
-      if (data?.signedUrl) {
-        // Télécharger le blob puis déclencher le download
-        const res = await fetch(data.signedUrl)
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${clip.title}.mp4`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
-    } catch (err) {
-      console.error('Download error:', err)
-    } finally {
-      setDownloadingId(null)
-    }
-  }
-
   async function downloadAll() {
     const readyClips = clips.filter((c) => c.storage_path)
     for (const clip of readyClips) {
       await downloadClip(clip)
-      // Petit délai entre chaque pour éviter de bloquer le navigateur
       await new Promise((r) => setTimeout(r, 500))
     }
   }
@@ -107,10 +69,6 @@ export default function ClipsPage() {
     setEditTitle(clip.title)
     setEditDescription(clip.description ?? '')
     setEditHashtags(clip.hashtags.join(', '))
-  }
-
-  function cancelEditing() {
-    setEditingId(null)
   }
 
   async function saveEdit(clipId: string) {
@@ -150,35 +108,19 @@ export default function ClipsPage() {
     }
   }
 
-  const readyCount = clips.length
-
   return (
     <div className="mx-auto max-w-5xl">
-      {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white md:text-4xl">
-            Mes Clips
-          </h1>
-          {!loading && (
-            <p className="mt-1 text-white/50">
-              {readyCount === 0
-                ? 'Aucun clip pour le moment'
-                : `${readyCount} clip${readyCount > 1 ? 's' : ''} prêt${readyCount > 1 ? 's' : ''}`}
-            </p>
-          )}
-        </div>
-
-        {readyCount > 1 && (
-          <button
-            onClick={downloadAll}
-            className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-          >
-            <DownloadCloud className="h-4 w-4" />
+      <PageHeader
+        title="Mes Clips"
+        subtitle={!loading ? (clips.length === 0 ? 'Aucun clip pour le moment' : `${clips.length} clip${clips.length > 1 ? 's' : ''} prêt${clips.length > 1 ? 's' : ''}`) : undefined}
+        className="mb-8"
+      >
+        {clips.length > 1 && (
+          <Button variant="secondary" icon={DownloadCloud} onClick={downloadAll}>
             Télécharger tous
-          </button>
+          </Button>
         )}
-      </div>
+      </PageHeader>
 
       {/* Loading skeletons */}
       {loading && (
@@ -211,26 +153,21 @@ export default function ClipsPage() {
                 key={clip.id}
                 className="group overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-purple-500/50"
               >
-                {/* Thumbnail / Preview zone */}
+                {/* Thumbnail */}
                 <button
                   onClick={() => setPreviewClip(clip)}
                   className="relative flex aspect-[9/16] max-h-64 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-purple-900/40 to-pink-900/40"
                 >
                   {clip.thumbnail_path ? (
-                    <VideoThumbnail
-                      storagePath={clip.thumbnail_path}
-                      className="h-full w-full"
-                    />
+                    <VideoThumbnail storagePath={clip.thumbnail_path} className="h-full w-full" />
                   ) : (
                     <Film className="h-16 w-16 text-white/20" />
                   )}
-                  {/* Play overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
                     <div className="rounded-full bg-white/20 p-4 backdrop-blur-sm">
                       <Play className="h-8 w-8 text-white" fill="white" />
                     </div>
                   </div>
-                  {/* Duration badge */}
                   <span className="absolute bottom-2 right-2 rounded-md bg-black/60 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
                     {formatTime(duration)}
                   </span>
@@ -238,107 +175,72 @@ export default function ClipsPage() {
 
                 {/* Info */}
                 <div className="p-5">
-                  {/* Vidéo source */}
                   {clip.video?.title && (
-                    <p className="mb-1 truncate text-xs text-white/30">
-                      {clip.video.title}
-                    </p>
+                    <p className="mb-1 truncate text-xs text-white/30">{clip.video.title}</p>
                   )}
 
                   {editingId === clip.id ? (
-                    /* Mode édition */
                     <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-white/50">
-                          <Pencil className="h-3 w-3" />
-                          Titre
-                        </label>
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-white/50">
-                          <AlignLeft className="h-3 w-3" />
-                          Description
-                        </label>
-                        <textarea
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          rows={3}
-                          className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-white/50">
-                          <Hash className="h-3 w-3" />
-                          Hashtags
-                        </label>
-                        <input
-                          type="text"
-                          value={editHashtags}
-                          onChange={(e) => setEditHashtags(e.target.value)}
-                          placeholder="marketing, business, tips"
-                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-purple-500 focus:outline-none"
-                        />
-                        <p className="mt-1 text-[10px] text-white/30">Séparés par des virgules</p>
-                      </div>
+                      <Input
+                        label="Titre"
+                        icon={Pencil}
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="px-3 py-2 text-sm"
+                      />
+                      <Textarea
+                        label="Description"
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        rows={3}
+                        className="px-3 py-2 text-sm"
+                      />
+                      <Input
+                        label="Hashtags"
+                        value={editHashtags}
+                        onChange={(e) => setEditHashtags(e.target.value)}
+                        placeholder="marketing, business, tips"
+                        hint="Séparés par des virgules"
+                        className="px-3 py-2 text-sm"
+                      />
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => saveEdit(clip.id)}
-                          disabled={savingId === clip.id || !editTitle.trim()}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                          loading={savingId === clip.id}
+                          disabled={!editTitle.trim()}
+                          icon={Save}
+                          size="sm"
+                          className="flex-1"
                         >
-                          {savingId === clip.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Save className="h-4 w-4" />
-                          )}
                           Enregistrer
-                        </button>
-                        <button
-                          onClick={cancelEditing}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => setEditingId(null)}
                           disabled={savingId === clip.id}
-                          className="flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                          icon={X}
+                          size="sm"
                         >
-                          <X className="h-4 w-4" />
                           Annuler
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ) : (
-                    /* Mode affichage */
                     <>
-                      {/* Titre */}
-                      <h3 className="mb-1 text-xl font-bold text-white">
-                        {clip.title}
-                      </h3>
-
-                      {/* Description */}
+                      <h3 className="mb-1 text-xl font-bold text-white">{clip.title}</h3>
                       {clip.description && (
-                        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-white/60">
-                          {clip.description}
-                        </p>
+                        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-white/60">{clip.description}</p>
                       )}
-
-                      {/* Hashtags */}
                       {clip.hashtags.length > 0 && (
                         <div className="mb-4 flex flex-wrap gap-1.5">
                           {clip.hashtags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-300"
-                            >
+                            <Badge key={tag} variant="purple" className="px-2.5 py-0.5 text-xs">
                               #{tag}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       )}
 
-                      {/* Meta : durée + score + plateformes */}
                       <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-white/40">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
@@ -350,51 +252,31 @@ export default function ClipsPage() {
                             {clip.virality_score.toFixed(1)}
                           </span>
                         )}
-                        {/* Platform badges */}
                         <div className="flex gap-1">
                           {['TikTok', 'Reels', 'Shorts'].map((p) => (
-                            <span
-                              key={p}
-                              className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/50"
-                            >
+                            <Badge key={p} className="rounded bg-white/10 px-1.5 py-0.5 text-[10px]">
                               {p}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => setPreviewClip(clip)}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                        >
-                          <Eye className="h-4 w-4" />
+                        <Button variant="secondary" onClick={() => setPreviewClip(clip)} icon={Eye} size="sm" className="flex-1">
                           Prévisualiser
-                        </button>
-                        <button
-                          onClick={() => startEditing(clip)}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                        >
-                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="secondary" onClick={() => startEditing(clip)} icon={Pencil} size="sm" className="flex-1">
                           Modifier
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => downloadClip(clip)}
-                          disabled={downloadingId === clip.id}
-                          className={cn(
-                            'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all',
-                            'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105',
-                            downloadingId === clip.id && 'opacity-70 hover:scale-100'
-                          )}
+                          loading={downloadingId === clip.id}
+                          icon={Download}
+                          size="sm"
+                          className="flex-1"
                         >
-                          {downloadingId === clip.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
-                          )}
                           Télécharger
-                        </button>
+                        </Button>
                       </div>
                     </>
                   )}
@@ -407,25 +289,17 @@ export default function ClipsPage() {
 
       {/* Empty state */}
       {!loading && clips.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 py-20 text-center">
-          <Scissors className="mb-4 h-16 w-16 text-white/15" />
-          <h2 className="mb-2 text-xl font-semibold text-white/60">
-            Aucun clip pour le moment
-          </h2>
-          <p className="mb-6 max-w-sm text-sm text-white/40">
-            Importez une vidéo et laissez l&apos;IA vous suggérer les meilleurs moments à extraire
-          </p>
-          <Link
-            href="/upload"
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105"
-          >
-            <Film className="h-5 w-5" />
-            Créer mon premier clip
-          </Link>
-        </div>
+        <EmptyState
+          icon={Scissors}
+          title="Aucun clip pour le moment"
+          description="Importez une vidéo et laissez l'IA vous suggérer les meilleurs moments à extraire"
+          actionLabel="Créer mon premier clip"
+          actionHref="/upload"
+          actionIcon={Film}
+          className="py-20"
+        />
       )}
 
-      {/* Modal Preview */}
       <ClipPreviewModal clip={previewClip} onClose={() => setPreviewClip(null)} />
     </div>
   )

@@ -3,12 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import {
-  Film,
   Upload,
   Clock,
   Loader2,
   Sparkles,
-  CircleAlert,
   Trash2,
   Play,
   HardDrive,
@@ -20,28 +18,13 @@ import {
   Eye,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { cn, formatTime, formatFileSize } from '@/lib/utils'
+import { cn, formatTime, formatFileSize, formatDate } from '@/lib/utils'
+import { VIDEO_STATUS_LABELS, VIDEO_STATUS_COLORS } from '@/lib/constants'
+import { PageHeader, EmptyState, Badge, ConfirmModal } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
-import type { Video, Clip, VideoStatus } from '@/types/database'
-
-interface VideoWithClips extends Video {
-  clips: Clip[]
-}
-
-const STATUS_LABELS: Record<VideoStatus, string> = {
-  uploaded: 'En attente',
-  processing: 'Transcription...',
-  ready: 'Prête',
-  failed: 'Erreur',
-}
-
-const STATUS_COLORS: Record<VideoStatus, string> = {
-  uploaded: 'bg-yellow-500/20 text-yellow-300',
-  processing: 'bg-blue-500/20 text-blue-300',
-  ready: 'bg-emerald-500/20 text-emerald-300',
-  failed: 'bg-red-500/20 text-red-300',
-}
+import { useClipDownload } from '@/hooks/useClipDownload'
+import type { VideoWithClips, Clip } from '@/types/database'
 
 export default function VideosPage() {
   const [videos, setVideos] = useState<VideoWithClips[]>([])
@@ -50,8 +33,8 @@ export default function VideosPage() {
   const [transcribingId, setTranscribingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [expandedVideoId, setExpandedVideoId] = useState<string | null>(null)
-  const [downloadingClipId, setDownloadingClipId] = useState<string | null>(null)
   const [previewClip, setPreviewClip] = useState<Clip | null>(null)
+  const { downloadingId, downloadClip } = useClipDownload()
 
   const loadVideos = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -94,33 +77,6 @@ export default function VideosPage() {
     }
   }, [videos, loadVideos])
 
-  async function downloadClip(clip: Clip) {
-    if (!clip.storage_path) return
-    setDownloadingClipId(clip.id)
-
-    try {
-      const supabase = createClient()
-      const { data } = await supabase.storage
-        .from('videos')
-        .createSignedUrl(clip.storage_path, 300)
-
-      if (data?.signedUrl) {
-        const res = await fetch(data.signedUrl)
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${clip.title}.mp4`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
-    } catch (err) {
-      console.error('Download error:', err)
-    } finally {
-      setDownloadingClipId(null)
-    }
-  }
-
   async function deleteVideo(video: VideoWithClips) {
     setDeletingId(video.id)
     setConfirmDeleteId(null)
@@ -130,7 +86,6 @@ export default function VideosPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      // 1. Supprimer les clips associés du Storage
       const { data: clips } = await supabase
         .from('clips')
         .select('id, storage_path')
@@ -145,25 +100,17 @@ export default function VideosPage() {
           await supabase.storage.from('videos').remove(clipPaths)
         }
 
-        // Supprimer les clips de la DB
         await supabase.from('clips').delete().eq('video_id', video.id)
       }
 
-      // 2. Supprimer les transcriptions
       await supabase.from('transcriptions').delete().eq('video_id', video.id)
-
-      // 3. Supprimer les processing jobs
       await supabase.from('processing_jobs').delete().eq('video_id', video.id)
 
-      // 4. Supprimer la vidéo du Storage
       if (video.storage_path) {
         await supabase.storage.from('videos').remove([video.storage_path])
       }
 
-      // 5. Supprimer la vidéo de la DB
       await supabase.from('videos').delete().eq('id', video.id)
-
-      // Mettre à jour la liste locale
       setVideos((prev) => prev.filter((v) => v.id !== video.id))
     } catch (err) {
       console.error('Delete error:', err)
@@ -183,7 +130,6 @@ export default function VideosPage() {
       })
 
       if (response.ok) {
-        // Recharger la liste pour voir le nouveau statut
         await loadVideos()
       } else {
         const result = await response.json()
@@ -196,34 +142,15 @@ export default function VideosPage() {
     }
   }
 
-  function formatDate(dateStr: string): string {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-
   const videoToDelete = videos.find((v) => v.id === confirmDeleteId)
 
   return (
     <div className="mx-auto max-w-5xl">
-      {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white md:text-4xl">
-            Mes Vidéos
-          </h1>
-          {!loading && (
-            <p className="mt-1 text-white/50">
-              {videos.length === 0
-                ? 'Aucune vidéo importée'
-                : `${videos.length} vidéo${videos.length > 1 ? 's' : ''}`}
-            </p>
-          )}
-        </div>
-
+      <PageHeader
+        title="Mes Vidéos"
+        subtitle={!loading ? (videos.length === 0 ? 'Aucune vidéo importée' : `${videos.length} vidéo${videos.length > 1 ? 's' : ''}`) : undefined}
+        className="mb-8"
+      >
         <Link
           href="/upload"
           className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
@@ -231,7 +158,7 @@ export default function VideosPage() {
           <Upload className="h-5 w-5" />
           Importer une vidéo
         </Link>
-      </div>
+      </PageHeader>
 
       {/* Loading skeletons */}
       {loading && (
@@ -283,7 +210,7 @@ export default function VideosPage() {
                       </div>
                     ) : video.status === 'failed' ? (
                       <div className="flex h-full w-full items-center justify-center bg-red-500/20">
-                        <CircleAlert className="h-6 w-6 text-red-400" />
+                        <Loader2 className="h-6 w-6 text-red-400" />
                       </div>
                     ) : (
                       <VideoThumbnail storagePath={`${video.user_id}/thumbnails/${video.id}.jpg`} className="h-full w-full rounded-xl" />
@@ -296,17 +223,13 @@ export default function VideosPage() {
                       <h3 className="truncate text-lg font-semibold text-white">
                         {video.title}
                       </h3>
-                      <span
-                        className={cn(
-                          'shrink-0 rounded-full px-3 py-0.5 text-xs font-medium',
-                          STATUS_COLORS[video.status]
-                        )}
+                      <Badge
+                        variant={video.status === 'ready' ? 'emerald' : video.status === 'processing' ? 'blue' : video.status === 'failed' ? 'red' : 'yellow'}
                       >
-                        {isTranscribing ? 'Transcription...' : STATUS_LABELS[video.status]}
-                      </span>
+                        {isTranscribing ? 'Transcription...' : VIDEO_STATUS_LABELS[video.status]}
+                      </Badge>
                     </div>
 
-                    {/* Métadonnées */}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/40">
                       <span className="flex items-center gap-1.5">
                         <HardDrive className="h-3.5 w-3.5" />
@@ -404,12 +327,10 @@ export default function VideosPage() {
                               key={clip.id}
                               className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:bg-white/[0.07]"
                             >
-                              {/* Icône clip */}
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/15">
                                 <Scissors className="h-4 w-4 text-purple-400" />
                               </div>
 
-                              {/* Info clip */}
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-white">
                                   {clip.title}
@@ -433,7 +354,6 @@ export default function VideosPage() {
                                 </div>
                               </div>
 
-                              {/* Actions clip */}
                               <div className="flex shrink-0 items-center gap-1.5">
                                 <button
                                   onClick={() => setPreviewClip(clip)}
@@ -444,11 +364,11 @@ export default function VideosPage() {
                                 </button>
                                 <button
                                   onClick={() => downloadClip(clip)}
-                                  disabled={downloadingClipId === clip.id}
+                                  disabled={downloadingId === clip.id}
                                   className="rounded-lg p-2 text-white/30 transition-colors hover:bg-purple-500/20 hover:text-purple-400"
                                   title="Télécharger"
                                 >
-                                  {downloadingClipId === clip.id ? (
+                                  {downloadingId === clip.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <Download className="h-4 w-4" />
@@ -470,67 +390,29 @@ export default function VideosPage() {
 
       {/* Empty state */}
       {!loading && videos.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 py-20 text-center">
-          <Film className="mb-4 h-16 w-16 text-white/15" />
-          <h2 className="mb-2 text-xl font-semibold text-white/60">
-            Aucune vidéo importée
-          </h2>
-          <p className="mb-6 max-w-sm text-sm text-white/40">
-            Importez votre première vidéo pour commencer à créer des clips viraux
-          </p>
-          <Link
-            href="/upload"
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105"
-          >
-            <Upload className="h-5 w-5" />
-            Importer une vidéo
-          </Link>
-        </div>
+        <EmptyState
+          icon={Upload}
+          title="Aucune vidéo importée"
+          description="Importez votre première vidéo pour commencer à créer des clips viraux"
+          actionLabel="Importer une vidéo"
+          actionHref="/upload"
+          actionIcon={Upload}
+          className="py-20"
+        />
       )}
 
       {/* Modal de confirmation de suppression */}
-      {confirmDeleteId && videoToDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-          onClick={() => setConfirmDeleteId(null)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-white/20 bg-slate-900 p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
-                <Trash2 className="h-5 w-5 text-red-400" />
-              </div>
-              <h3 className="text-lg font-bold text-white">
-                Supprimer cette vidéo ?
-              </h3>
-            </div>
-
-            <p className="mb-2 text-sm text-white/60">
-              La vidéo <strong className="text-white">{videoToDelete.title}</strong> sera
-              définitivement supprimée, ainsi que tous ses clips et transcriptions associés.
-            </p>
-            <p className="mb-6 text-sm text-red-400/80">
-              Cette action est irréversible.
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => deleteVideo(videoToDelete)}
-                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
-              >
-                Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
+      {videoToDelete && (
+        <ConfirmModal
+          open={!!confirmDeleteId}
+          onClose={() => setConfirmDeleteId(null)}
+          onConfirm={() => deleteVideo(videoToDelete)}
+          title="Supprimer cette vidéo ?"
+          description={`La vidéo "${videoToDelete.title}" sera définitivement supprimée, ainsi que tous ses clips et transcriptions associés.`}
+          warning="Cette action est irréversible."
+          confirmLabel="Supprimer"
+          icon={Trash2}
+        />
       )}
 
       {/* Modal preview clip */}

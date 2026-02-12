@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, Loader2, CircleCheck } from 'lucide-react'
+import { Lock, CircleCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { AlertBanner, Button, Input } from '@/components/ui'
 
 export default function UpdatePasswordPage() {
   const router = useRouter()
@@ -74,56 +75,39 @@ export default function UpdatePasswordPage() {
         onSubmit={handleSubmit}
         className="space-y-5 rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur-xl"
       >
-        <div>
-          <label htmlFor="password" className="mb-2 block text-sm font-medium text-white/70">
-            Nouveau mot de passe
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            placeholder="8 caractères minimum"
-            className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:border-purple-500 transition-colors"
-          />
-        </div>
+        <Input
+          id="password"
+          type="password"
+          label="Nouveau mot de passe"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="new-password"
+          placeholder="8 caractères minimum"
+        />
 
-        <div>
-          <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium text-white/70">
-            Confirmer le mot de passe
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            placeholder="Retapez votre mot de passe"
-            className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:border-purple-500 transition-colors"
-          />
-        </div>
+        <Input
+          id="confirmPassword"
+          type="password"
+          label="Confirmer le mot de passe"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          autoComplete="new-password"
+          placeholder="Retapez votre mot de passe"
+        />
 
-        {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
-            <p className="text-sm text-red-300">{error}</p>
-          </div>
-        )}
+        {error && <AlertBanner message={error} />}
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          loading={loading}
+          icon={Lock}
+          size="lg"
+          className="w-full"
         >
-          {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <Lock className="h-5 w-5" />
-          )}
           Mettre à jour le mot de passe
-        </button>
+        </Button>
       </form>
     </>
   )
