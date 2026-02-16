@@ -1,0 +1,38 @@
+import Link from 'next/link'
+
+export function Navbar() {
+  return (
+    <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
+        <Link href="/" className="text-xl font-bold tracking-tight">
+          <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Clip
+          </span>
+          <span className="text-white">Forge</span>
+        </Link>
+
+        <div className="hidden items-center gap-8 text-sm text-white/60 md:flex">
+          <a href="#features" className="transition-colors hover:text-white">Fonctionnalités</a>
+          <a href="#how-it-works" className="transition-colors hover:text-white">Comment ça marche</a>
+          <a href="#pricing" className="transition-colors hover:text-white">Tarifs</a>
+          <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            href="/login"
+            className="hidden text-sm font-medium text-white/70 transition-colors hover:text-white sm:block"
+          >
+            Connexion
+          </Link>
+          <Link
+            href="/signup"
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-105"
+          >
+            Essai gratuit
+          </Link>
+        </div>
+      </div>
+    </nav>
+  )
+}
