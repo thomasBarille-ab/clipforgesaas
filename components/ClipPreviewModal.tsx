@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Clock, TrendingUp, Download } from 'lucide-react'
+import { Clock, TrendingUp, Download, Share2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatTime } from '@/lib/utils'
 import { Modal, Button } from '@/components/ui'
@@ -11,9 +11,10 @@ import type { Clip } from '@/types/database'
 interface Props {
   clip: Clip | null
   onClose: () => void
+  onPublish?: () => void
 }
 
-export function ClipPreviewModal({ clip, onClose }: Props) {
+export function ClipPreviewModal({ clip, onClose, onPublish }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [loadingUrl, setLoadingUrl] = useState(false)
   const { downloadingId, downloadClip } = useClipDownload()
@@ -86,15 +87,28 @@ export function ClipPreviewModal({ clip, onClose }: Props) {
           )}
         </div>
 
-        <Button
-          onClick={() => downloadClip(clip)}
-          loading={downloadingId === clip.id}
-          icon={Download}
-          size="lg"
-          className="mt-4 w-full"
-        >
-          Télécharger ce clip
-        </Button>
+        <div className="mt-4 flex gap-2">
+          <Button
+            onClick={() => downloadClip(clip)}
+            loading={downloadingId === clip.id}
+            icon={Download}
+            size="lg"
+            className="flex-1"
+          >
+            Télécharger
+          </Button>
+          {onPublish && (
+            <Button
+              variant="secondary"
+              onClick={onPublish}
+              icon={Share2}
+              size="lg"
+              className="flex-1"
+            >
+              Publier
+            </Button>
+          )}
+        </div>
       </div>
     </Modal>
   )
