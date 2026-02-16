@@ -55,7 +55,7 @@ export interface TranscriptionSegment {
 
 export interface Clip {
   id: string
-  video_id: string
+  video_id: string | null
   user_id: string
   title: string
   description: string | null
