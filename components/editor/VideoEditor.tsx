@@ -473,7 +473,11 @@ function EditorContent({
 
         {/* Centre : Preview */}
         <div className="overflow-hidden p-4 h-full flex-1 min-w-0">
-          <EditorPreview videoUrl={videoUrl} />
+          <EditorPreview
+            videoUrl={videoUrl}
+            subtitleStyle={subtitleStyle}
+            transcriptionSegments={segments}
+          />
         </div>
 
         {/* Séparateur droite */}
