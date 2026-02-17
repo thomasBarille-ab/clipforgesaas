@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -60,6 +60,83 @@ function EditorContent({
   const [clipHashtags, setClipHashtags] = useState(suggestion.hashtags.join(', '))
   const [generating, setGenerating] = useState<GeneratingState | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Panneaux redimensionnables
+  const [leftWidth, setLeftWidth] = useState(400)
+  const [rightWidth, setRightWidth] = useState(440)
+  const [timelineHeight, setTimelineHeight] = useState(160)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const draggingPanel = useRef<'left' | 'right' | null>(null)
+  const dragStartX = useRef(0)
+  const dragStartWidth = useRef(0)
+  const draggingTimeline = useRef(false)
+  const dragStartY = useRef(0)
+  const dragStartHeight = useRef(0)
+
+  const handleResizeStart = useCallback((panel: 'left' | 'right', e: React.MouseEvent) => {
+    e.preventDefault()
+    draggingPanel.current = panel
+    dragStartX.current = e.clientX
+    dragStartWidth.current = panel === 'left' ? leftWidth : rightWidth
+
+    const handleMove = (ev: MouseEvent) => {
+      if (!draggingPanel.current || !containerRef.current) return
+      const containerWidth = containerRef.current.offsetWidth
+      const delta = ev.clientX - dragStartX.current
+      const minPanel = 240
+      const minCenter = 300
+
+      if (draggingPanel.current === 'left') {
+        const newLeft = Math.max(minPanel, dragStartWidth.current + delta)
+        const maxLeft = containerWidth - rightWidth - minCenter
+        setLeftWidth(Math.min(newLeft, maxLeft))
+      } else {
+        const newRight = Math.max(minPanel, dragStartWidth.current - delta)
+        const maxRight = containerWidth - leftWidth - minCenter
+        setRightWidth(Math.min(newRight, maxRight))
+      }
+    }
+
+    const handleUp = () => {
+      draggingPanel.current = null
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  }, [leftWidth, rightWidth])
+
+  const handleTimelineResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    draggingTimeline.current = true
+    dragStartY.current = e.clientY
+    dragStartHeight.current = timelineHeight
+
+    const handleMove = (ev: MouseEvent) => {
+      if (!draggingTimeline.current) return
+      const delta = dragStartY.current - ev.clientY
+      const newHeight = Math.max(140, Math.min(400, dragStartHeight.current + delta))
+      setTimelineHeight(newHeight)
+    }
+
+    const handleUp = () => {
+      draggingTimeline.current = false
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  }, [timelineHeight])
 
   // Raccourcis clavier
   useEffect(() => {
@@ -300,9 +377,9 @@ function EditorContent({
       )}
 
       {/* Zone principale 3 colonnes */}
-      <div className="flex-1 overflow-hidden grid grid-cols-[400px_1fr_440px]">
+      <div ref={containerRef} className="flex-1 overflow-hidden flex">
         {/* Panneau gauche : Infos + Crop */}
-        <div className="overflow-y-auto border-r border-white/10 p-4 space-y-4">
+        <div className="overflow-y-auto flex-shrink-0 p-4 space-y-4" style={{ width: leftWidth }}>
           <CollapsibleBlock title="Informations" icon={Pencil}>
             <div className="space-y-4">
               <Input
@@ -388,19 +465,39 @@ function EditorContent({
           </div>
         </div>
 
+        {/* Séparateur gauche */}
+        <div
+          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+          onMouseDown={(e) => handleResizeStart('left', e)}
+        />
+
         {/* Centre : Preview */}
-        <div className="overflow-hidden p-4 h-full">
+        <div className="overflow-hidden p-4 h-full flex-1 min-w-0">
           <EditorPreview videoUrl={videoUrl} />
         </div>
 
+        {/* Séparateur droite */}
+        <div
+          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+          onMouseDown={(e) => handleResizeStart('right', e)}
+        />
+
         {/* Panneau droite : Sous-titres */}
-        <div className="overflow-y-auto border-l border-white/10 p-4">
+        <div className="overflow-y-auto flex-shrink-0 p-4" style={{ width: rightWidth }}>
           <SubtitleEditor style={subtitleStyle} onChange={setSubtitleStyle} />
         </div>
       </div>
 
+      {/* Séparateur timeline */}
+      <div
+        className="flex-shrink-0 h-1.5 cursor-row-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+        onMouseDown={handleTimelineResizeStart}
+      />
+
       {/* Timeline */}
-      <Timeline videoUrl={videoUrl} />
+      <div className="flex-shrink-0" style={{ height: timelineHeight }}>
+        <Timeline videoUrl={videoUrl} />
+      </div>
     </div>
   )
 }

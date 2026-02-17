@@ -78,12 +78,11 @@ export function Timeline({ videoUrl }: TimelineProps) {
   )
 
   return (
-    <div className="flex flex-shrink-0 flex-col border-t border-white/10 bg-slate-900/50">
+    <div className="flex h-full flex-col border-t border-white/10 bg-slate-900/50">
       {/* Zone scrollable */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto overflow-y-hidden px-4 py-2"
-        style={{ maxHeight: 120 }}
+        className="flex-1 overflow-x-auto overflow-y-auto px-4 py-2"
         onClick={handleClick}
       >
         <div className="relative" style={{ width: contentWidth, minWidth: '100%' }}>
@@ -105,11 +104,11 @@ export function Timeline({ videoUrl }: TimelineProps) {
             {/* Playhead */}
             <TimelinePlayhead />
           </div>
+
+          {/* Controls dans le flow de la timeline */}
+          <TimelineControls containerWidth={containerWidth} />
         </div>
       </div>
-
-      {/* Controls */}
-      <TimelineControls containerWidth={containerWidth} />
     </div>
   )
 }

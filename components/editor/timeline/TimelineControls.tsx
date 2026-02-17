@@ -28,7 +28,7 @@ export function TimelineControls({ containerWidth }: TimelineControlsProps) {
   }
 
   return (
-    <div className="flex items-center justify-between border-t border-white/10 bg-slate-950/60 px-4 py-2">
+    <div className="mt-2 flex items-center justify-between rounded-lg bg-slate-950/60 px-4 py-2">
       <div className="flex items-center gap-2">
         <button
           onClick={zoomOut}
