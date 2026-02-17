@@ -1,0 +1,426 @@
+'use client'
+
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { trimAndConcatSegments } from '@/lib/ffmpeg'
+import { generateSrtForSegments } from '@/lib/generateSrt'
+import { formatTime } from '@/lib/utils'
+import { Input, Textarea, AlertBanner, ProgressBar } from '@/components/ui'
+import { CollapsibleBlock } from '@/components/CollapsibleBlock'
+import { SubtitleEditor } from '@/components/SubtitleEditor'
+import { EditorProvider, useEditor } from './EditorProvider'
+import { EditorToolbar } from './toolbar/EditorToolbar'
+import { Timeline } from './timeline/Timeline'
+import { EditorPreview } from './preview/EditorPreview'
+import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
+import type { SubtitleStyle } from '@/types/subtitles'
+import type { ClipSuggestion, ClipInsert, TranscriptionSegment } from '@/types/database'
+import type { TimelineSegment } from './types'
+
+type GeneratingState = {
+  step: 'creating' | 'loading-ffmpeg' | 'downloading' | 'processing' | 'uploading' | 'finalizing' | 'done'
+  progress: number
+}
+
+const STEP_LABELS: Record<GeneratingState['step'], string> = {
+  creating: 'Création du clip...',
+  'loading-ffmpeg': 'Chargement de FFmpeg...',
+  downloading: 'Téléchargement de la vidéo...',
+  processing: 'Encodage en cours...',
+  uploading: 'Upload du clip...',
+  finalizing: 'Finalisation...',
+  done: 'Clip créé !',
+}
+
+interface VideoEditorProps {
+  videoUrl: string
+  suggestion: ClipSuggestion
+  segments: TranscriptionSegment[]
+  videoId: string
+  onClose: () => void
+  onGenerated: () => void
+}
+
+function EditorContent({
+  videoUrl,
+  suggestion,
+  segments,
+  videoId,
+  onClose,
+  onGenerated,
+}: VideoEditorProps) {
+  const router = useRouter()
+  const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
+
+  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(DEFAULT_SUBTITLE_STYLE)
+  const [clipTitle, setClipTitle] = useState(suggestion.title)
+  const [clipDescription, setClipDescription] = useState(suggestion.description)
+  const [clipHashtags, setClipHashtags] = useState(suggestion.hashtags.join(', '))
+  const [generating, setGenerating] = useState<GeneratingState | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Raccourcis clavier
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault()
+          dispatch({ type: 'SET_PLAYING', playing: !state.playing })
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          dispatch({
+            type: 'SET_PLAYHEAD',
+            time: Math.max(0, state.playheadTime - (e.shiftKey ? 5 : 1)),
+          })
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          dispatch({
+            type: 'SET_PLAYHEAD',
+            time: Math.min(totalDuration, state.playheadTime + (e.shiftKey ? 5 : 1)),
+          })
+          break
+        case 'Delete':
+        case 'Backspace':
+          if (state.selectedSegmentId && state.segments.length > 1) {
+            e.preventDefault()
+            dispatch({ type: 'DELETE_SEGMENT', id: state.selectedSegmentId })
+          }
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [state.playing, state.playheadTime, state.selectedSegmentId, state.segments.length, totalDuration, dispatch])
+
+  // Segment sous le playhead (suit la position courante)
+  const currentSegment = (() => {
+    for (let i = 0; i < state.segments.length; i++) {
+      const off = segmentOffsets[i]
+      if (!off) continue
+      if (state.playheadTime >= off.timelineStart && state.playheadTime <= off.timelineEnd) {
+        return state.segments[i]
+      }
+    }
+    return state.segments[0]
+  })()
+
+  const handleGenerate = useCallback(async () => {
+    if (generating) return
+    setGenerating({ step: 'creating', progress: 0 })
+    setError(null)
+
+    let clipId: string | null = null
+
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        setError('Vous devez être connecté')
+        setGenerating(null)
+        return
+      }
+
+      const firstSeg = state.segments[0]
+      const lastSeg = state.segments[state.segments.length - 1]
+
+      const clipInsert: ClipInsert = {
+        video_id: videoId,
+        user_id: session.user.id,
+        title: clipTitle.trim() || suggestion.title,
+        description: clipDescription.trim() || suggestion.description,
+        hashtags: clipHashtags.trim()
+          ? clipHashtags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean)
+          : suggestion.hashtags,
+        start_time_seconds: firstSeg.sourceStart,
+        end_time_seconds: lastSeg.sourceEnd,
+        storage_path: null,
+        thumbnail_path: null,
+        subtitle_style: JSON.stringify(subtitleStyle),
+        status: 'generating',
+        virality_score: suggestion.score,
+      }
+
+      const { data: clip, error: clipError } = await supabase
+        .from('clips')
+        .insert(clipInsert)
+        .select('id')
+        .single()
+
+      if (clipError || !clip) {
+        console.error('Supabase error:', clipError)
+        setError('Erreur lors de la création du clip')
+        setGenerating(null)
+        return
+      }
+
+      clipId = clip.id
+
+      setGenerating({ step: 'loading-ffmpeg', progress: 5 })
+
+      // Générer le SRT multi-segments (seulement si le résultat est non-vide)
+      let srtContent: string | null = null
+      if (subtitleStyle.enabled && segments.length > 0) {
+        const srt = generateSrtForSegments(segments, state.segments, segmentOffsets)
+        if (srt.trim().length > 0) {
+          srtContent = srt
+        }
+      }
+
+      setGenerating({ step: 'downloading', progress: 10 })
+
+      const { videoBlob, thumbnailBlob } = await trimAndConcatSegments({
+        videoUrl,
+        segments: state.segments,
+        srtContent,
+        subtitleStyle: subtitleStyle.enabled ? subtitleStyle : undefined,
+        onProgress: (p) => {
+          // p est 0-100 de FFmpeg ; on mappe vers la plage 10-70 du progrès global
+          const clamped = Math.max(0, Math.min(100, p))
+          setGenerating({ step: 'processing', progress: 10 + Math.round(clamped * 0.6) })
+        },
+      })
+
+      setGenerating({ step: 'uploading', progress: 75 })
+
+      const clipStoragePath = `${session.user.id}/clips/${clip.id}.mp4`
+      const thumbStoragePath = `${session.user.id}/thumbnails/clips/${clip.id}.jpg`
+
+      const { error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(clipStoragePath, videoBlob, {
+          contentType: 'video/mp4',
+          upsert: true,
+        })
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        throw new Error("Erreur lors de l'upload du clip")
+      }
+
+      let finalThumbPath: string | null = null
+      if (thumbnailBlob.size > 0) {
+        const { error: thumbUploadError } = await supabase.storage
+          .from('videos')
+          .upload(thumbStoragePath, thumbnailBlob, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          })
+        if (thumbUploadError) {
+          console.error('[clip-thumb] Upload error:', thumbUploadError.message)
+        } else {
+          finalThumbPath = thumbStoragePath
+        }
+      }
+
+      setGenerating({ step: 'finalizing', progress: 90 })
+
+      const response = await fetch('/api/clips/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clipId: clip.id,
+          storagePath: clipStoragePath,
+          thumbnailPath: finalThumbPath,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la finalisation du clip')
+      }
+
+      setGenerating({ step: 'done', progress: 100 })
+
+      setTimeout(() => {
+        onGenerated()
+        router.push('/clips')
+      }, 1500)
+    } catch (err) {
+      console.error('Clip generation error:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors de la génération du clip')
+
+      if (clipId) {
+        try {
+          const supabase = createClient()
+          await supabase.from('clips').update({ status: 'failed' }).eq('id', clipId)
+        } catch { /* best-effort */ }
+      }
+
+      setGenerating(null)
+    }
+  }, [
+    generating, state.segments, segmentOffsets, videoUrl, videoId, suggestion,
+    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router
+  ])
+
+  const isGenerating = generating !== null && generating.step !== 'done'
+  const isDone = generating?.step === 'done'
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950">
+      {/* Toolbar */}
+      <EditorToolbar
+        onClose={onClose}
+        onGenerate={handleGenerate}
+        generating={isGenerating}
+        generatingDone={isDone}
+        generatingLabel={generating ? STEP_LABELS[generating.step] : null}
+        disabled={generating !== null}
+      />
+
+      {/* Barre de progression */}
+      {generating && (
+        <div className="flex-shrink-0 px-4 py-2 bg-slate-900/50">
+          <ProgressBar
+            progress={generating.progress}
+            label={STEP_LABELS[generating.step]}
+            sublabel={`${generating.progress}%`}
+            icon={
+              isDone
+                ? <Check className="h-4 w-4" />
+                : <Loader2 className="h-4 w-4 animate-spin" />
+            }
+          />
+        </div>
+      )}
+
+      {/* Erreur */}
+      {error && (
+        <div className="flex-shrink-0 px-4 py-2">
+          <AlertBanner message={error} />
+        </div>
+      )}
+
+      {/* Zone principale 3 colonnes */}
+      <div className="flex-1 overflow-hidden grid grid-cols-[400px_1fr_440px]">
+        {/* Panneau gauche : Infos + Crop */}
+        <div className="overflow-y-auto border-r border-white/10 p-4 space-y-4">
+          <CollapsibleBlock title="Informations" icon={Pencil}>
+            <div className="space-y-4">
+              <Input
+                icon={Pencil}
+                label="Titre"
+                value={clipTitle}
+                onChange={(e) => setClipTitle(e.target.value)}
+                placeholder="Titre du clip"
+                disabled={generating !== null}
+                className="px-4 py-2.5 text-sm border-white/10"
+              />
+              <Textarea
+                icon={AlignLeft}
+                label="Description"
+                value={clipDescription}
+                onChange={(e) => setClipDescription(e.target.value)}
+                placeholder="Description pour les réseaux sociaux"
+                disabled={generating !== null}
+                rows={3}
+                className="px-4 py-2.5 text-sm border-white/10"
+              />
+              <Input
+                icon={Hash}
+                label="Hashtags"
+                value={clipHashtags}
+                onChange={(e) => setClipHashtags(e.target.value)}
+                placeholder="marketing, business, tips"
+                hint="Séparés par des virgules"
+                disabled={generating !== null}
+                className="px-4 py-2.5 text-sm border-white/10"
+              />
+            </div>
+          </CollapsibleBlock>
+
+          <CollapsibleBlock title="Cadrage" icon={Crop}>
+            <div className="space-y-3">
+              <p className="text-xs text-white/40">
+                Ajustez le cadrage 9:16 en cliquant sur la preview ou en déplaçant le slider.
+              </p>
+              {currentSegment && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-white/50">
+                    <span>Position horizontale</span>
+                    <span>{Math.round(currentSegment.cropX * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={currentSegment.cropX}
+                    onChange={(e) => {
+                      if (currentSegment) {
+                        dispatch({
+                          type: 'UPDATE_SEGMENT',
+                          id: currentSegment.id,
+                          updates: { cropX: Number(e.target.value) },
+                        })
+                      }
+                    }}
+                    disabled={generating !== null}
+                    className="w-full accent-purple-500"
+                  />
+                </div>
+              )}
+            </div>
+          </CollapsibleBlock>
+
+          {/* Info temps */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-white/50">
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
+              </span>
+              {suggestion.score > 0 && (
+                <span className="flex items-center gap-1 font-bold text-purple-400">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  {suggestion.score.toFixed(1)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Centre : Preview */}
+        <div className="overflow-hidden p-4 h-full">
+          <EditorPreview videoUrl={videoUrl} />
+        </div>
+
+        {/* Panneau droite : Sous-titres */}
+        <div className="overflow-y-auto border-l border-white/10 p-4">
+          <SubtitleEditor style={subtitleStyle} onChange={setSubtitleStyle} />
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <Timeline videoUrl={videoUrl} />
+    </div>
+  )
+}
+
+export function VideoEditor(props: VideoEditorProps) {
+  const initialSegments = useMemo<TimelineSegment[]>(
+    () => [
+      {
+        id: crypto.randomUUID(),
+        sourceStart: props.suggestion.start,
+        sourceEnd: props.suggestion.end,
+        cropX: 0.5,
+      },
+    ],
+    [props.suggestion.start, props.suggestion.end]
+  )
+
+  return (
+    <EditorProvider initialSegments={initialSegments}>
+      <EditorContent {...props} />
+    </EditorProvider>
+  )
+}
