@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { fetchPersonaForUser } from '@/lib/persona'
 import type { TranscriptionSegment } from '@/types/database'
 
 const anthropic = new Anthropic({
@@ -24,12 +25,17 @@ interface ClipSuggestion {
 function buildSearchPrompt(
   userPrompt: string,
   fullText: string,
-  segments: TranscriptionSegment[]
+  segments: TranscriptionSegment[],
+  persona: string | null
 ): string {
   const segmentsJson = JSON.stringify(segments, null, 2)
 
-  return `Tu es un expert en création de contenu viral pour TikTok/Reels/Shorts.
+  const personaBlock = persona
+    ? `\nPROFIL DU CRÉATEUR (adapte tes suggestions à son style) :\n${persona}\n\nTiens compte de ce profil pour privilégier ses thèmes, adapter les durées, formuler les titres dans son style, choisir des hashtags cohérents.\n`
+    : ''
 
+  return `Tu es un expert en création de contenu viral pour TikTok/Reels/Shorts.
+${personaBlock}
 Voici la transcription complète d'une vidéo :
 ${fullText}
 
@@ -162,10 +168,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    const persona = await fetchPersonaForUser(supabase, user.id)
     const prompt = buildSearchPrompt(
       body.prompt.trim(),
       transcription.full_text,
-      transcription.segments as TranscriptionSegment[]
+      transcription.segments as TranscriptionSegment[],
+      persona
     )
 
     const message = await anthropic.messages.create({
