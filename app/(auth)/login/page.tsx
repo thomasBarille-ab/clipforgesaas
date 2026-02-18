@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LogIn } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { AlertBanner, Button, Input, GoogleAuthButton } from '@/components/ui'
+import { AlertBanner, Button, Input, GoogleAuthButton, useToast } from '@/components/ui'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const toast = useToast()
 
   function validate(): string | null {
     if (!email.trim()) return 'Veuillez entrer votre adresse email'
@@ -40,6 +41,7 @@ export default function LoginPage() {
       })
 
       if (authError) {
+        toast.error('Identifiants invalides')
         setError('Email ou mot de passe incorrect')
         return
       }

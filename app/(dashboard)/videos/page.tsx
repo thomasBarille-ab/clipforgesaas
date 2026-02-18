@@ -20,7 +20,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize, formatDate } from '@/lib/utils'
 import { VIDEO_STATUS_LABELS, VIDEO_STATUS_COLORS } from '@/lib/constants'
-import { PageHeader, EmptyState, Badge, ConfirmModal } from '@/components/ui'
+import { PageHeader, EmptyState, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { useClipDownload } from '@/hooks/useClipDownload'
@@ -34,7 +34,10 @@ export default function VideosPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [expandedVideoId, setExpandedVideoId] = useState<string | null>(null)
   const [previewClip, setPreviewClip] = useState<Clip | null>(null)
+  const [deletingClipId, setDeletingClipId] = useState<string | null>(null)
+  const [confirmDeleteClipId, setConfirmDeleteClipId] = useState<string | null>(null)
   const { downloadingId, downloadClip } = useClipDownload()
+  const toast = useToast()
 
   const loadVideos = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -112,8 +115,10 @@ export default function VideosPage() {
 
       await supabase.from('videos').delete().eq('id', video.id)
       setVideos((prev) => prev.filter((v) => v.id !== video.id))
+      toast.success('Vidéo supprimée !')
     } catch (err) {
       console.error('Delete error:', err)
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
     } finally {
       setDeletingId(null)
     }
@@ -130,17 +135,62 @@ export default function VideosPage() {
       })
 
       if (response.ok) {
+        toast.success('Transcription lancée !')
         await loadVideos()
       } else {
         const result = await response.json()
         console.error('Transcription error:', result.error)
+        toast.error(result.error ?? 'Erreur lors de la transcription')
       }
     } catch (err) {
       console.error('Transcription error:', err)
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la transcription')
     } finally {
       setTranscribingId(null)
     }
   }
+
+  async function deleteClip(clip: Clip) {
+    setDeletingClipId(clip.id)
+    setConfirmDeleteClipId(null)
+
+    try {
+      const supabase = createClient()
+
+      if (clip.storage_path) {
+        await supabase.storage.from('videos').remove([clip.storage_path])
+      }
+
+      if (clip.thumbnail_path) {
+        await supabase.storage.from('videos').remove([clip.thumbnail_path])
+      }
+
+      const { error } = await supabase.from('clips').delete().eq('id', clip.id)
+      if (error) {
+        console.error('Delete clip error:', error)
+        toast.error('Erreur lors de la suppression du clip')
+        return
+      }
+
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === clip.video_id
+            ? { ...v, clips: (v.clips ?? []).filter((c) => c.id !== clip.id) }
+            : v
+        )
+      )
+      toast.success('Clip supprimé !')
+    } catch (err) {
+      console.error('Delete clip error:', err)
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+    } finally {
+      setDeletingClipId(null)
+    }
+  }
+
+  const clipToDelete = videos
+    .flatMap((v) => v.clips ?? [])
+    .find((c) => c.id === confirmDeleteClipId)
 
   const videoToDelete = videos.find((v) => v.id === confirmDeleteId)
 
@@ -374,6 +424,18 @@ export default function VideosPage() {
                                     <Download className="h-4 w-4" />
                                   )}
                                 </button>
+                                <button
+                                  onClick={() => setConfirmDeleteClipId(clip.id)}
+                                  disabled={deletingClipId === clip.id}
+                                  className="rounded-lg p-2 text-white/30 transition-colors hover:bg-red-500/20 hover:text-red-400"
+                                  title="Supprimer"
+                                >
+                                  {deletingClipId === clip.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </button>
                               </div>
                             </div>
                           )
@@ -409,6 +471,20 @@ export default function VideosPage() {
           onConfirm={() => deleteVideo(videoToDelete)}
           title="Supprimer cette vidéo ?"
           description={`La vidéo "${videoToDelete.title}" sera définitivement supprimée, ainsi que tous ses clips et transcriptions associés.`}
+          warning="Cette action est irréversible."
+          confirmLabel="Supprimer"
+          icon={Trash2}
+        />
+      )}
+
+      {/* Modal de confirmation de suppression clip */}
+      {clipToDelete && (
+        <ConfirmModal
+          open={!!confirmDeleteClipId}
+          onClose={() => setConfirmDeleteClipId(null)}
+          onConfirm={() => deleteClip(clipToDelete)}
+          title="Supprimer ce clip ?"
+          description={`Le clip "${clipToDelete.title}" sera définitivement supprimé.`}
           warning="Cette action est irréversible."
           confirmLabel="Supprimer"
           icon={Trash2}

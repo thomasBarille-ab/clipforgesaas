@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { UserPlus, CircleCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { AlertBanner, Button, Input, GoogleAuthButton } from '@/components/ui'
+import { AlertBanner, Button, Input, GoogleAuthButton, useToast } from '@/components/ui'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const toast = useToast()
 
   function validate(): string | null {
     if (!email.trim()) return 'Veuillez entrer votre adresse email'
@@ -46,11 +47,13 @@ export default function SignupPage() {
       })
 
       if (authError) {
+        toast.error("Impossible de créer le compte. Vérifiez vos informations.")
         setError("Impossible de créer le compte. Vérifiez vos informations.")
         return
       }
 
       setSuccess(true)
+      toast.success('Compte créé ! Vérifiez votre email.')
       setTimeout(() => router.push('/login'), 4000)
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.')

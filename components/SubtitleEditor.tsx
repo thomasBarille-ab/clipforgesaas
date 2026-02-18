@@ -20,6 +20,7 @@ import {
   Captions,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/ui/Toast'
 import {
   FONT_OPTIONS,
   FONT_SIZE_MAP,
@@ -79,6 +80,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
   const [saving, setSaving] = useState(false)
   const [presetName, setPresetName] = useState('')
   const [open, setOpen] = useState(true)
+  const toast = useToast()
 
   useEffect(() => {
     setPresets(loadPresets())
@@ -94,11 +96,13 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
     setPresets((prev) => [...prev, preset])
     setPresetName('')
     setSaving(false)
+    toast.success('Preset sauvegardé !')
   }
 
   function handleDeletePreset(id: string) {
     deletePreset(id)
     setPresets((prev) => prev.filter((p) => p.id !== id))
+    toast.success('Preset supprimé !')
   }
 
   function handleApplyPreset(preset: SubtitlePreset) {
