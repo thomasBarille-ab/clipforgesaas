@@ -93,6 +93,26 @@ export default function DashboardPage() {
         </Link>
       </PageHeader>
 
+      {/* Quick actions */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link
+          href="/upload"
+          className="rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-left transition-transform hover:scale-[1.02]"
+        >
+          <Upload className="mb-2 h-8 w-8 text-white" />
+          <strong className="mb-1 block text-white">Upload vidéo</strong>
+          <span className="text-sm text-white/80">Créez vos premiers clips</span>
+        </Link>
+        <Link
+          href="/clips"
+          className="rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-colors hover:border-purple-500/50"
+        >
+          <Scissors className="mb-2 h-8 w-8 text-purple-400" />
+          <strong className="mb-1 block text-white">Mes clips</strong>
+          <span className="text-sm text-slate-400">Voir, éditer et publier vos clips</span>
+        </Link>
+      </div>
+
       {/* Stats cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         {STAT_CARDS.map(({ key, label, icon: Icon, color, iconColor }) => (
