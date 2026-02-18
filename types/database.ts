@@ -67,6 +67,23 @@ export interface Clip {
   subtitle_style: string
   status: ClipStatus
   virality_score: number | null
+  suggestion_data: SuggestionData | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SuggestionData {
+  title: string
+  description: string
+  hashtags: string[]
+  score: number
+}
+
+export interface CreatorPersona {
+  id: string
+  user_id: string
+  persona_summary: string
+  clip_count: number
   created_at: string
   updated_at: string
 }

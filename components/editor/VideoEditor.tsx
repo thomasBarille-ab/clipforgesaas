@@ -226,6 +226,12 @@ function EditorContent({
         subtitle_style: JSON.stringify(subtitleStyle),
         status: 'generating',
         virality_score: suggestion.score,
+        suggestion_data: {
+          title: suggestion.title,
+          description: suggestion.description,
+          hashtags: suggestion.hashtags,
+          score: suggestion.score,
+        },
       }
 
       const { data: clip, error: clipError } = await supabase
@@ -320,6 +326,9 @@ function EditorContent({
 
       setGenerating({ step: 'done', progress: 100 })
       toast.success('Clip créé avec succès !')
+
+      // Fire-and-forget : mise à jour du persona créateur (plan Business)
+      fetch('/api/persona/update', { method: 'POST' }).catch(() => {})
 
       setTimeout(() => {
         onGenerated()
