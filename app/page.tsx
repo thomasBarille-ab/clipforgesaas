@@ -3,7 +3,6 @@ import {
   HeroSection,
   ProblemSolution,
   FeaturesSection,
-  SocialProof,
   PricingSection,
   FAQ,
   FinalCTA,
@@ -17,7 +16,6 @@ export default function HomePage() {
       <HeroSection />
       <ProblemSolution />
       <FeaturesSection />
-      <SocialProof />
       <PricingSection />
       <FAQ />
       <FinalCTA />
