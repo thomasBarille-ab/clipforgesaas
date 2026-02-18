@@ -12,6 +12,7 @@ import { CollapsibleBlock } from '@/components/CollapsibleBlock'
 import { SubtitleEditor } from '@/components/SubtitleEditor'
 import { EditorProvider, useEditor } from './EditorProvider'
 import { EditorToolbar } from './toolbar/EditorToolbar'
+import { EditorOnboardingOverlay } from './EditorOnboardingOverlay'
 import { Timeline } from './timeline/Timeline'
 import { EditorPreview } from './preview/EditorPreview'
 import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
@@ -385,7 +386,7 @@ function EditorContent({
       {/* Zone principale 3 colonnes */}
       <div ref={containerRef} className="flex-1 overflow-hidden flex">
         {/* Panneau gauche : Infos + Crop */}
-        <div className="overflow-y-auto flex-shrink-0 p-4 space-y-4" style={{ width: leftWidth }}>
+        <div data-onboarding-editor="editor-left-panel" className="overflow-y-auto flex-shrink-0 p-4 space-y-4" style={{ width: leftWidth }}>
           <CollapsibleBlock title="Informations" icon={Pencil}>
             <div className="space-y-4">
               <Input
@@ -478,7 +479,7 @@ function EditorContent({
         />
 
         {/* Centre : Preview */}
-        <div className="overflow-hidden p-4 h-full flex-1 min-w-0">
+        <div data-onboarding-editor="editor-preview" className="overflow-hidden p-4 h-full flex-1 min-w-0">
           <EditorPreview
             videoUrl={videoUrl}
             subtitleStyle={subtitleStyle}
@@ -493,7 +494,7 @@ function EditorContent({
         />
 
         {/* Panneau droite : Sous-titres */}
-        <div className="overflow-y-auto flex-shrink-0 p-4" style={{ width: rightWidth }}>
+        <div data-onboarding-editor="editor-subtitles" className="overflow-y-auto flex-shrink-0 p-4" style={{ width: rightWidth }}>
           <SubtitleEditor style={subtitleStyle} onChange={setSubtitleStyle} />
         </div>
       </div>
@@ -505,9 +506,11 @@ function EditorContent({
       />
 
       {/* Timeline */}
-      <div className="flex-shrink-0" style={{ height: timelineHeight }}>
+      <div data-onboarding-editor="editor-timeline" className="flex-shrink-0" style={{ height: timelineHeight }}>
         <Timeline videoUrl={videoUrl} />
       </div>
+
+      <EditorOnboardingOverlay />
     </div>
   )
 }
