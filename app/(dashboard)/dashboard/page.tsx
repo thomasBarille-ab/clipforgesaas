@@ -17,6 +17,7 @@ import { cn, formatTime, formatFileSize } from '@/lib/utils'
 import { VIDEO_STATUS_LABELS, VIDEO_STATUS_COLORS } from '@/lib/constants'
 import { PageHeader, EmptyState, Badge } from '@/components/ui'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
+import { OnboardingOverlay } from '@/components/OnboardingOverlay'
 import type { Video, ClipWithVideo } from '@/types/database'
 
 interface Stats {
@@ -86,6 +87,7 @@ export default function DashboardPage() {
       <PageHeader title="Dashboard" subtitle="Gérez vos vidéos et clips en un coup d'oeil">
         <Link
           href="/upload"
+          data-onboarding="upload-btn"
           className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
         >
           <Upload className="h-5 w-5" />
@@ -94,7 +96,7 @@ export default function DashboardPage() {
       </PageHeader>
 
       {/* Quick actions */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div data-onboarding="quick-actions" className="grid gap-4 md:grid-cols-2">
         <Link
           href="/upload"
           className="rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-left transition-transform hover:scale-[1.02]"
@@ -114,7 +116,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div data-onboarding="stats" className="grid gap-4 sm:grid-cols-3">
         {STAT_CARDS.map(({ key, label, icon: Icon, color, iconColor }) => (
           <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
             <div className={cn('mb-3 flex h-10 w-10 items-center justify-center rounded-xl', color)}>
@@ -299,6 +301,8 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      <OnboardingOverlay />
     </div>
   )
 }
