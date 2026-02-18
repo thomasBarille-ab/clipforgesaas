@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { PageHeader, AlertBanner, Button, Input, GoogleAuthButton } from '@/components/ui'
+import { PageHeader, AlertBanner, Button, Input, GoogleAuthButton, useToast } from '@/components/ui'
 import type { Profile, PlanType } from '@/types/database'
 
 const PLAN_CONFIG: Record<PlanType, { label: string; color: string; icon: React.ElementType }> = {
@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const toast = useToast()
 
   const loadProfile = useCallback(async () => {
     setLoading(true)
@@ -90,6 +91,7 @@ export default function SettingsPage() {
         .eq('id', profile.id)
 
       if (updateError) {
+        toast.error('Erreur lors de la mise à jour')
         setError('Erreur lors de la mise à jour du nom')
         return
       }
@@ -97,6 +99,7 @@ export default function SettingsPage() {
       setProfile({ ...profile, full_name: fullName.trim() || null })
       setEditing(false)
       setSaveSuccess(true)
+      toast.success('Profil mis à jour !')
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch {
       setError('Une erreur est survenue')
@@ -110,8 +113,10 @@ export default function SettingsPage() {
     try {
       const supabase = createClient()
       await supabase.auth.signOut()
+      toast.success('Déconnexion réussie !')
       router.push('/login')
     } catch {
+      toast.error('Erreur lors de la déconnexion')
       setError('Erreur lors de la déconnexion')
       setSigningOut(false)
     }
@@ -126,15 +131,18 @@ export default function SettingsPage() {
       const response = await fetch('/api/account/delete', { method: 'DELETE' })
       if (!response.ok) {
         const data = await response.json()
+        toast.error(data.error ?? 'Erreur lors de la suppression du compte')
         setError(data.error ?? 'Erreur lors de la suppression du compte')
         setDeleting(false)
         return
       }
 
+      toast.success('Compte supprimé')
       const supabase = createClient()
       await supabase.auth.signOut()
       router.push('/login')
     } catch {
+      toast.error('Une erreur est survenue')
       setError('Une erreur est survenue')
       setDeleting(false)
     }

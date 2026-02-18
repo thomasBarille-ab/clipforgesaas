@@ -463,6 +463,189 @@ function buildCropXExpression(segments: CropSegmentOption[], duration: number): 
   return `(${parts.join('+')})*(iw-ih*9/16)`
 }
 
+export interface ConcatSegment {
+  id: string
+  sourceStart: number
+  sourceEnd: number
+  cropX: number // 0=gauche, 0.5=centre, 1=droite
+}
+
+export interface ConcatOptions {
+  videoUrl: string
+  segments: ConcatSegment[]
+  srtContent?: string | null
+  subtitleStyle?: import('@/types/subtitles').SubtitleStyle
+  onProgress?: (progress: number) => void
+}
+
+/**
+ * Traite N segments vidéo avec crop individuel et les concatène.
+ * Si 1 seul segment, délègue à trimAndCropVideo.
+ */
+export async function trimAndConcatSegments({
+  videoUrl,
+  segments: timelineSegments,
+  srtContent,
+  subtitleStyle,
+  onProgress,
+}: ConcatOptions): Promise<TrimResult> {
+  // Cas simple : 1 segment → réutiliser trimAndCropVideo
+  if (timelineSegments.length === 1) {
+    const seg = timelineSegments[0]
+    return trimAndCropVideo({
+      videoUrl,
+      startSeconds: seg.sourceStart,
+      endSeconds: seg.sourceEnd,
+      srtContent,
+      subtitleStyle,
+      cropSegments: [{ startTime: 0, cropX: seg.cropX }],
+      onProgress,
+    })
+  }
+
+  // Cas multi-segments : construire un filter_complex avec concat
+  console.log('[ffmpeg] Starting multi-segment concat (' + timelineSegments.length + ' segments)')
+  onProgress?.(2)
+  const { ffmpeg, fetchFile } = await getFFmpeg()
+
+  let subtitleEntries: SubtitleEntry[] = []
+
+  try {
+    ffmpeg.on('progress', ({ progress }: { progress: number }) => {
+      const pct = Math.min(Math.round(progress * 100), 100)
+      onProgress?.(pct)
+    })
+
+    console.log('[ffmpeg] Downloading source video...')
+    onProgress?.(5)
+    let videoData = await fetchFile(videoUrl)
+    console.log('[ffmpeg] Downloaded:', (videoData.byteLength / 1024 / 1024).toFixed(1), 'MB')
+
+    onProgress?.(10)
+    await ffmpeg.writeFile('input.mp4', videoData)
+    videoData = null as any
+
+    // Input seeking : trouver le point le plus tôt parmi tous les segments
+    const earliest = Math.min(...timelineSegments.map((s) => s.sourceStart))
+
+    // Parser et rendre les sous-titres en PNG
+    if (srtContent) {
+      subtitleEntries = parseSrtEntries(srtContent)
+      console.log('[ffmpeg] Subtitles:', subtitleEntries.length, 'entries')
+
+      for (let i = 0; i < subtitleEntries.length; i++) {
+        const png = await renderSubtitlePng(subtitleEntries[i].text, subtitleStyle)
+        await ffmpeg.writeFile(`sub_${i}.png`, png)
+      }
+    }
+
+    const args: string[] = []
+    args.push('-ss', earliest.toString())
+    args.push('-i', 'input.mp4')
+
+    for (let i = 0; i < subtitleEntries.length; i++) {
+      args.push('-i', `sub_${i}.png`)
+    }
+
+    // filter_complex : chaque segment a trim+setpts+crop+scale, puis concat
+    const n = timelineSegments.length
+    let fc = ''
+
+    for (let i = 0; i < n; i++) {
+      const seg = timelineSegments[i]
+      // Timestamps relatifs à -ss (earliest)
+      const start = (seg.sourceStart - earliest).toFixed(3)
+      const end = (seg.sourceEnd - earliest).toFixed(3)
+      const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+
+      if (i > 0) fc += ';'
+      fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[v${i}]`
+      fc += `;[0:a]atrim=start=${start}:end=${end},asetpts=PTS-STARTPTS[a${i}]`
+    }
+
+    // Concat
+    fc += ';'
+    for (let i = 0; i < n; i++) {
+      fc += `[v${i}][a${i}]`
+    }
+    fc += `concat=n=${n}:v=1:a=1[concatv][concata]`
+
+    // Sous-titres overlay sur le résultat concaténé
+    if (subtitleEntries.length > 0) {
+      const pos = subtitleStyle?.position ?? 'bottom'
+      const overlayY =
+        pos === 'top' ? '150' :
+        pos === 'center' ? '(main_h-overlay_h)/2' :
+        'main_h-300'
+
+      let prevLabel = 'concatv'
+      for (let i = 0; i < subtitleEntries.length; i++) {
+        const inputIdx = i + 1
+        const outLabel = i === subtitleEntries.length - 1 ? 'vout' : `sv${i}`
+        const s = subtitleEntries[i].start.toFixed(3)
+        const e = subtitleEntries[i].end.toFixed(3)
+        fc += `;[${inputIdx}:v]format=rgba[s${i}];[${prevLabel}][s${i}]overlay=(main_w-overlay_w)/2:${overlayY}:enable='between(t,${s},${e})'[${outLabel}]`
+        prevLabel = outLabel
+      }
+    } else {
+      fc += ';[concatv]null[vout]'
+    }
+    fc += ';[concata]anull[aout]'
+
+    args.push('-filter_complex', fc)
+    args.push('-map', '[vout]')
+    args.push('-map', '[aout]')
+
+    args.push(
+      '-c:v', 'libx264',
+      '-preset', 'ultrafast',
+      '-crf', '30',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-movflags', '+faststart',
+      '-shortest',
+      'output.mp4'
+    )
+
+    console.log('[ffmpeg] FFmpeg concat args:', args.join(' '))
+    await ffmpeg.exec(args)
+
+    // Cleanup
+    console.log('[ffmpeg] Exec done, freeing input files...')
+    try { await ffmpeg.deleteFile('input.mp4') } catch { /* ignore */ }
+    for (let i = 0; i < subtitleEntries.length; i++) {
+      try { await ffmpeg.deleteFile(`sub_${i}.png`) } catch { /* ignore */ }
+    }
+
+    console.log('[ffmpeg] Reading output...')
+    const outputData = await ffmpeg.readFile('output.mp4')
+    try { await ffmpeg.deleteFile('output.mp4') } catch { /* ignore */ }
+
+    let videoBytes: Uint8Array
+    if (outputData instanceof Uint8Array) {
+      videoBytes = outputData.slice()
+    } else if (typeof outputData === 'string') {
+      videoBytes = new TextEncoder().encode(outputData)
+    } else {
+      throw new Error(`Type inattendu de readFile: ${typeof outputData}`)
+    }
+
+    const videoBlob = new Blob([videoBytes.buffer as ArrayBuffer], { type: 'video/mp4' })
+    console.log('[ffmpeg] Video blob:', (videoBlob.size / 1024 / 1024).toFixed(1), 'MB')
+
+    if (videoBlob.size === 0) {
+      throw new Error('Le clip généré est vide (0 bytes)')
+    }
+
+    console.log('[ffmpeg] Generating thumbnail via Canvas API...')
+    const thumbnailBlob = await generateThumbnailFromBlob(videoBlob)
+
+    return { videoBlob, thumbnailBlob }
+  } finally {
+    terminateFFmpeg()
+  }
+}
+
 export async function trimAndCropVideo({
   videoUrl,
   startSeconds,

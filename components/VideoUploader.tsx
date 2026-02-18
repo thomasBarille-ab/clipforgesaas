@@ -13,7 +13,7 @@ import {
   formatFileSize,
   generateStoragePath,
 } from '@/lib/utils'
-import { AlertBanner, Button, ProgressBar } from '@/components/ui'
+import { AlertBanner, Button, ProgressBar, useToast } from '@/components/ui'
 import type { VideoInsert } from '@/types/database'
 
 function generateThumbnailFromFile(file: File): Promise<Blob> {
@@ -85,6 +85,7 @@ export function VideoUploader() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const toast = useToast()
 
   const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
     setError(null)
@@ -146,6 +147,7 @@ export function VideoUploader() {
       })
 
       if (uploadError) {
+        toast.error(uploadError)
         setError(uploadError)
         setUploading(false)
         return
@@ -174,6 +176,7 @@ export function VideoUploader() {
 
       if (dbError) {
         console.error('Supabase error:', dbError)
+        toast.error("Erreur lors de l'enregistrement")
         setError("Erreur lors de l'enregistrement de la vidéo")
         setUploading(false)
         return
@@ -208,9 +211,11 @@ export function VideoUploader() {
 
       setUploading(false)
       setSuccess(true)
+      toast.success('Vidéo importée avec succès !')
       setTimeout(() => router.push('/videos'), 2500)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue'
+      toast.error(message)
       setError(message)
       setUploading(false)
     }

@@ -4,13 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Mail, CircleCheck, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { AlertBanner, Button, Input } from '@/components/ui'
+import { AlertBanner, Button, Input, useToast } from '@/components/ui'
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const toast = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -33,11 +34,13 @@ export default function ResetPasswordPage() {
       )
 
       if (resetError) {
+        toast.error('Impossible d\'envoyer l\'email de réinitialisation')
         setError('Impossible d\'envoyer l\'email de réinitialisation')
         return
       }
 
       setSuccess(true)
+      toast.success('Email de réinitialisation envoyé !')
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.')
     } finally {
