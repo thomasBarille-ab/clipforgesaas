@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Share2, Copy, Download, Check, ExternalLink, Smartphone } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { Modal, Button, AlertBanner } from '@/components/ui'
+import { Modal, Button, AlertBanner, useToast } from '@/components/ui'
 import { PlatformIcon } from '@/components/PlatformIcon'
 import { useClipDownload } from '@/hooks/useClipDownload'
 import type { ClipWithVideo } from '@/types/database'
@@ -52,6 +52,7 @@ export function PublishModal({ clip, onClose }: Props) {
   const [sharing, setSharing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { downloadingId, downloadClip } = useClipDownload()
+  const toast = useToast()
 
   const canShare = useMemo(() => {
     if (typeof navigator === 'undefined') return false
@@ -102,6 +103,8 @@ export function PublishModal({ clip, onClose }: Props) {
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return
+      const msg = err instanceof Error ? err.message : 'Erreur lors du partage'
+      toast.error(msg)
       setError('Erreur lors du partage')
     } finally {
       setSharing(false)
@@ -112,8 +115,10 @@ export function PublishModal({ clip, onClose }: Props) {
     try {
       await navigator.clipboard.writeText(caption)
       setCopied(true)
+      toast.success('Copié dans le presse-papiers !')
       setTimeout(() => setCopied(false), 2000)
     } catch {
+      toast.error('Impossible de copier')
       setError('Impossible de copier dans le presse-papiers')
     }
   }

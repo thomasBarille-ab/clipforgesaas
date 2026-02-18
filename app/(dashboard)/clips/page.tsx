@@ -16,10 +16,11 @@ import {
   Save,
   X,
   Share2,
+  Trash2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime } from '@/lib/utils'
-import { PageHeader, EmptyState, Button, Input, Textarea, Badge } from '@/components/ui'
+import { PageHeader, EmptyState, Button, Input, Textarea, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { PublishModal } from '@/components/PublishModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
@@ -36,7 +37,10 @@ export default function ClipsPage() {
   const [editDescription, setEditDescription] = useState('')
   const [editHashtags, setEditHashtags] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const { downloadingId, downloadClip } = useClipDownload()
+  const toast = useToast()
 
   const loadClips = useCallback(async () => {
     setLoading(true)
@@ -93,6 +97,7 @@ export default function ClipsPage() {
 
       if (error) {
         console.error('Update error:', error)
+        toast.error('Erreur lors de la mise à jour')
         return
       }
 
@@ -104,12 +109,51 @@ export default function ClipsPage() {
         )
       )
       setEditingId(null)
+      toast.success('Clip mis à jour !')
     } catch (err) {
       console.error('Save error:', err)
+      toast.error('Erreur lors de la mise à jour')
     } finally {
       setSavingId(null)
     }
   }
+
+  async function deleteClip(clip: ClipWithVideo) {
+    setDeletingId(clip.id)
+    setConfirmDeleteId(null)
+
+    try {
+      const supabase = createClient()
+
+      // Supprimer fichier storage
+      if (clip.storage_path) {
+        await supabase.storage.from('videos').remove([clip.storage_path])
+      }
+
+      // Supprimer thumbnail
+      if (clip.thumbnail_path) {
+        await supabase.storage.from('videos').remove([clip.thumbnail_path])
+      }
+
+      // Supprimer row DB
+      const { error } = await supabase.from('clips').delete().eq('id', clip.id)
+      if (error) {
+        console.error('Delete clip error:', error)
+        toast.error('Erreur lors de la suppression du clip')
+        return
+      }
+
+      setClips((prev) => prev.filter((c) => c.id !== clip.id))
+      toast.success('Clip supprimé !')
+    } catch (err) {
+      console.error('Delete clip error:', err)
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const clipToDelete = clips.find((c) => c.id === confirmDeleteId)
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -285,6 +329,17 @@ export default function ClipsPage() {
                         >
                           Publier
                         </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setConfirmDeleteId(clip.id)}
+                          loading={deletingId === clip.id}
+                          disabled={deletingId === clip.id}
+                          icon={Trash2}
+                          size="sm"
+                          className="col-span-2 w-full text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                        >
+                          Supprimer
+                        </Button>
                       </div>
                     </>
                   )}
@@ -319,6 +374,19 @@ export default function ClipsPage() {
         }}
       />
       <PublishModal clip={publishClip} onClose={() => setPublishClip(null)} />
+
+      {clipToDelete && (
+        <ConfirmModal
+          open={!!confirmDeleteId}
+          onClose={() => setConfirmDeleteId(null)}
+          onConfirm={() => deleteClip(clipToDelete)}
+          title="Supprimer ce clip ?"
+          description={`Le clip "${clipToDelete.title}" sera définitivement supprimé.`}
+          warning="Cette action est irréversible."
+          confirmLabel="Supprimer"
+          icon={Trash2}
+        />
+      )}
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 interface DownloadableClip {
   id: string
@@ -11,6 +12,7 @@ interface DownloadableClip {
 
 export function useClipDownload() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const toast = useToast()
 
   async function downloadClip(clip: DownloadableClip) {
     if (!clip.storage_path || downloadingId) return
@@ -34,6 +36,7 @@ export function useClipDownload() {
       }
     } catch (err) {
       console.error('Download error:', err)
+      toast.error('Erreur lors du téléchargement')
     } finally {
       setDownloadingId(null)
     }

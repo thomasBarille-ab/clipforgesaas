@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lock, CircleCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { AlertBanner, Button, Input } from '@/components/ui'
+import { AlertBanner, Button, Input, useToast } from '@/components/ui'
 
 export default function UpdatePasswordPage() {
   const router = useRouter()
@@ -13,6 +13,7 @@ export default function UpdatePasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const toast = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,11 +38,13 @@ export default function UpdatePasswordPage() {
       })
 
       if (updateError) {
+        toast.error('Impossible de mettre à jour le mot de passe. Le lien a peut-être expiré.')
         setError('Impossible de mettre à jour le mot de passe. Le lien a peut-être expiré.')
         return
       }
 
       setSuccess(true)
+      toast.success('Mot de passe mis à jour !')
       setTimeout(() => router.push('/dashboard'), 3000)
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.')

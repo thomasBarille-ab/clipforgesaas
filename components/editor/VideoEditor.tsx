@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trimAndConcatSegments } from '@/lib/ffmpeg'
 import { generateSrtForSegments } from '@/lib/generateSrt'
 import { formatTime } from '@/lib/utils'
-import { Input, Textarea, AlertBanner, ProgressBar } from '@/components/ui'
+import { Input, Textarea, AlertBanner, ProgressBar, useToast } from '@/components/ui'
 import { CollapsibleBlock } from '@/components/CollapsibleBlock'
 import { SubtitleEditor } from '@/components/SubtitleEditor'
 import { EditorProvider, useEditor } from './EditorProvider'
@@ -52,6 +52,7 @@ function EditorContent({
   onGenerated,
 }: VideoEditorProps) {
   const router = useRouter()
+  const toast = useToast()
   const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
 
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(DEFAULT_SUBTITLE_STYLE)
@@ -201,7 +202,7 @@ function EditorContent({
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
-        setError('Vous devez être connecté')
+        toast.error('Vous devez être connecté')
         setGenerating(null)
         return
       }
@@ -234,7 +235,7 @@ function EditorContent({
 
       if (clipError || !clip) {
         console.error('Supabase error:', clipError)
-        setError('Erreur lors de la création du clip')
+        toast.error('Erreur lors de la création du clip')
         setGenerating(null)
         return
       }
@@ -280,6 +281,7 @@ function EditorContent({
 
       if (uploadError) {
         console.error('Upload error:', uploadError)
+        toast.error("Erreur lors de l'upload du clip")
         throw new Error("Erreur lors de l'upload du clip")
       }
 
@@ -311,10 +313,12 @@ function EditorContent({
       })
 
       if (!response.ok) {
+        toast.error('Erreur lors de la finalisation du clip')
         throw new Error('Erreur lors de la finalisation du clip')
       }
 
       setGenerating({ step: 'done', progress: 100 })
+      toast.success('Clip créé avec succès !')
 
       setTimeout(() => {
         onGenerated()
@@ -322,7 +326,9 @@ function EditorContent({
       }, 1500)
     } catch (err) {
       console.error('Clip generation error:', err)
-      setError(err instanceof Error ? err.message : 'Erreur lors de la génération du clip')
+      const errMsg = err instanceof Error ? err.message : 'Erreur lors de la génération du clip'
+      setError(errMsg)
+      toast.error(errMsg)
 
       if (clipId) {
         try {
@@ -335,7 +341,7 @@ function EditorContent({
     }
   }, [
     generating, state.segments, segmentOffsets, videoUrl, videoId, suggestion,
-    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router
+    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router, toast
   ])
 
   const isGenerating = generating !== null && generating.step !== 'done'
