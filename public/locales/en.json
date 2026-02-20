@@ -1,0 +1,601 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "confirm": "Confirm",
+    "close": "Close",
+    "or": "or",
+    "next": "Next",
+    "skip": "Skip",
+    "back": "Back",
+    "seeAll": "See all",
+    "download": "Download",
+    "preview": "Preview",
+    "publish": "Publish",
+    "edit": "Edit",
+    "search": "Search",
+    "share": "Share",
+    "month": "/month",
+    "clipCount": "{{count}} clip",
+    "clipCount_plural": "{{count}} clips",
+    "genericError": "An error occurred. Please try again.",
+    "irreversible": "This action is irreversible.",
+    "copiedToClipboard": "Copied to clipboard!",
+    "cannotCopy": "Unable to copy"
+  },
+
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "login": "Log in",
+    "freeTrial": "Free trial",
+    "dashboard": "Dashboard",
+    "videos": "Videos",
+    "clips": "Clips",
+    "upload": "Upload",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "subtitle": "Access your ClipForge workspace",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "Forgot password?",
+      "submit": "Log in",
+      "noAccount": "Don't have an account yet?",
+      "createAccount": "Create an account",
+      "invalidCredentials": "Invalid credentials",
+      "continueWithGoogle": "Continue with Google",
+      "wrongEmailPassword": "Incorrect email or password",
+      "enterEmail": "Please enter your email address",
+      "enterPassword": "Please enter your password"
+    },
+    "signup": {
+      "title": "Create an account",
+      "subtitle": "Start creating clips in minutes",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "8 characters minimum",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "submit": "Create my account",
+      "hasAccount": "Already have an account?",
+      "signIn": "Log in",
+      "enterEmail": "Please enter your email address",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "cannotCreateAccount": "Unable to create account. Please check your information.",
+      "successTitle": "Account created successfully!",
+      "successMessage": "Check your email to confirm your registration.",
+      "successRedirect": "Redirecting to the login page...",
+      "toastSuccess": "Account created! Check your email."
+    },
+    "resetPassword": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email to receive a reset link",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "backToLogin": "Back to login",
+      "enterEmail": "Please enter your email address",
+      "cannotSend": "Unable to send the reset email",
+      "successTitle": "Email sent",
+      "successMessage": "If an account exists with this address, you will receive a link to reset your password.",
+      "toastSuccess": "Reset email sent!"
+    },
+    "updatePassword": {
+      "title": "New password",
+      "subtitle": "Choose your new password",
+      "password": "New password",
+      "passwordPlaceholder": "8 characters minimum",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "submit": "Update password",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "cannotUpdate": "Unable to update password. The link may have expired.",
+      "successTitle": "Password updated",
+      "successRedirect": "Redirecting to the dashboard...",
+      "toastSuccess": "Password updated!"
+    }
+  },
+
+  "landing": {
+    "hero": {
+      "headline1": "Transform your long videos",
+      "headline2": "into viral clips",
+      "description": "The AI that creates your TikTok, Reels and Shorts automatically. You guide it, it delivers. Live preview. Multi-format export.",
+      "cta": "Create my first clips",
+      "ctaSub": "Free — 10 clips",
+      "demo": "Watch the demo (1 min)",
+      "socialProofCount": "+2.5K",
+      "socialProofText": "creators use ClipForge",
+      "socialProofRating": "4.9/5",
+      "videoSource": "Source video",
+      "clip": "Clip {{num}}"
+    },
+    "problem": {
+      "title": "The problem",
+      "item1Title": "2-5h per week",
+      "item1Desc": "Wasted creating clips manually",
+      "item2Title": "$400+ per month",
+      "item2Desc": "For a freelance editor",
+      "item3Title": "AI gets it wrong",
+      "item3Desc": "90% of auto-generated clips are unusable"
+    },
+    "solution": {
+      "title": "The ClipForge solution",
+      "step1Title": "You guide",
+      "step1Desc": "Highlight your best moments (30 sec)",
+      "step2Title": "AI executes",
+      "step2Desc": "Generates clips in those areas (2 min)",
+      "step3Title": "You review",
+      "step3Desc": "Live preview + real-time editing (1 min)",
+      "step4Title": "Perfect export",
+      "step4Desc": "Multi-format in 1 click (30 sec)",
+      "totalTime": "Total: 4 minutes",
+      "totalCompare": "vs 2-5h with competitors"
+    },
+    "features": {
+      "title": "What others don't do",
+      "badge": "Unique",
+      "demo": "Demo {{title}}",
+      "feature1Title": "Guided pre-selection",
+      "feature1Desc": "You know your best moments better than AI. Guide it, and it generates only there.",
+      "feature1Bad": "OpusClip: 90% useless clips",
+      "feature1Good": "ClipForge: 100% useful",
+      "feature2Title": "Live preview with editing",
+      "feature2Desc": "Review BEFORE generating. Edit subtitles in real time. Stop wasting credits.",
+      "feature2Bad": "Vizard: No preview",
+      "feature2Good": "ClipForge: Live editing",
+      "feature3Title": "1-click multi-format export",
+      "feature3Desc": "TikTok, Instagram, YouTube... All formats in 1 click. Stop exporting the same clip 3 times.",
+      "feature3Bad": "Descript: Manual export",
+      "feature3Good": "ClipForge: Auto multi-format"
+    },
+    "socialProof": {
+      "title": "They're already creating their clips on ClipForge",
+      "stat1Value": "2,500+",
+      "stat1Label": "Active creators",
+      "stat2Value": "45,000+",
+      "stat2Label": "Clips generated",
+      "stat3Value": "4.9/5",
+      "stat3Label": "Average rating",
+      "stat4Value": "28h",
+      "stat4Label": "Saved on average",
+      "testimonial1Name": "Marie Dubois",
+      "testimonial1Handle": "@marie_crypto",
+      "testimonial1Followers": "50K followers",
+      "testimonial1Quote": "I saved 10h per week. The guided pre-selection is a game-changer. My freelance editor at $400/month? Fired.",
+      "testimonial1Stat1": "342 clips",
+      "testimonial1Stat2": "28h saved",
+      "testimonial2Name": "Jean Martin",
+      "testimonial2Handle": "@jean_podcast",
+      "testimonial2Followers": "Podcaster",
+      "testimonial2Quote": "Live preview = no more failed clips. OpusClip generated 20 of which 18 were useless. ClipForge: 100% usable.",
+      "testimonial2Stat1": "127 clips",
+      "testimonial2Stat2": "$150 saved",
+      "testimonial3Name": "Julie Leroy",
+      "testimonial3Handle": "@julie_coach",
+      "testimonial3Followers": "Business coach",
+      "testimonial3Quote": "The 1-click multi-format export saves me 30 min per session. I post on TikTok, Instagram AND YouTube without any hassle.",
+      "testimonial3Stat1": "89 clips",
+      "testimonial3Stat2": "+200% engagement"
+    },
+    "pricing": {
+      "title": "Simple & transparent pricing",
+      "subtitle": "Start for free, upgrade when you're ready",
+      "popular": "Popular",
+      "guarantee": "30-day money-back guarantee",
+      "free": {
+        "name": "Free",
+        "price": "0",
+        "description": "To discover ClipForge",
+        "features": ["10 clips / month", "All features", "Live preview", "Multi-format export"],
+        "caveats": ["ClipForge watermark"],
+        "cta": "Get started for free"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "24",
+        "description": "For serious creators",
+        "features": ["Unlimited clips", "No watermark", "All subtitle styles", "Custom templates", "Priority support", "Unlimited history"],
+        "cta": "Go Pro"
+      },
+      "business": {
+        "name": "Business",
+        "price": "49",
+        "description": "For teams",
+        "features": ["Everything in Pro +", "Team (5 members)", "White label", "API access", "Dedicated account manager", "Custom invoices"],
+        "cta": "Contact us"
+      }
+    },
+    "faq": {
+      "label": "FAQ",
+      "title": "Frequently asked questions",
+      "q1": "What video formats are supported?",
+      "a1": "ClipForge accepts MP4, MOV and AVI files up to 500 MB. Most videos from smartphones, cameras and recording software work right away.",
+      "q2": "How long does it take to generate a clip?",
+      "a2": "Transcription typically takes 1 to 3 minutes depending on the video length. Clip generation happens in a few seconds directly in your browser.",
+      "q3": "Are my videos stored securely?",
+      "a3": "Yes. Your videos are stored in a private space accessible only by your account. We use Supabase with strict security policies (Row Level Security).",
+      "q4": "Is the processing done on your servers?",
+      "a4": "Transcription and AI analysis go through our secure servers. Video editing (cutting, subtitles, cropping) is done entirely in your browser using FFmpeg WASM — your videos are not sent to a third-party server.",
+      "q5": "Can I customize the subtitles?",
+      "a5": "Absolutely. You can change the font, size, colors, outline, position and background. You can also save presets to reuse on your future clips.",
+      "q6": "Can I cancel my Pro subscription?",
+      "a6": "Yes, at any time. You keep access to Pro features until the end of the paid period, then your account automatically reverts to the free plan."
+    },
+    "finalCta": {
+      "title": "Ready to create your first clips?",
+      "subtitle": "Join 2,500+ creators saving 28h per month",
+      "cta": "Create my clips for free",
+      "ctaSub": "10 free clips - No credit card",
+      "benefit1": "No credit card required",
+      "benefit2": "10 free clips",
+      "benefit3": "Cancel in 1 click"
+    },
+    "footer": {
+      "copyright": "\u00a9 {{year}} ClipForge. All rights reserved."
+    }
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Manage your videos and clips at a glance",
+    "importVideo": "Import a video",
+    "uploadVideo": "Upload video",
+    "uploadVideoDesc": "Create your first clips",
+    "myClips": "My clips",
+    "myClipsDesc": "View, edit and publish your clips",
+    "statVideos": "Imported videos",
+    "statClips": "Clips ready",
+    "statProcessing": "Processing",
+    "recentVideos": "Recent videos",
+    "latestClips": "Latest clips",
+    "noVideos": "No videos imported",
+    "noVideosDesc": "Start by importing your first video",
+    "noClips": "No clips generated",
+    "noClipsDesc": "Your clips will appear here once generated",
+    "import": "Import"
+  },
+
+  "videos": {
+    "title": "My Videos",
+    "noVideos": "No videos imported",
+    "videoCount": "{{count}} video",
+    "videoCount_plural": "{{count}} videos",
+    "importVideo": "Import a video",
+    "importDesc": "Import your first video to start creating viral clips",
+    "transcribe": "Transcribe",
+    "transcription": "Transcribing...",
+    "createClips": "Create clips",
+    "generatedClips": "Generated clips ({{count}})",
+    "deleteVideo": "Delete this video?",
+    "deleteVideoDesc": "The video \"{{title}}\" will be permanently deleted, along with all its associated clips and transcriptions.",
+    "deleteClip": "Delete this clip?",
+    "deleteClipDesc": "The clip \"{{title}}\" will be permanently deleted.",
+    "videoDeleted": "Video deleted!",
+    "clipDeleted": "Clip deleted!",
+    "transcriptionStarted": "Transcription started!",
+    "deleteError": "Error during deletion",
+    "deleteClipError": "Error deleting clip",
+    "transcriptionError": "Error during transcription"
+  },
+
+  "clips": {
+    "title": "My Clips",
+    "noClips": "No clips yet",
+    "clipCount": "{{count}} clip ready",
+    "clipCount_plural": "{{count}} clips ready",
+    "downloadAll": "Download all",
+    "noClipsDesc": "Import a video and let the AI suggest the best moments to extract",
+    "createFirst": "Create my first clip",
+    "deleteClip": "Delete this clip?",
+    "deleteClipDesc": "The clip \"{{title}}\" will be permanently deleted.",
+    "clipUpdated": "Clip updated!",
+    "clipDeleted": "Clip deleted!",
+    "updateError": "Error during update",
+    "deleteError": "Error during deletion",
+    "deleteClipError": "Error deleting clip",
+    "title_label": "Title",
+    "description_label": "Description",
+    "hashtags": "Hashtags",
+    "hashtagsHint": "Separated by commas"
+  },
+
+  "upload": {
+    "title": "Import a video",
+    "subtitle": "Drag and drop your video or click to browse your files",
+    "dropzone": "Drag and drop your video here",
+    "dropzoneActive": "Drop your video here",
+    "browseFiles": "or click to browse",
+    "formats": "MP4, MOV, AVI — 500 MB maximum",
+    "importButton": "Import video",
+    "uploading": "Uploading... {{progress}}%",
+    "saving": "Saving...",
+    "successTitle": "Upload successful!",
+    "successDesc": "Transcription has been started automatically.",
+    "successRedirect": "Redirecting to your videos...",
+    "toastSuccess": "Video imported successfully!",
+    "errorTooLarge": "File exceeds the maximum size of 500 MB",
+    "errorInvalidType": "Unsupported format. Use MP4, MOV or AVI",
+    "errorInvalidFile": "Invalid file",
+    "errorNotLoggedIn": "You must be logged in to import a video",
+    "errorSaving": "Error saving the video",
+    "errorUnexpected": "An unexpected error occurred"
+  },
+
+  "createClips": {
+    "title": "Create Clips",
+    "videoNotFound": "Video not found",
+    "searchTitle": "Describe the clip you want",
+    "searchPlaceholder": "E.g.: the moment they talk about marketing, the joke about cats, an inspiring passage...",
+    "searchResults": "Results",
+    "searchResultsCount": "{{count}} clip found for \"{{query}}\"",
+    "searchResultsCount_plural": "{{count}} clips found for \"{{query}}\"",
+    "searchError": "Error during search",
+    "suggestionsTitle": "AI Suggestions",
+    "suggestionsDesc": "The best moments identified to create viral clips",
+    "noSuggestions": "No suggestions available",
+    "noSuggestionsDesc": "Make sure the video transcription is complete",
+    "searchBadge": "Search",
+    "created": "Created",
+    "create": "Create"
+  },
+
+  "editor": {
+    "toolbar": {
+      "customizeClip": "Customize clip",
+      "split": "Split",
+      "delete": "Delete",
+      "generate": "Generate clip",
+      "clipCreated": "Clip created!",
+      "generating": "Generating...",
+      "segmentInfo": "{{count}} segment — {{duration}}",
+      "segmentInfo_plural": "{{count}} segments — {{duration}}"
+    },
+    "steps": {
+      "creating": "Creating the clip...",
+      "loadingFfmpeg": "Loading FFmpeg...",
+      "downloading": "Downloading the video...",
+      "processing": "Encoding in progress...",
+      "uploading": "Uploading the clip...",
+      "finalizing": "Finalizing...",
+      "done": "Clip created!"
+    },
+    "info": {
+      "title": "Information",
+      "clipTitle": "Title",
+      "clipTitlePlaceholder": "Clip title",
+      "description": "Description",
+      "descriptionPlaceholder": "Description for social media",
+      "hashtags": "Hashtags",
+      "hashtagsPlaceholder": "marketing, business, tips",
+      "hashtagsHint": "Separated by commas"
+    },
+    "crop": {
+      "title": "Cropping",
+      "hint": "Adjust the 9:16 framing by clicking on the preview or moving the slider.",
+      "horizontalPosition": "Horizontal position"
+    },
+    "preview": {
+      "crop": "Framing",
+      "preview": "Preview"
+    },
+    "errors": {
+      "notLoggedIn": "You must be logged in",
+      "createError": "Error creating the clip",
+      "uploadError": "Error uploading the clip",
+      "finalizeError": "Error finalizing the clip",
+      "generateError": "Error generating the clip"
+    },
+    "toastSuccess": "Clip created successfully!"
+  },
+
+  "subtitles": {
+    "title": "Subtitles",
+    "presets": "Presets",
+    "savePreset": "Save",
+    "presetNamePlaceholder": "Preset name...",
+    "noPresets": "No saved presets",
+    "presetSaved": "Preset saved!",
+    "presetDeleted": "Preset deleted!",
+    "font": "Font",
+    "size": "Size",
+    "textColor": "Text color",
+    "stroke": "Outline",
+    "strokeWidth": "Thickness",
+    "position": "Position",
+    "positionTop": "Top",
+    "positionCenter": "Center",
+    "positionBottom": "Bottom",
+    "case": "Case",
+    "background": "Background",
+    "backgroundNone": "None",
+    "backgroundBox": "Box"
+  },
+
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences",
+    "profile": {
+      "title": "Profile",
+      "noName": "No name",
+      "namePlaceholder": "Your name",
+      "connectedViaGoogle": "Connected via Google",
+      "connectedViaEmail": "Connected via email",
+      "profileUpdated": "Profile updated!",
+      "updateError": "Error during update",
+      "updateNameError": "Error updating name",
+      "loadError": "Unable to load profile"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "currentPlan": "Current plan",
+      "active": "Active",
+      "planFree": "Free",
+      "planPro": "Pro",
+      "planBusiness": "Business",
+      "freeDesc": "To discover ClipForge",
+      "proDesc": "For serious creators",
+      "businessDesc": "For teams",
+      "freeFeatures": ["10 clips / month", "All features", "Live preview", "Multi-format export"],
+      "proFeatures": ["Unlimited clips", "No watermark", "All subtitle styles", "Priority support"],
+      "businessFeatures": ["Everything in Pro +", "Personalized AI (Persona)", "API access", "Dedicated account manager"],
+      "popular": "Popular",
+      "upgrade": "Upgrade to {{name}}",
+      "downgrade": "Downgrade to {{name}}",
+      "switching": "Switching...",
+      "planChanged": "Plan changed to {{plan}}!",
+      "switchError": "Error changing plan",
+      "memberSince": "Member since",
+      "creditsRemaining": "{{count}} credit remaining",
+      "creditsRemaining_plural": "{{count}} credits remaining",
+      "unlimitedClips": "Unlimited clips"
+    },
+    "persona": {
+      "title": "AI Persona",
+      "subtitle": "Your creator profile analyzed by AI",
+      "refresh": "Refresh",
+      "refreshing": "Analyzing...",
+      "refreshed": "Persona updated!",
+      "refreshError": "Error updating persona",
+      "basedOn": "Based on {{count}} clip",
+      "basedOn_plural": "Based on {{count}} clips",
+      "updatedAt": "Updated on",
+      "noPersona": "No persona generated",
+      "noPersonaDesc": "Generate at least 3 clips so the AI can analyze your creation style."
+    },
+    "account": {
+      "title": "Account",
+      "signOut": "Sign out",
+      "signOutSuccess": "Signed out successfully!",
+      "signOutError": "Error signing out",
+      "deleteAccount": "Delete my account",
+      "deleteConfirm": "Confirm deletion",
+      "deleteWarning": "This action is irreversible. All your videos, clips and data will be permanently deleted.",
+      "deleteSuccess": "Account deleted",
+      "deleteError": "Error deleting account"
+    }
+  },
+
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to ClipForge!",
+      "description": "Transform your long videos into short, viral clips with AI."
+    },
+    "stats": {
+      "title": "Your dashboard",
+      "description": "Track your imported videos, generated clips and processing tasks."
+    },
+    "uploadBtn": {
+      "title": "Import a video",
+      "description": "Upload a video (MP4, MOV, AVI) and the AI will analyze the content to suggest the best moments."
+    },
+    "quickActions": {
+      "title": "Quick access",
+      "description": "Two shortcuts to import or view your clips."
+    },
+    "done": {
+      "title": "Let's go!",
+      "description": "The AI will do the rest: transcription, suggestions, full editor."
+    },
+    "importFirst": "Import my first video"
+  },
+
+  "editorOnboarding": {
+    "welcome": {
+      "title": "Welcome to the editor!",
+      "description": "Customize your clip before generating it: cropping, subtitles, trimming on the timeline..."
+    },
+    "leftPanel": {
+      "title": "Information & Cropping",
+      "description": "Edit the title, description and hashtags. Adjust the horizontal framing for 9:16 format."
+    },
+    "preview": {
+      "title": "Preview",
+      "description": "View your clip in real time. Switch between Framing and Preview mode to see the final result."
+    },
+    "subtitles": {
+      "title": "Subtitles",
+      "description": "Enable and customize subtitles: font, size, color, position..."
+    },
+    "timeline": {
+      "title": "The timeline",
+      "description": "Cut and adjust your segments. Use the side handles to modify the in and out points."
+    },
+    "done": {
+      "title": "Ready to generate!",
+      "description": "When your clip is perfect, click \"Generate clip\" in the toolbar at the top right."
+    },
+    "gotIt": "Got it!"
+  },
+
+  "publishModal": {
+    "title": "Publish clip",
+    "caption": "Description / Caption",
+    "share": "Share",
+    "copyCaption": "Copy description",
+    "copied": "Copied!",
+    "publishOn": "Publish on",
+    "mobileApp": "Mobile app",
+    "useApp": "Use the mobile app",
+    "mobileHint": "On mobile, the Share button lets you send directly to TikTok, Instagram, etc.",
+    "clipNotFound": "Unable to retrieve the clip",
+    "shareNotSupported": "File sharing is not supported by your browser",
+    "shareError": "Error sharing"
+  },
+
+  "clipPreview": {
+    "videoNotSupported": "Your browser does not support video playback.",
+    "cannotLoad": "Unable to load the video"
+  },
+
+  "videoStatus": {
+    "uploaded": "Pending",
+    "processing": "Transcribing...",
+    "ready": "Ready",
+    "failed": "Error"
+  },
+
+  "confirmModal": {
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+
+  "splitScreen": {
+    "title": "Split Screen",
+    "on": "ON",
+    "off": "OFF",
+    "hint": "Move the frame to the area you want to zoom in on (face)",
+    "zoomSize": "Zoom size",
+    "topOriginal": "Top: original video",
+    "bottomZoom": "Bottom: zoom on selected area"
+  },
+
+  "cropTimeline": {
+    "title": "Cropping",
+    "alreadyVertical": "The source video is already in vertical format, cropping is not necessary.",
+    "timeline": "Timeline",
+    "deleteSegment": "Delete this segment",
+    "left": "Left",
+    "center": "Center",
+    "right": "Right",
+    "horizontalPosition": "Horizontal position",
+    "segmentStart": "Segment start (seconds)",
+    "addCutPoint": "Add a cut point"
+  }
+}

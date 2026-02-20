@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import { Clock, TrendingUp, Plus, Check } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
 import { Badge, Button } from '@/components/ui'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function SuggestionCard({ suggestion, isCreated, onSelect, variant = 'default' }: Props) {
+  const { t } = useTranslation()
   const isSearch = variant === 'search'
   const accentColor = isSearch ? 'pink' : 'purple'
 
@@ -30,7 +32,7 @@ export function SuggestionCard({ suggestion, isCreated, onSelect, variant = 'def
       {isSearch && (
         <div className="mb-2 flex items-center gap-2">
           <Badge variant="pink" className="px-2 py-0.5 text-[10px]">
-            Recherche
+            {t('createClips.searchBadge')}
           </Badge>
         </div>
       )}
@@ -68,11 +70,11 @@ export function SuggestionCard({ suggestion, isCreated, onSelect, variant = 'def
         {isCreated ? (
           <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
             <Check className="h-4 w-4" />
-            Créé
+            {t('createClips.created')}
           </span>
         ) : (
           <Button onClick={onSelect} icon={Plus} size="sm">
-            Créer
+            {t('createClips.create')}
           </Button>
         )}
       </div>

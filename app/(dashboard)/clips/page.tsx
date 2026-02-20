@@ -18,6 +18,7 @@ import {
   Share2,
   Trash2,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime } from '@/lib/utils'
 import { PageHeader, EmptyState, Button, Input, Textarea, Badge, ConfirmModal, useToast } from '@/components/ui'
@@ -28,6 +29,7 @@ import { useClipDownload } from '@/hooks/useClipDownload'
 import type { ClipWithVideo } from '@/types/database'
 
 export default function ClipsPage() {
+  const { t } = useTranslation()
   const [clips, setClips] = useState<ClipWithVideo[]>([])
   const [loading, setLoading] = useState(true)
   const [previewClip, setPreviewClip] = useState<ClipWithVideo | null>(null)
@@ -97,7 +99,7 @@ export default function ClipsPage() {
 
       if (error) {
         console.error('Update error:', error)
-        toast.error('Erreur lors de la mise à jour')
+        toast.error(t('clips.updateError'))
         return
       }
 
@@ -109,10 +111,10 @@ export default function ClipsPage() {
         )
       )
       setEditingId(null)
-      toast.success('Clip mis à jour !')
+      toast.success(t('clips.clipUpdated'))
     } catch (err) {
       console.error('Save error:', err)
-      toast.error('Erreur lors de la mise à jour')
+      toast.error(t('clips.updateError'))
     } finally {
       setSavingId(null)
     }
@@ -139,15 +141,15 @@ export default function ClipsPage() {
       const { error } = await supabase.from('clips').delete().eq('id', clip.id)
       if (error) {
         console.error('Delete clip error:', error)
-        toast.error('Erreur lors de la suppression du clip')
+        toast.error(t('clips.deleteClipError'))
         return
       }
 
       setClips((prev) => prev.filter((c) => c.id !== clip.id))
-      toast.success('Clip supprimé !')
+      toast.success(t('clips.clipDeleted'))
     } catch (err) {
       console.error('Delete clip error:', err)
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+      toast.error(err instanceof Error ? err.message : t('clips.deleteError'))
     } finally {
       setDeletingId(null)
     }
@@ -158,13 +160,13 @@ export default function ClipsPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        title="Mes Clips"
-        subtitle={!loading ? (clips.length === 0 ? 'Aucun clip pour le moment' : `${clips.length} clip${clips.length > 1 ? 's' : ''} prêt${clips.length > 1 ? 's' : ''}`) : undefined}
+        title={t('clips.title')}
+        subtitle={!loading ? (clips.length === 0 ? t('clips.noClips') : t('clips.clipCount', { count: clips.length })) : undefined}
         className="mb-8"
       >
         {clips.length > 1 && (
           <Button variant="secondary" icon={DownloadCloud} onClick={downloadAll}>
-            Télécharger tous
+            {t('clips.downloadAll')}
           </Button>
         )}
       </PageHeader>
@@ -229,25 +231,25 @@ export default function ClipsPage() {
                   {editingId === clip.id ? (
                     <div className="space-y-3">
                       <Input
-                        label="Titre"
+                        label={t('clips.title_label')}
                         icon={Pencil}
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
                         className="px-3 py-2 text-sm"
                       />
                       <Textarea
-                        label="Description"
+                        label={t('clips.description_label')}
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
                         rows={3}
                         className="px-3 py-2 text-sm"
                       />
                       <Input
-                        label="Hashtags"
+                        label={t('clips.hashtags')}
                         value={editHashtags}
                         onChange={(e) => setEditHashtags(e.target.value)}
                         placeholder="marketing, business, tips"
-                        hint="Séparés par des virgules"
+                        hint={t('clips.hashtagsHint')}
                         className="px-3 py-2 text-sm"
                       />
                       <div className="flex gap-2">
@@ -259,7 +261,7 @@ export default function ClipsPage() {
                           size="sm"
                           className="flex-1"
                         >
-                          Enregistrer
+                          {t('common.save')}
                         </Button>
                         <Button
                           variant="secondary"
@@ -268,7 +270,7 @@ export default function ClipsPage() {
                           icon={X}
                           size="sm"
                         >
-                          Annuler
+                          {t('common.cancel')}
                         </Button>
                       </div>
                     </div>
@@ -306,10 +308,10 @@ export default function ClipsPage() {
 
                       <div className="grid grid-cols-2 gap-2">
                         <Button variant="secondary" onClick={() => setPreviewClip(clip)} icon={Eye} size="sm" className="w-full">
-                          Prévisualiser
+                          {t('common.preview')}
                         </Button>
                         <Button variant="secondary" onClick={() => startEditing(clip)} icon={Pencil} size="sm" className="w-full">
-                          Modifier
+                          {t('common.edit')}
                         </Button>
                         <Button
                           onClick={() => downloadClip(clip)}
@@ -318,7 +320,7 @@ export default function ClipsPage() {
                           size="sm"
                           className="w-full"
                         >
-                          Télécharger
+                          {t('common.download')}
                         </Button>
                         <Button
                           variant="secondary"
@@ -327,7 +329,7 @@ export default function ClipsPage() {
                           size="sm"
                           className="w-full"
                         >
-                          Publier
+                          {t('common.publish')}
                         </Button>
                         <Button
                           variant="ghost"
@@ -338,7 +340,7 @@ export default function ClipsPage() {
                           size="sm"
                           className="col-span-2 w-full text-red-400 hover:bg-red-500/20 hover:text-red-300"
                         >
-                          Supprimer
+                          {t('common.delete')}
                         </Button>
                       </div>
                     </>
@@ -354,9 +356,9 @@ export default function ClipsPage() {
       {!loading && clips.length === 0 && (
         <EmptyState
           icon={Scissors}
-          title="Aucun clip pour le moment"
-          description="Importez une vidéo et laissez l'IA vous suggérer les meilleurs moments à extraire"
-          actionLabel="Créer mon premier clip"
+          title={t('clips.noClips')}
+          description={t('clips.noClipsDesc')}
+          actionLabel={t('clips.createFirst')}
           actionHref="/upload"
           actionIcon={Film}
           className="py-20"
@@ -380,10 +382,10 @@ export default function ClipsPage() {
           open={!!confirmDeleteId}
           onClose={() => setConfirmDeleteId(null)}
           onConfirm={() => deleteClip(clipToDelete)}
-          title="Supprimer ce clip ?"
-          description={`Le clip "${clipToDelete.title}" sera définitivement supprimé.`}
-          warning="Cette action est irréversible."
-          confirmLabel="Supprimer"
+          title={t('clips.deleteClip')}
+          description={t('clips.deleteClipDesc', { title: clipToDelete.title })}
+          warning={t('common.irreversible')}
+          confirmLabel={t('common.delete')}
           icon={Trash2}
         />
       )}

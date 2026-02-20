@@ -1,7 +1,12 @@
+'use client'
+
 import Link from 'next/link'
 import { Play, Sparkles, Captions } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export function HeroSection() {
+  const { t } = useTranslation()
+
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
       {/* Animated gradient background */}
@@ -16,15 +21,14 @@ export function HeroSection() {
           {/* Content */}
           <div className="space-y-8">
             <h1 className="text-5xl font-black leading-tight text-white md:text-6xl">
-              Transformez vos vidéos longues
+              {t('landing.hero.headline1')}
               <span className="block bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                en clips viraux
+                {t('landing.hero.headline2')}
               </span>
             </h1>
 
             <p className="text-xl leading-relaxed text-slate-300">
-              L&apos;IA qui crée vos clips TikTok, Reels et Shorts automatiquement.
-              Guidez-la, elle exécute. Validation live. Export multi-format.
+              {t('landing.hero.description')}
             </p>
 
             {/* CTAs */}
@@ -33,8 +37,8 @@ export function HeroSection() {
                 href="/signup"
                 className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 text-center font-semibold text-white shadow-lg transition-transform hover:scale-105 hover:shadow-purple-500/50"
               >
-                Créer mes premiers clips
-                <span className="mt-1 block text-sm font-normal opacity-80">Gratuit — 10 clips</span>
+                {t('landing.hero.cta')}
+                <span className="mt-1 block text-sm font-normal opacity-80">{t('landing.hero.ctaSub')}</span>
               </Link>
 
               <a
@@ -42,7 +46,7 @@ export function HeroSection() {
                 className="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-8 py-4 font-semibold text-white backdrop-blur-xl transition-colors hover:bg-white/20"
               >
                 <Play className="h-5 w-5" />
-                Voir la démo (1 min)
+                {t('landing.hero.demo')}
               </a>
             </div>
 
@@ -61,12 +65,12 @@ export function HeroSection() {
                   />
                 ))}
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-950 bg-slate-800 text-xs font-semibold text-white">
-                  +2.5K
+                  {t('landing.hero.socialProofCount')}
                 </div>
               </div>
               <div className="text-sm text-slate-400">
-                créateurs utilisent ClipForge
-                <span className="block text-yellow-400">&#9733;&#9733;&#9733;&#9733;&#9733; 4.9/5</span>
+                {t('landing.hero.socialProofText')}
+                <span className="block text-yellow-400">&#9733;&#9733;&#9733;&#9733;&#9733; {t('landing.hero.socialProofRating')}</span>
               </div>
             </div>
           </div>
@@ -79,7 +83,7 @@ export function HeroSection() {
                   {/* Video source */}
                   <div className="flex h-44 w-60 flex-col items-center justify-center rounded-lg border border-white/10 bg-white/5">
                     <Play className="mb-2 h-8 w-8 text-white/20" />
-                    <p className="text-xs text-white/30">Vidéo source</p>
+                    <p className="text-xs text-white/30">{t('landing.hero.videoSource')}</p>
                     <p className="text-[10px] text-white/15">45:00 min</p>
                   </div>
                   {/* Arrow */}
@@ -97,7 +101,7 @@ export function HeroSection() {
                     ].map((clip, i) => (
                       <div key={i} className={`flex h-36 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-white/10 bg-gradient-to-b ${clip.color}`}>
                         <Captions className="h-4 w-4 text-white/40" />
-                        <p className="text-[10px] font-bold text-white/60">Clip {i + 1}</p>
+                        <p className="text-[10px] font-bold text-white/60">{t('landing.hero.clip', { num: i + 1 })}</p>
                         <span className="rounded-full bg-purple-500/40 px-1.5 py-0.5 text-[9px] font-bold text-white">
                           {clip.score}
                         </span>

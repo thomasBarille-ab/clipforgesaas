@@ -12,20 +12,23 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/videos', label: 'Vidéos', icon: Film },
-  { href: '/clips', label: 'Clips', icon: Scissors },
-  { href: '/upload', label: 'Importer', icon: Upload },
+  { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { href: '/videos', labelKey: 'nav.videos', icon: Film },
+  { href: '/clips', labelKey: 'nav.clips', icon: Scissors },
+  { href: '/upload', labelKey: 'nav.upload', icon: Upload },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [signingOut, setSigningOut] = useState(false)
+  const { t } = useTranslation()
 
   async function handleSignOut() {
     setSigningOut(true)
@@ -50,7 +53,8 @@ export function Sidebar() {
 
         {/* Nav links */}
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
+            const label = t(labelKey)
             const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             return (
               <Link
@@ -82,7 +86,7 @@ export function Sidebar() {
             )}
           >
             <Settings className={cn('h-[18px] w-[18px]', pathname === '/settings' && 'text-purple-400')} />
-            Paramètres
+            {t('nav.settings')}
           </Link>
           <button
             onClick={handleSignOut}
@@ -94,14 +98,16 @@ export function Sidebar() {
             ) : (
               <LogOut className="h-[18px] w-[18px]" />
             )}
-            Déconnexion
+            {t('nav.signOut')}
           </button>
+          <LanguageSwitcher />
         </div>
       </aside>
 
       {/* Mobile bottom bar */}
       <nav className="fixed bottom-0 left-0 z-40 flex w-full border-t border-white/5 bg-slate-950/90 backdrop-blur-xl md:hidden">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
+          const label = t(labelKey)
           const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           const isUpload = href === '/upload'
           return (
@@ -136,7 +142,7 @@ export function Sidebar() {
           )}
         >
           <Settings className={cn('h-5 w-5', pathname === '/settings' && 'text-purple-400')} />
-          Paramètres
+          {t('nav.settings')}
         </Link>
       </nav>
     </>

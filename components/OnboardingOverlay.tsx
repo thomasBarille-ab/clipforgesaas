@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Upload } from 'lucide-react'
 import { useOnboarding } from '@/hooks/useOnboarding'
@@ -8,46 +9,16 @@ import { useOnboarding } from '@/hooks/useOnboarding'
 interface Step {
   id: string
   target: string | null
-  title: string
-  description: string
+  titleKey: string
+  descriptionKey: string
 }
 
 const STEPS: Step[] = [
-  {
-    id: 'welcome',
-    target: null,
-    title: 'Bienvenue sur ClipForge !',
-    description:
-      'Transformez vos vidéos longues en clips courts et viraux grâce à l\'IA.',
-  },
-  {
-    id: 'stats',
-    target: 'stats',
-    title: 'Votre tableau de bord',
-    description:
-      'Suivez vos vidéos importées, clips générés et traitements en cours.',
-  },
-  {
-    id: 'upload-btn',
-    target: 'upload-btn',
-    title: 'Importez une vidéo',
-    description:
-      'Uploadez une vidéo (MP4, MOV, AVI) et l\'IA analysera le contenu pour proposer les meilleurs passages.',
-  },
-  {
-    id: 'quick-actions',
-    target: 'quick-actions',
-    title: 'Accès rapide',
-    description:
-      'Deux raccourcis pour l\'import ou consulter vos clips.',
-  },
-  {
-    id: 'done',
-    target: null,
-    title: 'C\'est parti !',
-    description:
-      'L\'IA fera le reste : transcription, suggestions, éditeur complet.',
-  },
+  { id: 'welcome', target: null, titleKey: 'onboarding.welcome.title', descriptionKey: 'onboarding.welcome.description' },
+  { id: 'stats', target: 'stats', titleKey: 'onboarding.stats.title', descriptionKey: 'onboarding.stats.description' },
+  { id: 'upload-btn', target: 'upload-btn', titleKey: 'onboarding.uploadBtn.title', descriptionKey: 'onboarding.uploadBtn.description' },
+  { id: 'quick-actions', target: 'quick-actions', titleKey: 'onboarding.quickActions.title', descriptionKey: 'onboarding.quickActions.description' },
+  { id: 'done', target: null, titleKey: 'onboarding.done.title', descriptionKey: 'onboarding.done.description' },
 ]
 
 interface SpotlightRect {
@@ -58,6 +29,7 @@ interface SpotlightRect {
 }
 
 export function OnboardingOverlay() {
+  const { t } = useTranslation()
   const { active, step, totalSteps, next, skip } = useOnboarding()
   const router = useRouter()
   const [rect, setRect] = useState<SpotlightRect | null>(null)
@@ -176,10 +148,10 @@ export function OnboardingOverlay() {
           )}
 
           <h3 className={`text-lg font-bold text-white ${isModal ? 'text-center' : ''}`}>
-            {currentStep.title}
+            {t(currentStep.titleKey)}
           </h3>
           <p className={`mt-2 text-sm leading-relaxed text-white/70 ${isModal ? 'text-center' : ''}`}>
-            {currentStep.description}
+            {t(currentStep.descriptionKey)}
           </p>
 
           {/* Progress dots */}
@@ -200,7 +172,7 @@ export function OnboardingOverlay() {
               onClick={skip}
               className="rounded-lg px-4 py-2 text-sm text-white/50 transition-colors hover:text-white/80"
             >
-              Passer
+              {t('common.skip')}
             </button>
 
             <button
@@ -210,10 +182,10 @@ export function OnboardingOverlay() {
               {isLastStep ? (
                 <>
                   <Upload className="h-4 w-4" />
-                  Importer ma première vidéo
+                  {t('onboarding.importFirst')}
                 </>
               ) : (
-                'Suivant'
+                t('common.next')
               )}
             </button>
           </div>

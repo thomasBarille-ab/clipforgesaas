@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Scissors, Trash2, Wand2, Loader2, Check } from 'lucide-react'
 import { useEditor } from '../EditorProvider'
 import { formatTime, cn } from '@/lib/utils'
@@ -21,6 +22,7 @@ export function EditorToolbar({
   generatingLabel,
   disabled,
 }: EditorToolbarProps) {
+  const { t } = useTranslation()
   const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
   const { segments, selectedSegmentId, playheadTime } = state
 
@@ -54,7 +56,7 @@ export function EditorToolbar({
           <ArrowLeft className="h-4 w-4" />
         </button>
 
-        <h1 className="text-lg font-semibold text-white">Personnaliser le clip</h1>
+        <h1 className="text-lg font-semibold text-white">{t('editor.toolbar.customizeClip')}</h1>
 
         <div className="mx-2 h-5 w-px bg-white/10" />
 
@@ -70,7 +72,7 @@ export function EditorToolbar({
           )}
         >
           <Scissors className="h-4 w-4" />
-          Diviser
+          {t('editor.toolbar.split')}
         </button>
 
         {/* Supprimer */}
@@ -85,13 +87,13 @@ export function EditorToolbar({
           )}
         >
           <Trash2 className="h-4 w-4" />
-          Supprimer
+          {t('editor.toolbar.delete')}
         </button>
       </div>
 
       {/* Centre : info */}
       <div className="text-sm text-white/50">
-        {segments.length} segment{segments.length > 1 ? 's' : ''} — {formatTime(totalDuration)}
+        {t('editor.toolbar.segmentInfo', { count: segments.length, duration: formatTime(totalDuration) })}
       </div>
 
       {/* Droite : générer */}
@@ -108,17 +110,17 @@ export function EditorToolbar({
         {generatingDone ? (
           <>
             <Check className="h-4 w-4" />
-            Clip créé !
+            {t('editor.toolbar.clipCreated')}
           </>
         ) : generating ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            {generatingLabel || 'Génération...'}
+            {generatingLabel || t('editor.toolbar.generating')}
           </>
         ) : (
           <>
             <Wand2 className="h-4 w-4" />
-            Générer le clip
+            {t('editor.toolbar.generate')}
           </>
         )}
       </button>

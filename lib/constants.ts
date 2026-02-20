@@ -1,10 +1,10 @@
 import type { VideoStatus } from '@/types/database'
 
-export const VIDEO_STATUS_LABELS: Record<VideoStatus, string> = {
-  uploaded: 'En attente',
-  processing: 'Transcription...',
-  ready: 'Prête',
-  failed: 'Erreur',
+export const VIDEO_STATUS_KEYS: Record<VideoStatus, string> = {
+  uploaded: 'videoStatus.uploaded',
+  processing: 'videoStatus.processing',
+  ready: 'videoStatus.ready',
+  failed: 'videoStatus.failed',
 }
 
 export const VIDEO_STATUS_COLORS: Record<VideoStatus, string> = {

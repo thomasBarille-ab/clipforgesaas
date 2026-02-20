@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
 import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -25,14 +26,14 @@ type GeneratingState = {
   progress: number
 }
 
-const STEP_LABELS: Record<GeneratingState['step'], string> = {
-  creating: 'Création du clip...',
-  'loading-ffmpeg': 'Chargement de FFmpeg...',
-  downloading: 'Téléchargement de la vidéo...',
-  processing: 'Encodage en cours...',
-  uploading: 'Upload du clip...',
-  finalizing: 'Finalisation...',
-  done: 'Clip créé !',
+const STEP_LABEL_KEYS: Record<GeneratingState['step'], string> = {
+  creating: 'editor.steps.creating',
+  'loading-ffmpeg': 'editor.steps.loadingFfmpeg',
+  downloading: 'editor.steps.downloading',
+  processing: 'editor.steps.processing',
+  uploading: 'editor.steps.uploading',
+  finalizing: 'editor.steps.finalizing',
+  done: 'editor.steps.done',
 }
 
 interface VideoEditorProps {
@@ -52,6 +53,7 @@ function EditorContent({
   onClose,
   onGenerated,
 }: VideoEditorProps) {
+  const { t } = useTranslation()
   const router = useRouter()
   const toast = useToast()
   const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
@@ -203,7 +205,7 @@ function EditorContent({
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
-        toast.error('Vous devez être connecté')
+        toast.error(t('editor.errors.notLoggedIn'))
         setGenerating(null)
         return
       }
@@ -242,7 +244,7 @@ function EditorContent({
 
       if (clipError || !clip) {
         console.error('Supabase error:', clipError)
-        toast.error('Erreur lors de la création du clip')
+        toast.error(t('editor.errors.createError'))
         setGenerating(null)
         return
       }
@@ -288,8 +290,8 @@ function EditorContent({
 
       if (uploadError) {
         console.error('Upload error:', uploadError)
-        toast.error("Erreur lors de l'upload du clip")
-        throw new Error("Erreur lors de l'upload du clip")
+        toast.error(t('editor.errors.uploadError'))
+        throw new Error(t('editor.errors.uploadError'))
       }
 
       let finalThumbPath: string | null = null
@@ -320,12 +322,12 @@ function EditorContent({
       })
 
       if (!response.ok) {
-        toast.error('Erreur lors de la finalisation du clip')
-        throw new Error('Erreur lors de la finalisation du clip')
+        toast.error(t('editor.errors.finalizeError'))
+        throw new Error(t('editor.errors.finalizeError'))
       }
 
       setGenerating({ step: 'done', progress: 100 })
-      toast.success('Clip créé avec succès !')
+      toast.success(t('editor.toastSuccess'))
 
       // Fire-and-forget : mise à jour du persona créateur (plan Business)
       fetch('/api/persona/update', { method: 'POST' }).catch(() => {})
@@ -336,7 +338,7 @@ function EditorContent({
       }, 1500)
     } catch (err) {
       console.error('Clip generation error:', err)
-      const errMsg = err instanceof Error ? err.message : 'Erreur lors de la génération du clip'
+      const errMsg = err instanceof Error ? err.message : t('editor.errors.generateError')
       setError(errMsg)
       toast.error(errMsg)
 
@@ -365,7 +367,7 @@ function EditorContent({
         onGenerate={handleGenerate}
         generating={isGenerating}
         generatingDone={isDone}
-        generatingLabel={generating ? STEP_LABELS[generating.step] : null}
+        generatingLabel={generating ? t(STEP_LABEL_KEYS[generating.step]) : null}
         disabled={generating !== null}
       />
 
@@ -374,7 +376,7 @@ function EditorContent({
         <div className="flex-shrink-0 px-4 py-2 bg-slate-900/50">
           <ProgressBar
             progress={generating.progress}
-            label={STEP_LABELS[generating.step]}
+            label={t(STEP_LABEL_KEYS[generating.step])}
             sublabel={`${generating.progress}%`}
             icon={
               isDone
@@ -396,49 +398,49 @@ function EditorContent({
       <div ref={containerRef} className="flex-1 overflow-hidden flex">
         {/* Panneau gauche : Infos + Crop */}
         <div data-onboarding-editor="editor-left-panel" className="overflow-y-auto flex-shrink-0 p-4 space-y-4" style={{ width: leftWidth }}>
-          <CollapsibleBlock title="Informations" icon={Pencil}>
+          <CollapsibleBlock title={t('editor.info.title')} icon={Pencil}>
             <div className="space-y-4">
               <Input
                 icon={Pencil}
-                label="Titre"
+                label={t('editor.info.clipTitle')}
                 value={clipTitle}
                 onChange={(e) => setClipTitle(e.target.value)}
-                placeholder="Titre du clip"
+                placeholder={t('editor.info.clipTitlePlaceholder')}
                 disabled={generating !== null}
                 className="px-4 py-2.5 text-sm border-white/10"
               />
               <Textarea
                 icon={AlignLeft}
-                label="Description"
+                label={t('editor.info.description')}
                 value={clipDescription}
                 onChange={(e) => setClipDescription(e.target.value)}
-                placeholder="Description pour les réseaux sociaux"
+                placeholder={t('editor.info.descriptionPlaceholder')}
                 disabled={generating !== null}
                 rows={3}
                 className="px-4 py-2.5 text-sm border-white/10"
               />
               <Input
                 icon={Hash}
-                label="Hashtags"
+                label={t('editor.info.hashtags')}
                 value={clipHashtags}
                 onChange={(e) => setClipHashtags(e.target.value)}
-                placeholder="marketing, business, tips"
-                hint="Séparés par des virgules"
+                placeholder={t('editor.info.hashtagsPlaceholder')}
+                hint={t('editor.info.hashtagsHint')}
                 disabled={generating !== null}
                 className="px-4 py-2.5 text-sm border-white/10"
               />
             </div>
           </CollapsibleBlock>
 
-          <CollapsibleBlock title="Cadrage" icon={Crop}>
+          <CollapsibleBlock title={t('editor.crop.title')} icon={Crop}>
             <div className="space-y-3">
               <p className="text-xs text-white/40">
-                Ajustez le cadrage 9:16 en cliquant sur la preview ou en déplaçant le slider.
+                {t('editor.crop.hint')}
               </p>
               {currentSegment && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs text-white/50">
-                    <span>Position horizontale</span>
+                    <span>{t('editor.crop.horizontalPosition')}</span>
                     <span>{Math.round(currentSegment.cropX * 100)}%</span>
                   </div>
                   <input

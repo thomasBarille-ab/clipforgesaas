@@ -1,40 +1,27 @@
-import { ChevronDown } from 'lucide-react'
+'use client'
 
-const QUESTIONS = [
-  {
-    q: 'Quels formats de vidéo sont supportés ?',
-    a: 'ClipForge accepte les fichiers MP4, MOV et AVI jusqu\'à 500 Mo. La plupart des vidéos de smartphones, caméras et logiciels d\'enregistrement fonctionnent directement.',
-  },
-  {
-    q: 'Combien de temps prend la génération d\'un clip ?',
-    a: 'La transcription prend généralement 1 à 3 minutes selon la durée de la vidéo. La génération du clip se fait en quelques secondes directement dans votre navigateur.',
-  },
-  {
-    q: 'Est-ce que mes vidéos sont stockées de façon sécurisée ?',
-    a: 'Oui. Vos vidéos sont stockées dans un espace privé accessible uniquement par votre compte. Nous utilisons Supabase avec des politiques de sécurité strictes (Row Level Security).',
-  },
-  {
-    q: 'Le traitement se fait sur vos serveurs ?',
-    a: 'La transcription et l\'analyse IA passent par nos serveurs sécurisés. Le montage vidéo (découpe, sous-titres, recadrage) se fait entièrement dans votre navigateur grâce à FFmpeg WASM — vos vidéos ne sont pas envoyées à un serveur tiers.',
-  },
-  {
-    q: 'Puis-je personnaliser les sous-titres ?',
-    a: 'Absolument. Vous pouvez modifier la police, la taille, les couleurs, le contour, la position et le fond. Vous pouvez aussi sauvegarder des presets pour les réutiliser sur vos futurs clips.',
-  },
-  {
-    q: 'Je peux annuler mon abonnement Pro ?',
-    a: 'Oui, à tout moment. Vous gardez accès aux fonctionnalités Pro jusqu\'à la fin de la période payée, puis votre compte repasse automatiquement en plan gratuit.',
-  },
-]
+import { ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export function FAQ() {
+  const { t } = useTranslation()
+
+  const QUESTIONS = [
+    { q: t('landing.faq.q1'), a: t('landing.faq.a1') },
+    { q: t('landing.faq.q2'), a: t('landing.faq.a2') },
+    { q: t('landing.faq.q3'), a: t('landing.faq.a3') },
+    { q: t('landing.faq.q4'), a: t('landing.faq.a4') },
+    { q: t('landing.faq.q5'), a: t('landing.faq.a5') },
+    { q: t('landing.faq.q6'), a: t('landing.faq.a6') },
+  ]
+
   return (
     <section id="faq" className="bg-slate-950 py-20">
       <div className="mx-auto max-w-3xl px-6">
         <div className="mb-14 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple-400">FAQ</p>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple-400">{t('landing.faq.label')}</p>
           <h2 className="text-3xl font-bold text-white md:text-4xl">
-            Questions fréquentes
+            {t('landing.faq.title')}
           </h2>
         </div>
 

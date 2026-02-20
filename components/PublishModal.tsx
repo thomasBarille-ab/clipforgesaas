@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Share2, Copy, Download, Check, ExternalLink, Smartphone } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Modal, Button, AlertBanner, useToast } from '@/components/ui'
@@ -36,7 +37,7 @@ const PLATFORMS: Platform[] = [
     id: 'instagram',
     label: 'Instagram',
     url: null,
-    hint: 'Utilisez l\'app mobile',
+    hint: 'publishModal.useApp',
   },
   {
     id: 'x',
@@ -47,6 +48,7 @@ const PLATFORMS: Platform[] = [
 ]
 
 export function PublishModal({ clip, onClose }: Props) {
+  const { t } = useTranslation()
   const [caption, setCaption] = useState('')
   const [copied, setCopied] = useState(false)
   const [sharing, setSharing] = useState(false)
@@ -84,7 +86,7 @@ export function PublishModal({ clip, onClose }: Props) {
         .createSignedUrl(clip.storage_path, 300)
 
       if (!data?.signedUrl) {
-        setError('Impossible de récupérer le clip')
+        setError(t('publishModal.clipNotFound'))
         return
       }
 
@@ -99,13 +101,13 @@ export function PublishModal({ clip, onClose }: Props) {
           text: caption,
         })
       } else {
-        setError('Le partage de fichiers n\'est pas supporté par votre navigateur')
+        setError(t('publishModal.shareNotSupported'))
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return
-      const msg = err instanceof Error ? err.message : 'Erreur lors du partage'
+      const msg = err instanceof Error ? err.message : t('publishModal.shareError')
       toast.error(msg)
-      setError('Erreur lors du partage')
+      setError(t('publishModal.shareError'))
     } finally {
       setSharing(false)
     }
@@ -115,11 +117,11 @@ export function PublishModal({ clip, onClose }: Props) {
     try {
       await navigator.clipboard.writeText(caption)
       setCopied(true)
-      toast.success('Copié dans le presse-papiers !')
+      toast.success(t('common.copiedToClipboard'))
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('Impossible de copier')
-      setError('Impossible de copier dans le presse-papiers')
+      toast.error(t('common.cannotCopy'))
+      setError(t('common.cannotCopy'))
     }
   }
 
@@ -133,7 +135,7 @@ export function PublishModal({ clip, onClose }: Props) {
             <Share2 className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Publier le clip</h3>
+            <h3 className="text-lg font-bold text-white">{t('publishModal.title')}</h3>
             <p className="text-sm text-white/40">{clip.title}</p>
           </div>
         </div>
@@ -142,7 +144,7 @@ export function PublishModal({ clip, onClose }: Props) {
 
         {/* Caption editable */}
         <label className="mb-2 block text-sm font-medium text-white/70">
-          Description / Caption
+          {t('publishModal.caption')}
         </label>
         <textarea
           value={caption}
@@ -160,7 +162,7 @@ export function PublishModal({ clip, onClose }: Props) {
               icon={Smartphone}
               className="flex-1"
             >
-              Partager
+              {t('publishModal.share')}
             </Button>
           ) : null}
 
@@ -170,7 +172,7 @@ export function PublishModal({ clip, onClose }: Props) {
             icon={copied ? Check : Copy}
             className="flex-1"
           >
-            {copied ? 'Copié !' : 'Copier la description'}
+            {copied ? t('publishModal.copied') : t('publishModal.copyCaption')}
           </Button>
 
           <Button
@@ -180,14 +182,14 @@ export function PublishModal({ clip, onClose }: Props) {
             icon={Download}
             className="flex-1"
           >
-            Télécharger
+            {t('common.download')}
           </Button>
         </div>
 
         {/* Platform links */}
         <div className="border-t border-white/10 pt-4">
           <p className="mb-3 text-xs font-medium uppercase tracking-wider text-white/30">
-            Publier sur
+            {t('publishModal.publishOn')}
           </p>
           <div className="grid grid-cols-4 gap-2">
             {PLATFORMS.map((platform) => {
@@ -200,11 +202,11 @@ export function PublishModal({ clip, onClose }: Props) {
                   <div
                     key={platform.id}
                     className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-white/30"
-                    title={platform.hint}
+                    title={platform.hint ? t(platform.hint) : undefined}
                   >
                     <PlatformIcon platform={platform.id} className="h-6 w-6" />
                     <span className="text-[10px]">{platform.label}</span>
-                    <span className="text-[8px] text-white/20">App mobile</span>
+                    <span className="text-[8px] text-white/20">{t('publishModal.mobileApp')}</span>
                   </div>
                 )
               }
@@ -228,7 +230,7 @@ export function PublishModal({ clip, onClose }: Props) {
 
         {!canShare && (
           <p className="mt-4 text-center text-xs text-white/30">
-            Sur mobile, le bouton Partager vous permet d'envoyer directement vers TikTok, Instagram, etc.
+            {t('publishModal.mobileHint')}
           </p>
         )}
       </div>

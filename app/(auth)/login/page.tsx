@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LogIn } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { AlertBanner, Button, Input, GoogleAuthButton, useToast } from '@/components/ui'
 
@@ -14,10 +15,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const toast = useToast()
+  const { t } = useTranslation()
 
   function validate(): string | null {
-    if (!email.trim()) return 'Veuillez entrer votre adresse email'
-    if (!password) return 'Veuillez entrer votre mot de passe'
+    if (!email.trim()) return t('auth.login.enterEmail')
+    if (!password) return t('auth.login.enterPassword')
     return null
   }
 
@@ -41,14 +43,14 @@ export default function LoginPage() {
       })
 
       if (authError) {
-        toast.error('Identifiants invalides')
-        setError('Email ou mot de passe incorrect')
+        toast.error(t('auth.login.invalidCredentials'))
+        setError(t('auth.login.wrongEmailPassword'))
         return
       }
 
       router.push('/dashboard')
     } catch {
-      setError('Une erreur est survenue. Veuillez réessayer.')
+      setError(t('common.genericError'))
     } finally {
       setLoading(false)
     }
@@ -57,9 +59,9 @@ export default function LoginPage() {
   return (
     <>
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white">Connexion</h1>
+        <h1 className="text-3xl font-bold text-white">{t('auth.login.title')}</h1>
         <p className="mt-2 text-white/60">
-          Accédez à votre espace ClipForge
+          {t('auth.login.subtitle')}
         </p>
       </div>
 
@@ -68,7 +70,7 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-4">
           <div className="h-px flex-1 bg-white/20" />
-          <span className="text-sm text-white/40">ou</span>
+          <span className="text-sm text-white/40">{t('common.or')}</span>
           <div className="h-px flex-1 bg-white/20" />
         </div>
 
@@ -76,24 +78,24 @@ export default function LoginPage() {
           <Input
             id="email"
             type="email"
-            label="Email"
+            label={t('auth.login.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            placeholder="vous@exemple.com"
+            placeholder={t('auth.login.emailPlaceholder')}
           />
 
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label htmlFor="password" className="text-sm font-medium text-white/70">
-                Mot de passe
+                {t('auth.login.password')}
               </label>
               <Link
                 href="/reset-password"
                 className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
               >
-                Mot de passe oublié ?
+                {t('auth.login.forgotPassword')}
               </Link>
             </div>
             <Input
@@ -116,13 +118,13 @@ export default function LoginPage() {
             size="lg"
             className="w-full"
           >
-            Se connecter
+            {t('auth.login.submit')}
           </Button>
 
           <p className="text-center text-sm text-white/50">
-            Pas encore de compte ?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link href="/signup" className="text-purple-400 hover:text-purple-300 transition-colors">
-              Créer un compte
+              {t('auth.login.createAccount')}
             </Link>
           </p>
         </form>

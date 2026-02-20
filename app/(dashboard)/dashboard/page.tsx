@@ -12,9 +12,10 @@ import {
   ArrowRight,
   CircleAlert,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize } from '@/lib/utils'
-import { VIDEO_STATUS_LABELS, VIDEO_STATUS_COLORS } from '@/lib/constants'
+import { VIDEO_STATUS_KEYS, VIDEO_STATUS_COLORS } from '@/lib/constants'
 import { PageHeader, EmptyState, Badge } from '@/components/ui'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { OnboardingOverlay } from '@/components/OnboardingOverlay'
@@ -27,12 +28,13 @@ interface Stats {
 }
 
 const STAT_CARDS = [
-  { key: 'totalVideos' as const, label: 'Vidéos importées', icon: Film, color: 'bg-purple-500/20', iconColor: 'text-purple-400' },
-  { key: 'readyClips' as const, label: 'Clips prêts', icon: Scissors, color: 'bg-pink-500/20', iconColor: 'text-pink-400' },
-  { key: 'processingJobs' as const, label: 'En cours de traitement', icon: Loader2, color: 'bg-blue-500/20', iconColor: 'text-blue-400' },
+  { key: 'totalVideos' as const, labelKey: 'dashboard.statVideos', icon: Film, color: 'bg-purple-500/20', iconColor: 'text-purple-400' },
+  { key: 'readyClips' as const, labelKey: 'dashboard.statClips', icon: Scissors, color: 'bg-pink-500/20', iconColor: 'text-pink-400' },
+  { key: 'processingJobs' as const, labelKey: 'dashboard.statProcessing', icon: Loader2, color: 'bg-blue-500/20', iconColor: 'text-blue-400' },
 ]
 
 export default function DashboardPage() {
+  const { t } = useTranslation()
   const [videos, setVideos] = useState<Video[]>([])
   const [clips, setClips] = useState<ClipWithVideo[]>([])
   const [stats, setStats] = useState<Stats>({ totalVideos: 0, readyClips: 0, processingJobs: 0 })
@@ -84,14 +86,14 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-10">
-      <PageHeader title="Dashboard" subtitle="Gérez vos vidéos et clips en un coup d'oeil">
+      <PageHeader title={t('dashboard.title')} subtitle={t('dashboard.subtitle')}>
         <Link
           href="/upload"
           data-onboarding="upload-btn"
           className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
         >
           <Upload className="h-5 w-5" />
-          Importer une vidéo
+          {t('dashboard.importVideo')}
         </Link>
       </PageHeader>
 
@@ -102,22 +104,22 @@ export default function DashboardPage() {
           className="rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-left transition-transform hover:scale-[1.02]"
         >
           <Upload className="mb-2 h-8 w-8 text-white" />
-          <strong className="mb-1 block text-white">Upload vidéo</strong>
-          <span className="text-sm text-white/80">Créez vos premiers clips</span>
+          <strong className="mb-1 block text-white">{t('dashboard.uploadVideo')}</strong>
+          <span className="text-sm text-white/80">{t('dashboard.uploadVideoDesc')}</span>
         </Link>
         <Link
           href="/clips"
           className="rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-colors hover:border-purple-500/50"
         >
           <Scissors className="mb-2 h-8 w-8 text-purple-400" />
-          <strong className="mb-1 block text-white">Mes clips</strong>
-          <span className="text-sm text-slate-400">Voir, éditer et publier vos clips</span>
+          <strong className="mb-1 block text-white">{t('dashboard.myClips')}</strong>
+          <span className="text-sm text-slate-400">{t('dashboard.myClipsDesc')}</span>
         </Link>
       </div>
 
       {/* Stats cards */}
       <div data-onboarding="stats" className="grid gap-4 sm:grid-cols-3">
-        {STAT_CARDS.map(({ key, label, icon: Icon, color, iconColor }) => (
+        {STAT_CARDS.map(({ key, labelKey, icon: Icon, color, iconColor }) => (
           <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
             <div className={cn('mb-3 flex h-10 w-10 items-center justify-center rounded-xl', color)}>
               <Icon className={cn('h-5 w-5', iconColor, key === 'processingJobs' && stats.processingJobs > 0 && 'animate-spin')} />
@@ -127,7 +129,7 @@ export default function DashboardPage() {
             ) : (
               <p className="text-2xl font-bold text-white">{stats[key]}</p>
             )}
-            <p className="mt-1 text-sm text-white/50">{label}</p>
+            <p className="mt-1 text-sm text-white/50">{t(labelKey)}</p>
           </div>
         ))}
       </div>
@@ -135,10 +137,10 @@ export default function DashboardPage() {
       {/* Vidéos récentes */}
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">Vidéos récentes</h2>
+          <h2 className="text-xl font-semibold text-white">{t('dashboard.recentVideos')}</h2>
           {videos.length > 0 && (
             <Link href="/videos" className="flex items-center gap-1 text-sm text-purple-400 transition-colors hover:text-purple-300">
-              Voir tout
+              {t('common.seeAll')}
               <ArrowRight className="h-4 w-4" />
             </Link>
           )}
@@ -161,9 +163,9 @@ export default function DashboardPage() {
         {!loading && videos.length === 0 && (
           <EmptyState
             icon={Film}
-            title="Aucune vidéo importée"
-            description="Commencez par importer votre première vidéo"
-            actionLabel="Importer"
+            title={t('dashboard.noVideos')}
+            description={t('dashboard.noVideosDesc')}
+            actionLabel={t('dashboard.import')}
             actionHref="/upload"
             actionIcon={Upload}
             className="py-12"
@@ -195,7 +197,7 @@ export default function DashboardPage() {
                     variant={video.status === 'ready' ? 'emerald' : video.status === 'processing' ? 'blue' : video.status === 'failed' ? 'red' : 'yellow'}
                     className="absolute left-1.5 top-1.5 px-2 py-0.5 text-[10px] backdrop-blur-sm"
                   >
-                    {VIDEO_STATUS_LABELS[video.status]}
+                    {t(VIDEO_STATUS_KEYS[video.status])}
                   </Badge>
 
                   {video.duration_seconds && (
@@ -218,10 +220,10 @@ export default function DashboardPage() {
       {/* Derniers clips */}
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">Derniers clips</h2>
+          <h2 className="text-xl font-semibold text-white">{t('dashboard.latestClips')}</h2>
           {clips.length > 0 && (
             <Link href="/clips" className="flex items-center gap-1 text-sm text-purple-400 transition-colors hover:text-purple-300">
-              Voir tout
+              {t('common.seeAll')}
               <ArrowRight className="h-4 w-4" />
             </Link>
           )}
@@ -244,8 +246,8 @@ export default function DashboardPage() {
         {!loading && clips.length === 0 && (
           <EmptyState
             icon={Scissors}
-            title="Aucun clip généré"
-            description="Vos clips apparaîtront ici une fois générés"
+            title={t('dashboard.noClips')}
+            description={t('dashboard.noClipsDesc')}
             className="py-12"
           />
         )}

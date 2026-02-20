@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { SplitSquareVertical, Move, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 export interface SplitScreenConfig {
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: Props) {
+  const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoReady, setVideoReady] = useState(false)
@@ -128,14 +130,14 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
         )}
       >
         <SplitSquareVertical className="h-4 w-4" />
-        Split Screen
+        {t('splitScreen.title')}
         <span
           className={cn(
             'ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold',
             config.enabled ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'
           )}
         >
-          {config.enabled ? 'ON' : 'OFF'}
+          {config.enabled ? t('splitScreen.on') : t('splitScreen.off')}
         </span>
       </button>
 
@@ -143,7 +145,7 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
       {config.enabled && (
         <div className="mt-4 space-y-3">
           <p className="text-xs text-white/40">
-            Déplacez le cadre sur la zone à zoomer (visage)
+            {t('splitScreen.hint')}
           </p>
 
           {/* Vidéo + overlay */}
@@ -195,7 +197,7 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
           {/* Slider taille */}
           <div>
             <label className="mb-1 flex items-center justify-between text-xs text-white/40">
-              <span>Taille du zoom</span>
+              <span>{t('splitScreen.zoomSize')}</span>
               <span>{Math.round(config.cropSize * 100)}%</span>
             </label>
             <input
@@ -216,8 +218,8 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
               <div className="flex-1 bg-purple-500/30" />
             </div>
             <div className="text-[10px] leading-relaxed text-white/40">
-              <p>Haut : vidéo originale</p>
-              <p>Bas : zoom sur la zone sélectionnée</p>
+              <p>{t('splitScreen.topOriginal')}</p>
+              <p>{t('splitScreen.bottomZoom')}</p>
             </div>
           </div>
         </div>

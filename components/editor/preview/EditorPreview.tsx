@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useCallback, useState, useMemo, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useEditor } from '../EditorProvider'
 import { CropOverlay } from './CropOverlay'
 import { PreviewControls } from './PreviewControls'
@@ -16,6 +17,7 @@ interface EditorPreviewProps {
 }
 
 export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments }: EditorPreviewProps) {
+  const { t } = useTranslation()
   const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
   const { segments, playing } = state
 
@@ -279,7 +281,7 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments }
             mode === 'crop' ? 'bg-purple-500/30 text-purple-200' : 'text-white/40 hover:text-white/60'
           )}
         >
-          Cadrage
+          {t('editor.preview.crop')}
         </button>
         <button
           onClick={() => setMode('preview')}
@@ -288,7 +290,7 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments }
             mode === 'preview' ? 'bg-purple-500/30 text-purple-200' : 'text-white/40 hover:text-white/60'
           )}
         >
-          Aperçu
+          {t('editor.preview.preview')}
         </button>
       </div>
 

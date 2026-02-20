@@ -1,44 +1,47 @@
 'use client'
 
 import { motion } from 'framer-motion'
-
-const TESTIMONIALS = [
-  {
-    name: 'Marie Dubois',
-    handle: '@marie_crypto',
-    followers: '50K abonnés',
-    quote: 'J\'ai économisé 10h par semaine. La pré-sélection guidée est un game-changer. Mon monteur freelance à 400\u20AC/mois ? Viré.',
-    stats: ['342 clips', '28h économisées'],
-  },
-  {
-    name: 'Jean Martin',
-    handle: '@jean_podcast',
-    followers: 'Podcasteur',
-    quote: 'La preview live = fini les clips ratés. OpusClip m\'en générait 20 dont 18 inutiles. ClipForge : 100% exploitables.',
-    stats: ['127 clips', '150\u20AC économisés'],
-  },
-  {
-    name: 'Julie Leroy',
-    handle: '@julie_coach',
-    followers: 'Coach business',
-    quote: 'L\'export multi-format en 1 clic me fait gagner 30 min par session. Je poste sur TikTok, Instagram ET YouTube sans me prendre la tête.',
-    stats: ['89 clips', '+200% engagement'],
-  },
-]
-
-const STATS = [
-  { value: '2,500+', label: 'Créateurs actifs' },
-  { value: '45,000+', label: 'Clips générés' },
-  { value: '4.9/5', label: 'Note moyenne' },
-  { value: '28h', label: 'Économisées en moyenne' },
-]
+import { useTranslation } from 'react-i18next'
 
 export function SocialProof() {
+  const { t } = useTranslation()
+
+  const TESTIMONIALS = [
+    {
+      name: t('landing.socialProof.testimonial1Name'),
+      handle: t('landing.socialProof.testimonial1Handle'),
+      followers: t('landing.socialProof.testimonial1Followers'),
+      quote: t('landing.socialProof.testimonial1Quote'),
+      stats: [t('landing.socialProof.testimonial1Stat1'), t('landing.socialProof.testimonial1Stat2')],
+    },
+    {
+      name: t('landing.socialProof.testimonial2Name'),
+      handle: t('landing.socialProof.testimonial2Handle'),
+      followers: t('landing.socialProof.testimonial2Followers'),
+      quote: t('landing.socialProof.testimonial2Quote'),
+      stats: [t('landing.socialProof.testimonial2Stat1'), t('landing.socialProof.testimonial2Stat2')],
+    },
+    {
+      name: t('landing.socialProof.testimonial3Name'),
+      handle: t('landing.socialProof.testimonial3Handle'),
+      followers: t('landing.socialProof.testimonial3Followers'),
+      quote: t('landing.socialProof.testimonial3Quote'),
+      stats: [t('landing.socialProof.testimonial3Stat1'), t('landing.socialProof.testimonial3Stat2')],
+    },
+  ]
+
+  const STATS = [
+    { value: t('landing.socialProof.stat1Value'), label: t('landing.socialProof.stat1Label') },
+    { value: t('landing.socialProof.stat2Value'), label: t('landing.socialProof.stat2Label') },
+    { value: t('landing.socialProof.stat3Value'), label: t('landing.socialProof.stat3Label') },
+    { value: t('landing.socialProof.stat4Value'), label: t('landing.socialProof.stat4Label') },
+  ]
+
   return (
     <section className="bg-slate-950 py-20">
       <div className="mx-auto max-w-6xl px-6">
         <h2 className="mb-16 text-center text-5xl font-bold text-white">
-          Ils créent déjà leurs clips sur ClipForge
+          {t('landing.socialProof.title')}
         </h2>
 
         <motion.div
@@ -51,9 +54,9 @@ export function SocialProof() {
           viewport={{ once: true }}
           className="mb-16 grid gap-8 md:grid-cols-3"
         >
-          {TESTIMONIALS.map((t) => (
+          {TESTIMONIALS.map((testimonial) => (
             <motion.div
-              key={t.name}
+              key={testimonial.name}
               variants={{
                 hidden: { opacity: 0, y: 20 },
                 show: { opacity: 1, y: 0 },
@@ -63,17 +66,17 @@ export function SocialProof() {
               <div className="mb-4 flex items-start gap-4">
                 <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
                 <div>
-                  <strong className="block text-white">{t.name}</strong>
+                  <strong className="block text-white">{testimonial.name}</strong>
                   <span className="text-sm text-slate-400">
-                    {t.handle} &middot; {t.followers}
+                    {testimonial.handle} &middot; {testimonial.followers}
                   </span>
                 </div>
               </div>
 
-              <p className="mb-4 text-slate-300">&laquo; {t.quote} &raquo;</p>
+              <p className="mb-4 text-slate-300">&laquo; {testimonial.quote} &raquo;</p>
 
               <div className="flex gap-4 text-sm text-slate-400">
-                {t.stats.map((stat) => (
+                {testimonial.stats.map((stat) => (
                   <span key={stat}>{stat}</span>
                 ))}
               </div>

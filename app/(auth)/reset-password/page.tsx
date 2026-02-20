@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Mail, CircleCheck, ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { AlertBanner, Button, Input, useToast } from '@/components/ui'
 
@@ -12,13 +13,14 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const toast = useToast()
+  const { t } = useTranslation()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
     if (!email.trim()) {
-      setError('Veuillez entrer votre adresse email')
+      setError(t('auth.resetPassword.enterEmail'))
       return
     }
 
@@ -34,15 +36,15 @@ export default function ResetPasswordPage() {
       )
 
       if (resetError) {
-        toast.error('Impossible d\'envoyer l\'email de réinitialisation')
-        setError('Impossible d\'envoyer l\'email de réinitialisation')
+        toast.error(t('auth.resetPassword.cannotSend'))
+        setError(t('auth.resetPassword.cannotSend'))
         return
       }
 
       setSuccess(true)
-      toast.success('Email de réinitialisation envoyé !')
+      toast.success(t('auth.resetPassword.toastSuccess'))
     } catch {
-      setError('Une erreur est survenue. Veuillez réessayer.')
+      setError(t('common.genericError'))
     } finally {
       setLoading(false)
     }
@@ -52,16 +54,16 @@ export default function ResetPasswordPage() {
     return (
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-8 text-center backdrop-blur-xl">
         <CircleCheck className="mx-auto mb-4 h-12 w-12 text-emerald-400" />
-        <h2 className="mb-2 text-xl font-bold text-white">Email envoyé</h2>
+        <h2 className="mb-2 text-xl font-bold text-white">{t('auth.resetPassword.successTitle')}</h2>
         <p className="text-white/60">
-          Si un compte existe avec cette adresse, vous recevrez un lien pour réinitialiser votre mot de passe.
+          {t('auth.resetPassword.successMessage')}
         </p>
         <Link
           href="/login"
           className="mt-6 inline-flex items-center gap-2 text-sm text-purple-400 transition-colors hover:text-purple-300"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour à la connexion
+          {t('auth.resetPassword.backToLogin')}
         </Link>
       </div>
     )
@@ -70,9 +72,9 @@ export default function ResetPasswordPage() {
   return (
     <>
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white">Mot de passe oublié</h1>
+        <h1 className="text-3xl font-bold text-white">{t('auth.resetPassword.title')}</h1>
         <p className="mt-2 text-white/60">
-          Entrez votre email pour recevoir un lien de réinitialisation
+          {t('auth.resetPassword.subtitle')}
         </p>
       </div>
 
@@ -83,12 +85,12 @@ export default function ResetPasswordPage() {
         <Input
           id="email"
           type="email"
-          label="Email"
+          label={t('auth.resetPassword.email')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          placeholder="vous@exemple.com"
+          placeholder={t('auth.resetPassword.emailPlaceholder')}
         />
 
         {error && <AlertBanner message={error} />}
@@ -100,12 +102,12 @@ export default function ResetPasswordPage() {
           size="lg"
           className="w-full"
         >
-          Envoyer le lien
+          {t('auth.resetPassword.submit')}
         </Button>
 
         <p className="text-center text-sm text-white/50">
           <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">
-            Retour à la connexion
+            {t('auth.resetPassword.backToLogin')}
           </Link>
         </p>
       </form>
