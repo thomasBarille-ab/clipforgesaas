@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Type,
   ALargeSmall,
@@ -76,6 +77,7 @@ function ColorSwatch({
 }
 
 export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
+  const { t } = useTranslation()
   const [presets, setPresets] = useState<SubtitlePreset[]>([])
   const [saving, setSaving] = useState(false)
   const [presetName, setPresetName] = useState('')
@@ -96,13 +98,13 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
     setPresets((prev) => [...prev, preset])
     setPresetName('')
     setSaving(false)
-    toast.success('Preset sauvegardé !')
+    toast.success(t('subtitles.presetSaved'))
   }
 
   function handleDeletePreset(id: string) {
     deletePreset(id)
     setPresets((prev) => prev.filter((p) => p.id !== id))
-    toast.success('Preset supprimé !')
+    toast.success(t('subtitles.presetDeleted'))
   }
 
   function handleApplyPreset(preset: SubtitlePreset) {
@@ -117,7 +119,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
         className="flex w-full items-center gap-3 p-5 text-left"
       >
         <Captions className="h-4 w-4 text-white/50" />
-        <span className="text-sm font-semibold text-white">Sous-titres</span>
+        <span className="text-sm font-semibold text-white">{t('subtitles.title')}</span>
         {/* Toggle ON/OFF */}
         <span
           onClick={(e) => { e.stopPropagation(); update('enabled', !style.enabled) }}
@@ -143,7 +145,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-medium text-white/70">
             <BookmarkCheck className="h-4 w-4" />
-            Presets
+            {t('subtitles.presets')}
           </div>
           {!saving && (
             <button
@@ -151,7 +153,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
               className="flex items-center gap-1 text-xs text-purple-400 transition-colors hover:text-purple-300"
             >
               <Save className="h-3 w-3" />
-              Sauvegarder
+              {t('subtitles.savePreset')}
             </button>
           )}
         </div>
@@ -164,7 +166,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
-              placeholder="Nom du preset..."
+              placeholder={t('subtitles.presetNamePlaceholder')}
               autoFocus
               className="flex-1 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none"
             />
@@ -212,14 +214,14 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-white/30">Aucun preset sauvegardé</p>
+          <p className="text-xs text-white/30">{t('subtitles.noPresets')}</p>
         )}
       </div>
 
       {style.enabled && (
         <>
           {/* Police */}
-          <Section title="Police" icon={Type}>
+          <Section title={t('subtitles.font')} icon={Type}>
             <div className="grid grid-cols-2 gap-2">
               {FONT_OPTIONS.map((font) => (
                 <button
@@ -240,7 +242,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
           </Section>
 
           {/* Taille */}
-          <Section title="Taille" icon={ALargeSmall}>
+          <Section title={t('subtitles.size')} icon={ALargeSmall}>
             <div className="flex gap-2">
               {(Object.keys(FONT_SIZE_MAP) as SubtitleStyle['fontSize'][]).map((size) => (
                 <button
@@ -260,7 +262,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
           </Section>
 
           {/* Couleur du texte */}
-          <Section title="Couleur du texte" icon={Palette}>
+          <Section title={t('subtitles.textColor')} icon={Palette}>
             <div className="flex flex-wrap gap-2">
               {TEXT_COLOR_PRESETS.map((color) => (
                 <ColorSwatch
@@ -285,7 +287,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
           </Section>
 
           {/* Contour */}
-          <Section title="Contour" icon={PaintBucket}>
+          <Section title={t('subtitles.stroke')} icon={PaintBucket}>
             <div className="flex flex-wrap gap-2">
               {STROKE_COLOR_PRESETS.map((color) => (
                 <ColorSwatch
@@ -297,7 +299,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
               ))}
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-white/40">Épaisseur</span>
+              <span className="text-xs text-white/40">{t('subtitles.strokeWidth')}</span>
               <input
                 type="range"
                 min={0}
@@ -312,13 +314,13 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
           </Section>
 
           {/* Position */}
-          <Section title="Position" icon={AlignVerticalJustifyCenter}>
+          <Section title={t('subtitles.position')} icon={AlignVerticalJustifyCenter}>
             <div className="flex gap-2">
               {([
-                { value: 'top', label: 'Haut', icon: AlignVerticalJustifyStart },
-                { value: 'center', label: 'Centre', icon: AlignVerticalJustifyCenter },
-                { value: 'bottom', label: 'Bas', icon: AlignVerticalJustifyEnd },
-              ] as const).map(({ value, label, icon: PosIcon }) => (
+                { value: 'top', labelKey: 'subtitles.positionTop', icon: AlignVerticalJustifyStart },
+                { value: 'center', labelKey: 'subtitles.positionCenter', icon: AlignVerticalJustifyCenter },
+                { value: 'bottom', labelKey: 'subtitles.positionBottom', icon: AlignVerticalJustifyEnd },
+              ] as const).map(({ value, labelKey, icon: PosIcon }) => (
                 <button
                   key={value}
                   onClick={() => update('position', value)}
@@ -330,7 +332,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   )}
                 >
                   <PosIcon className="h-3.5 w-3.5" />
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
@@ -342,7 +344,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
             <div className="flex-1 space-y-2.5">
               <div className="flex items-center gap-2 text-sm font-medium text-white/70">
                 <CaseSensitive className="h-4 w-4" />
-                Casse
+                {t('subtitles.case')}
               </div>
               <div className="flex gap-2">
                 <button
@@ -376,7 +378,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
             <div className="flex-1 space-y-2.5">
               <div className="flex items-center gap-2 text-sm font-medium text-white/70">
                 <RectangleHorizontal className="h-4 w-4" />
-                Fond
+                {t('subtitles.background')}
               </div>
               <div className="flex gap-2">
                 <button
@@ -388,7 +390,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
-                  Non
+                  {t('subtitles.backgroundNone')}
                 </button>
                 <button
                   onClick={() => update('background', 'box')}
@@ -399,7 +401,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
-                  Box
+                  {t('subtitles.backgroundBox')}
                 </button>
               </div>
             </div>

@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Send,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { formatTime, formatFileSize } from '@/lib/utils'
 import { AlertBanner, Button, Input } from '@/components/ui'
@@ -19,6 +20,7 @@ import { VideoEditor } from '@/components/editor/VideoEditor'
 import type { Video, TranscriptionSegment, ClipSuggestion } from '@/types/database'
 
 export default function CreateClipsPage() {
+  const { t } = useTranslation()
   const params = useParams<{ videoId: string }>()
   const videoId = params.videoId
 
@@ -55,7 +57,7 @@ export default function CreateClipsPage() {
         .single()
 
       if (videoError || !videoData) {
-        setError('Vidéo introuvable')
+        setError(t('createClips.videoNotFound'))
         setLoading(false)
         return
       }
@@ -95,7 +97,7 @@ export default function CreateClipsPage() {
         setVideoSignedUrl(signedUrlRes.data.signedUrl)
       }
     } catch {
-      setError('Une erreur inattendue est survenue')
+      setError(t('common.genericError'))
     } finally {
       setLoading(false)
     }
@@ -134,7 +136,7 @@ export default function CreateClipsPage() {
         setSearchResults(data.data?.suggestions ?? [])
       }
     } catch {
-      setError('Erreur lors de la recherche')
+      setError(t('createClips.searchError'))
       setSearchResults([])
     } finally {
       setSearching(false)
@@ -169,7 +171,7 @@ export default function CreateClipsPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white md:text-4xl">
-          Créer des Clips
+          {t('createClips.title')}
         </h1>
 
         {video && (
@@ -195,14 +197,14 @@ export default function CreateClipsPage() {
       <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/70">
           <MessageSquare className="h-4 w-4 text-pink-400" />
-          Décrivez le clip que vous voulez
+          {t('createClips.searchTitle')}
         </div>
         <div className="flex gap-2">
           <Input
             value={searchPrompt}
             onChange={(e) => setSearchPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Ex: le moment où il parle de marketing, la blague sur les chats, un passage motivant..."
+            placeholder={t('createClips.searchPlaceholder')}
             disabled={searching || loading}
             className="flex-1 rounded-xl px-4 py-3 text-sm border-white/10"
           />
@@ -214,7 +216,7 @@ export default function CreateClipsPage() {
             size="md"
             className="rounded-xl bg-gradient-to-r from-pink-600 to-purple-600"
           >
-            <span className="hidden sm:inline">Chercher</span>
+            <span className="hidden sm:inline">{t('common.search')}</span>
           </Button>
         </div>
       </div>
@@ -227,9 +229,9 @@ export default function CreateClipsPage() {
               <Search className="h-5 w-5 text-pink-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Résultats</h2>
+              <h2 className="text-xl font-semibold text-white">{t('createClips.searchResults')}</h2>
               <p className="text-sm text-white/50">
-                {searchResults.length} clip{searchResults.length > 1 ? 's' : ''} trouvé{searchResults.length > 1 ? 's' : ''} pour &quot;{searchPrompt}&quot;
+                {t('createClips.searchResultsCount', { count: searchResults.length, query: searchPrompt })}
               </p>
             </div>
           </div>
@@ -257,9 +259,9 @@ export default function CreateClipsPage() {
           <Sparkles className="h-5 w-5 text-purple-400" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-white">Suggestions IA</h2>
+          <h2 className="text-xl font-semibold text-white">{t('createClips.suggestionsTitle')}</h2>
           <p className="text-sm text-white/50">
-            Les meilleurs moments identifiés pour créer des clips viraux
+            {t('createClips.suggestionsDesc')}
           </p>
         </div>
       </div>
@@ -307,10 +309,10 @@ export default function CreateClipsPage() {
         <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 py-16 text-center">
           <Sparkles className="mb-4 h-12 w-12 text-white/20" />
           <p className="text-lg font-medium text-white/50">
-            Aucune suggestion disponible
+            {t('createClips.noSuggestions')}
           </p>
           <p className="mt-1 text-sm text-white/30">
-            Vérifiez que la transcription de la vidéo est terminée
+            {t('createClips.noSuggestionsDesc')}
           </p>
         </div>
       )}

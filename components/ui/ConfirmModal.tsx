@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import { Modal, Button } from '@/components/ui'
 
 interface Props {
@@ -21,10 +22,11 @@ export function ConfirmModal({
   title,
   description,
   warning,
-  confirmLabel = 'Confirmer',
+  confirmLabel,
   confirmVariant = 'danger',
   icon: Icon,
 }: Props) {
+  const { t } = useTranslation()
   return (
     <Modal open={open} onClose={onClose}>
       <div className="p-6">
@@ -42,10 +44,10 @@ export function ConfirmModal({
 
         <div className="flex gap-3">
           <Button variant="secondary" onClick={onClose} className="flex-1">
-            Annuler
+            {t('confirmModal.cancel')}
           </Button>
           <Button variant={confirmVariant} onClick={onConfirm} className="flex-1">
-            {confirmLabel}
+            {confirmLabel || t('confirmModal.confirm')}
           </Button>
         </div>
       </div>

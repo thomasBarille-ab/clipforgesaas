@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDropzone, type FileRejection } from 'react-dropzone'
 import { useRouter } from 'next/navigation'
 import { CloudUpload, Film, X, CircleCheck } from 'lucide-react'
@@ -79,6 +80,7 @@ function generateThumbnailFromFile(file: File): Promise<Blob> {
 }
 
 export function VideoUploader() {
+  const { t } = useTranslation()
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -94,11 +96,11 @@ export function VideoUploader() {
     if (fileRejections.length > 0) {
       const code = fileRejections[0].errors[0]?.code
       if (code === 'file-too-large') {
-        setError('Le fichier dépasse la taille maximale de 500 Mo')
+        setError(t('upload.errorTooLarge'))
       } else if (code === 'file-invalid-type') {
-        setError('Format non supporté. Utilisez MP4, MOV ou AVI')
+        setError(t('upload.errorInvalidType'))
       } else {
-        setError('Fichier invalide')
+        setError(t('upload.errorInvalidFile'))
       }
       return
     }
@@ -129,7 +131,7 @@ export function VideoUploader() {
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
-        setError('Vous devez être connecté pour importer une vidéo')
+        setError(t('upload.errorNotLoggedIn'))
         setUploading(false)
         return
       }
@@ -176,8 +178,8 @@ export function VideoUploader() {
 
       if (dbError) {
         console.error('Supabase error:', dbError)
-        toast.error("Erreur lors de l'enregistrement")
-        setError("Erreur lors de l'enregistrement de la vidéo")
+        toast.error(t('upload.errorSaving'))
+        setError(t('upload.errorSaving'))
         setUploading(false)
         return
       }
@@ -211,10 +213,10 @@ export function VideoUploader() {
 
       setUploading(false)
       setSuccess(true)
-      toast.success('Vidéo importée avec succès !')
+      toast.success(t('upload.toastSuccess'))
       setTimeout(() => router.push('/videos'), 2500)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue'
+      const message = err instanceof Error ? err.message : t('upload.errorUnexpected')
       toast.error(message)
       setError(message)
       setUploading(false)
@@ -252,20 +254,20 @@ export function VideoUploader() {
               </div>
               {isDragActive ? (
                 <p className="text-lg font-semibold text-purple-300">
-                  Déposez votre vidéo ici
+                  {t('upload.dropzoneActive')}
                 </p>
               ) : (
                 <>
                   <div>
                     <p className="text-lg font-semibold text-white">
-                      Glissez-déposez votre vidéo ici
+                      {t('upload.dropzone')}
                     </p>
                     <p className="mt-1 text-white/50">
-                      ou cliquez pour parcourir
+                      {t('upload.browseFiles')}
                     </p>
                   </div>
                   <p className="text-sm text-white/40">
-                    MP4, MOV, AVI — 500 Mo maximum
+                    {t('upload.formats')}
                   </p>
                 </>
               )}
@@ -291,7 +293,7 @@ export function VideoUploader() {
                   icon={CloudUpload}
                   size="lg"
                 >
-                  Importer la vidéo
+                  {t('upload.importButton')}
                 </Button>
                 <button
                   type="button"
@@ -317,8 +319,8 @@ export function VideoUploader() {
                 <p className="font-medium text-white">{file?.name}</p>
                 <p className="mt-1 text-sm text-white/50">
                   {progress < 100
-                    ? `Envoi en cours... ${progress}%`
-                    : 'Enregistrement...'}
+                    ? t('upload.uploading', { progress })
+                    : t('upload.saving')}
                 </p>
               </div>
               <div className="h-3 w-full max-w-sm overflow-hidden rounded-full bg-white/10">
@@ -340,13 +342,13 @@ export function VideoUploader() {
           <CircleCheck className="h-16 w-16 text-emerald-400" />
           <div className="text-center">
             <p className="text-xl font-semibold text-white">
-              Upload réussi !
+              {t('upload.successTitle')}
             </p>
             <p className="mt-2 text-white/60">
-              La transcription a été lancée automatiquement.
+              {t('upload.successDesc')}
             </p>
             <p className="mt-1 text-sm text-white/40">
-              Redirection vers vos vidéos...
+              {t('upload.successRedirect')}
             </p>
           </div>
         </div>

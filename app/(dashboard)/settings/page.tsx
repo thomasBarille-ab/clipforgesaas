@@ -19,50 +19,52 @@ import {
   Sparkles,
   RefreshCw,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { PageHeader, AlertBanner, Button, Input, GoogleAuthButton, useToast } from '@/components/ui'
 import type { Profile, PlanType, CreatorPersona } from '@/types/database'
 
-const PLAN_CONFIG: Record<PlanType, { label: string; color: string; icon: React.ElementType }> = {
-  free: { label: 'Gratuit', color: 'bg-white/10 text-white/70', icon: Zap },
-  pro: { label: 'Pro', color: 'bg-purple-500/20 text-purple-300', icon: Crown },
-  business: { label: 'Business', color: 'bg-pink-500/20 text-pink-300', icon: Shield },
+const PLAN_CONFIG: Record<PlanType, { labelKey: string; color: string; icon: React.ElementType }> = {
+  free: { labelKey: 'settings.subscription.planFree', color: 'bg-white/10 text-white/70', icon: Zap },
+  pro: { labelKey: 'settings.subscription.planPro', color: 'bg-purple-500/20 text-purple-300', icon: Crown },
+  business: { labelKey: 'settings.subscription.planBusiness', color: 'bg-pink-500/20 text-pink-300', icon: Shield },
 }
 
 const PLANS_DETAILS: {
   key: PlanType
   name: string
   price: string
-  description: string
-  features: string[]
+  descriptionKey: string
+  featuresKey: string
   badge?: string
 }[] = [
   {
     key: 'free',
     name: 'Free',
     price: '0',
-    description: 'Pour découvrir ClipForge',
-    features: ['10 clips / mois', 'Toutes les features', 'Preview live', 'Export multi-format'],
+    descriptionKey: 'settings.subscription.freeDesc',
+    featuresKey: 'settings.subscription.freeFeatures',
   },
   {
     key: 'pro',
     name: 'Pro',
     price: '24',
-    description: 'Pour les créateurs sérieux',
-    badge: 'Populaire',
-    features: ['Clips illimités', 'Sans watermark', 'Tous styles de sous-titres', 'Support prioritaire'],
+    descriptionKey: 'settings.subscription.proDesc',
+    badge: 'settings.subscription.popular',
+    featuresKey: 'settings.subscription.proFeatures',
   },
   {
     key: 'business',
     name: 'Business',
     price: '49',
-    description: 'Pour les équipes',
-    features: ['Tout Pro +', 'IA personnalisée (Persona)', 'API access', 'Account manager dédié'],
+    descriptionKey: 'settings.subscription.businessDesc',
+    featuresKey: 'settings.subscription.businessFeatures',
   },
 ]
 
 export default function SettingsPage() {
+  const { t } = useTranslation()
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [authProvider, setAuthProvider] = useState<string | null>(null)
@@ -99,7 +101,7 @@ export default function SettingsPage() {
         .single()
 
       if (profileError || !data) {
-        setError('Impossible de charger le profil')
+        setError(t('settings.profile.loadError'))
         return
       }
 
@@ -120,11 +122,11 @@ export default function SettingsPage() {
         setPersona(null)
       }
     } catch {
-      setError('Une erreur est survenue')
+      setError(t('common.genericError'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     loadProfile()
@@ -144,18 +146,18 @@ export default function SettingsPage() {
         .eq('id', profile.id)
 
       if (updateError) {
-        toast.error('Erreur lors de la mise à jour')
-        setError('Erreur lors de la mise à jour du nom')
+        toast.error(t('settings.profile.updateError'))
+        setError(t('settings.profile.updateNameError'))
         return
       }
 
       setProfile({ ...profile, full_name: fullName.trim() || null })
       setEditing(false)
       setSaveSuccess(true)
-      toast.success('Profil mis à jour !')
+      toast.success(t('settings.profile.profileUpdated'))
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch {
-      setError('Une erreur est survenue')
+      setError(t('common.genericError'))
     } finally {
       setSaving(false)
     }
@@ -166,11 +168,11 @@ export default function SettingsPage() {
     try {
       const supabase = createClient()
       await supabase.auth.signOut()
-      toast.success('Déconnexion réussie !')
+      toast.success(t('settings.account.signOutSuccess'))
       router.push('/login')
     } catch {
-      toast.error('Erreur lors de la déconnexion')
-      setError('Erreur lors de la déconnexion')
+      toast.error(t('settings.account.signOutError'))
+      setError(t('settings.account.signOutError'))
       setSigningOut(false)
     }
   }
@@ -184,19 +186,19 @@ export default function SettingsPage() {
       const response = await fetch('/api/account/delete', { method: 'DELETE' })
       if (!response.ok) {
         const data = await response.json()
-        toast.error(data.error ?? 'Erreur lors de la suppression du compte')
-        setError(data.error ?? 'Erreur lors de la suppression du compte')
+        toast.error(data.error ?? t('settings.account.deleteError'))
+        setError(data.error ?? t('settings.account.deleteError'))
         setDeleting(false)
         return
       }
 
-      toast.success('Compte supprimé')
+      toast.success(t('settings.account.deleteSuccess'))
       const supabase = createClient()
       await supabase.auth.signOut()
       router.push('/login')
     } catch {
-      toast.error('Une erreur est survenue')
-      setError('Une erreur est survenue')
+      toast.error(t('common.genericError'))
+      setError(t('common.genericError'))
       setDeleting(false)
     }
   }
@@ -216,16 +218,16 @@ export default function SettingsPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        toast.error(data.error ?? 'Erreur lors du changement de plan')
-        setError(data.error ?? 'Erreur lors du changement de plan')
+        toast.error(data.error ?? t('settings.subscription.switchError'))
+        setError(data.error ?? t('settings.subscription.switchError'))
         return
       }
 
-      toast.success(`Plan changé en ${PLAN_CONFIG[newPlan].label} !`)
+      toast.success(t('settings.subscription.planChanged', { plan: t(PLAN_CONFIG[newPlan].labelKey) }))
       await loadProfile()
     } catch {
-      toast.error('Une erreur est survenue')
-      setError('Une erreur est survenue')
+      toast.error(t('common.genericError'))
+      setError(t('common.genericError'))
     } finally {
       setSwitchingPlan(null)
     }
@@ -240,7 +242,7 @@ export default function SettingsPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        toast.error(data.error ?? 'Erreur lors de la mise à jour du persona')
+        toast.error(data.error ?? t('settings.persona.refreshError'))
         return
       }
 
@@ -249,10 +251,10 @@ export default function SettingsPage() {
         return
       }
 
-      toast.success('Persona mis à jour !')
+      toast.success(t('settings.persona.refreshed'))
       await loadProfile()
     } catch {
-      toast.error('Une erreur est survenue')
+      toast.error(t('common.genericError'))
     } finally {
       setRefreshingPersona(false)
     }
@@ -273,14 +275,14 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <PageHeader title="Paramètres" subtitle="Gérez votre compte et vos préférences" />
+      <PageHeader title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
       {error && <AlertBanner message={error} />}
-      {saveSuccess && <AlertBanner variant="success" message="Profil mis à jour" />}
+      {saveSuccess && <AlertBanner variant="success" message={t('settings.profile.profileUpdated')} />}
 
       {/* Profil */}
       <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-        <h2 className="mb-5 text-lg font-semibold text-white">Profil</h2>
+        <h2 className="mb-5 text-lg font-semibold text-white">{t('settings.profile.title')}</h2>
 
         <div className="flex items-start gap-5">
           {profile?.avatar_url ? (
@@ -298,7 +300,7 @@ export default function SettingsPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                  placeholder="Votre nom"
+                  placeholder={t('settings.profile.namePlaceholder')}
                   autoFocus
                   className="max-w-xs px-3 py-2 text-sm"
                 />
@@ -309,7 +311,7 @@ export default function SettingsPage() {
                   variant="secondary"
                   size="sm"
                 >
-                  Enregistrer
+                  {t('common.save')}
                 </Button>
                 <button
                   onClick={() => {
@@ -318,14 +320,14 @@ export default function SettingsPage() {
                   }}
                   className="rounded-lg px-2 py-2 text-sm text-white/40 transition-colors hover:text-white/60"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-white/40" />
                 <span className="font-medium text-white">
-                  {profile?.full_name || <span className="italic text-white/30">Aucun nom</span>}
+                  {profile?.full_name || <span className="italic text-white/30">{t('settings.profile.noName')}</span>}
                 </span>
                 <button
                   onClick={() => setEditing(true)}
@@ -351,12 +353,12 @@ export default function SettingsPage() {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l3.56-2.77.01-.54z" />
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
-                    <span className="text-sm text-white/40">Connecté via Google</span>
+                    <span className="text-sm text-white/40">{t('settings.profile.connectedViaGoogle')}</span>
                   </>
                 ) : (
                   <>
                     <Shield className="h-4 w-4 text-white/40" />
-                    <span className="text-sm text-white/40">Connecté via email</span>
+                    <span className="text-sm text-white/40">{t('settings.profile.connectedViaEmail')}</span>
                   </>
                 )}
               </div>
@@ -368,13 +370,13 @@ export default function SettingsPage() {
       {/* Abonnement */}
       <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Abonnement</h2>
+          <h2 className="text-lg font-semibold text-white">{t('settings.subscription.title')}</h2>
           <div className="flex items-center gap-2">
             <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', PLAN_CONFIG[plan].color)}>
               <PlanIcon className="h-4 w-4" />
             </div>
             <span className="text-sm font-medium text-white/60">
-              Plan {PLAN_CONFIG[plan].label}
+              {t('settings.subscription.currentPlan')} {t(PLAN_CONFIG[plan].labelKey)}
             </span>
           </div>
         </div>
@@ -400,13 +402,13 @@ export default function SettingsPage() {
               >
                 {p.badge && !isCurrent && (
                   <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-0.5 text-xs font-semibold text-white">
-                    {p.badge}
+                    {t(p.badge)}
                   </div>
                 )}
 
                 {isCurrent && (
                   <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-purple-500 px-3 py-0.5 text-xs font-semibold text-white">
-                    Plan actuel
+                    {t('settings.subscription.currentPlan')}
                   </div>
                 )}
 
@@ -421,10 +423,10 @@ export default function SettingsPage() {
                   <span className="text-2xl font-bold text-white">{p.price}&euro;</span>
                   <span className="text-sm text-white/40">/mois</span>
                 </div>
-                <p className="mb-4 text-xs text-white/40">{p.description}</p>
+                <p className="mb-4 text-xs text-white/40">{t(p.descriptionKey)}</p>
 
                 <ul className="mb-5 flex-1 space-y-2">
-                  {p.features.map((f) => (
+                  {(t(p.featuresKey, { returnObjects: true }) as string[]).map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm text-white/70">
                       <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
                       {f}
@@ -434,7 +436,7 @@ export default function SettingsPage() {
 
                 {isCurrent ? (
                   <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 px-4 py-2 text-center text-sm font-medium text-purple-300">
-                    Actif
+                    {t('settings.subscription.active')}
                   </div>
                 ) : (
                   <button
@@ -455,10 +457,10 @@ export default function SettingsPage() {
                       <ArrowDown className="h-4 w-4" />
                     ) : null}
                     {isSwitching
-                      ? 'Changement...'
+                      ? t('settings.subscription.switching')
                       : isUpgrade
-                        ? `Passer en ${p.name}`
-                        : `Revenir en ${p.name}`}
+                        ? t('settings.subscription.upgrade', { name: p.name })
+                        : t('settings.subscription.downgrade', { name: p.name })}
                   </button>
                 )}
               </div>
@@ -468,7 +470,7 @@ export default function SettingsPage() {
 
         <div className="mt-4 rounded-lg border border-white/5 bg-white/[0.03] p-4">
           <p className="text-sm text-white/40">
-            Membre depuis le{' '}
+            {t('settings.subscription.memberSince')}{' '}
             <span className="text-white/60">
               {profile?.created_at
                 ? new Date(profile.created_at).toLocaleDateString('fr-FR', {
@@ -481,10 +483,10 @@ export default function SettingsPage() {
             {' '}&middot;{' '}
             {plan === 'free' ? (
               <span className="text-white/60">
-                {profile?.credits_remaining ?? 0} crédit{(profile?.credits_remaining ?? 0) > 1 ? 's' : ''} restant{(profile?.credits_remaining ?? 0) > 1 ? 's' : ''}
+                {t('settings.subscription.creditsRemaining', { count: profile?.credits_remaining ?? 0 })}
               </span>
             ) : (
-              <span className="text-purple-300">Clips illimités</span>
+              <span className="text-purple-300">{t('settings.subscription.unlimitedClips')}</span>
             )}
           </p>
         </div>
@@ -499,8 +501,8 @@ export default function SettingsPage() {
                 <Sparkles className="h-5 w-5 text-pink-300" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">Persona IA</h2>
-                <p className="text-xs text-white/40">Votre profil créateur analysé par l'IA</p>
+                <h2 className="text-lg font-semibold text-white">{t('settings.persona.title')}</h2>
+                <p className="text-xs text-white/40">{t('settings.persona.subtitle')}</p>
               </div>
             </div>
             <button
@@ -509,7 +511,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
             >
               <RefreshCw className={cn('h-3.5 w-3.5', refreshingPersona && 'animate-spin')} />
-              {refreshingPersona ? 'Analyse...' : 'Rafraîchir'}
+              {refreshingPersona ? t('settings.persona.refreshing') : t('settings.persona.refresh')}
             </button>
           </div>
 
@@ -522,10 +524,10 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center gap-4 text-xs text-white/30">
                 <span>
-                  Basé sur {persona.clip_count} clip{persona.clip_count > 1 ? 's' : ''}
+                  {t('settings.persona.basedOn', { count: persona.clip_count })}
                 </span>
                 <span>
-                  Mis à jour le{' '}
+                  {t('settings.persona.updatedAt')}{' '}
                   {new Date(persona.updated_at).toLocaleDateString('fr-FR', {
                     day: 'numeric',
                     month: 'long',
@@ -539,9 +541,9 @@ export default function SettingsPage() {
           ) : (
             <div className="rounded-xl border border-white/5 bg-white/[0.03] p-6 text-center">
               <Sparkles className="mx-auto mb-3 h-8 w-8 text-white/20" />
-              <p className="mb-1 text-sm text-white/50">Aucun persona généré</p>
+              <p className="mb-1 text-sm text-white/50">{t('settings.persona.noPersona')}</p>
               <p className="text-xs text-white/30">
-                Générez au moins 3 clips pour que l'IA analyse votre style de création.
+                {t('settings.persona.noPersonaDesc')}
               </p>
             </div>
           )}
@@ -550,7 +552,7 @@ export default function SettingsPage() {
 
       {/* Compte */}
       <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-        <h2 className="mb-5 text-lg font-semibold text-white">Compte</h2>
+        <h2 className="mb-5 text-lg font-semibold text-white">{t('settings.account.title')}</h2>
 
         <div className="space-y-3">
           <button
@@ -563,7 +565,7 @@ export default function SettingsPage() {
             ) : (
               <LogOut className="h-4 w-4" />
             )}
-            Se déconnecter
+            {t('settings.account.signOut')}
           </button>
 
           {!confirmDelete ? (
@@ -572,12 +574,12 @@ export default function SettingsPage() {
               className="flex w-full items-center gap-3 rounded-xl border border-red-500/10 bg-red-500/5 px-4 py-3 text-left text-sm text-red-400/70 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
-              Supprimer mon compte
+              {t('settings.account.deleteAccount')}
             </button>
           ) : (
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
               <p className="mb-3 text-sm text-red-300">
-                Cette action est irréversible. Toutes vos vidéos, clips et données seront supprimés définitivement.
+                {t('settings.account.deleteWarning')}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -587,13 +589,13 @@ export default function SettingsPage() {
                   icon={Trash2}
                   size="sm"
                 >
-                  Confirmer la suppression
+                  {t('settings.account.deleteConfirm')}
                 </Button>
                 <button
                   onClick={() => setConfirmDelete(false)}
                   className="rounded-lg px-4 py-2 text-sm text-white/40 transition-colors hover:text-white/60"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

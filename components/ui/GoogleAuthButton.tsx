@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
@@ -17,7 +18,9 @@ function GoogleIcon() {
   )
 }
 
-export function GoogleAuthButton({ label = 'Continuer avec Google' }: Props) {
+export function GoogleAuthButton({ label }: Props) {
+  const { t } = useTranslation()
+
   async function handleGoogleSignIn() {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
@@ -35,7 +38,7 @@ export function GoogleAuthButton({ label = 'Continuer avec Google' }: Props) {
       className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 px-6 py-3 font-medium text-white transition-colors hover:bg-white/10"
     >
       <GoogleIcon />
-      {label}
+      {label ?? t('auth.login.continueWithGoogle')}
     </button>
   )
 }

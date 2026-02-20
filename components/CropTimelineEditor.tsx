@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Crop, Plus, Trash2, Loader2, ChevronLeft, AlignCenter, ChevronRight, GripVertical, ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn, formatTime } from '@/lib/utils'
 
 export interface CropSegment {
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, clipDuration }: Props) {
+  const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [videoReady, setVideoReady] = useState(false)
@@ -164,9 +166,9 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
   const cropWidth = cropWidthFraction * 100
 
   function positionLabel(x: number): string {
-    if (x <= 0.2) return 'Gauche'
-    if (x >= 0.8) return 'Droite'
-    if (x >= 0.4 && x <= 0.6) return 'Centre'
+    if (x <= 0.2) return t('cropTimeline.left')
+    if (x >= 0.8) return t('cropTimeline.right')
+    if (x >= 0.4 && x <= 0.6) return t('cropTimeline.center')
     return `${Math.round(x * 100)}%`
   }
 
@@ -178,7 +180,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
         className="flex w-full items-center gap-3 p-5 text-left"
       >
         <Crop className="h-4 w-4 text-white/50" />
-        <span className="text-sm font-semibold text-white">Cadrage</span>
+        <span className="text-sm font-semibold text-white">{t('cropTimeline.title')}</span>
         {/* Toggle ON/OFF */}
         <span
           onClick={(e) => { e.stopPropagation(); onChange({ ...config, enabled: !config.enabled }) }}
@@ -187,7 +189,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
             config.enabled ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'
           )}
         >
-          {config.enabled ? 'ON' : 'OFF'}
+          {config.enabled ? t('splitScreen.on') : t('splitScreen.off')}
         </span>
         <ChevronDown
           className={cn(
@@ -201,7 +203,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
         <div className="space-y-4 px-5 pb-5">
           {!canCrop && (
             <p className="text-xs text-yellow-300/60">
-              La vidéo source est déjà en format vertical, le cadrage n&apos;est pas nécessaire.
+              {t('cropTimeline.alreadyVertical')}
             </p>
           )}
 
@@ -263,7 +265,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
               {/* Timeline visuelle */}
               <div>
                 <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-white/30">
-                  Timeline
+                  {t('cropTimeline.timeline')}
                 </p>
                 <div className="flex h-8 overflow-hidden rounded-lg border border-white/10">
                   {sorted.map((seg, i) => {
@@ -321,7 +323,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                       <button
                         onClick={() => removeSegment(selected.id)}
                         className="rounded-md p-1 text-white/30 transition-colors hover:bg-red-500/20 hover:text-red-400"
-                        title="Supprimer ce segment"
+                        title={t('cropTimeline.deleteSegment')}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -331,9 +333,9 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                   {/* Presets */}
                   <div className="flex gap-1.5">
                     {[
-                      { label: 'Gauche', icon: ChevronLeft, value: 0 },
-                      { label: 'Centre', icon: AlignCenter, value: 0.5 },
-                      { label: 'Droite', icon: ChevronRight, value: 1 },
+                      { label: t('cropTimeline.left'), icon: ChevronLeft, value: 0 },
+                      { label: t('cropTimeline.center'), icon: AlignCenter, value: 0.5 },
+                      { label: t('cropTimeline.right'), icon: ChevronRight, value: 1 },
                     ].map(({ label, icon: Icon, value }) => (
                       <button
                         key={label}
@@ -354,7 +356,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                   {/* Slider fin */}
                   <div>
                     <label className="mb-1 flex items-center justify-between text-[10px] text-white/30">
-                      <span>Position horizontale</span>
+                      <span>{t('cropTimeline.horizontalPosition')}</span>
                       <span>{Math.round(selected.cropX * 100)}%</span>
                     </label>
                     <input
@@ -373,7 +375,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                   {selected.time > 0 && (
                     <div>
                       <label className="mb-1 block text-[10px] text-white/30">
-                        Début du segment (secondes)
+                        {t('cropTimeline.segmentStart')}
                       </label>
                       <input
                         type="number"
@@ -398,7 +400,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] py-2 text-xs font-medium text-white/40 transition-colors hover:border-purple-500/30 hover:bg-white/5 hover:text-white/60"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Ajouter un point de coupe
+                {t('cropTimeline.addCutPoint')}
               </button>
             </>
           )}

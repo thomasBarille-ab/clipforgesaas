@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Clock, TrendingUp, Download, Share2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatTime } from '@/lib/utils'
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function ClipPreviewModal({ clip, onClose, onPublish }: Props) {
+  const { t } = useTranslation()
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [loadingUrl, setLoadingUrl] = useState(false)
   const { downloadingId, downloadClip } = useClipDownload()
@@ -60,11 +62,11 @@ export function ClipPreviewModal({ clip, onClose, onPublish }: Props) {
           autoPlay
           className="aspect-[9/16] w-full bg-black"
         >
-          Votre navigateur ne supporte pas la lecture vidéo.
+          {t('clipPreview.videoNotSupported')}
         </video>
       ) : (
         <div className="flex aspect-[9/16] w-full items-center justify-center bg-black">
-          <p className="text-sm text-white/40">Impossible de charger la vidéo</p>
+          <p className="text-sm text-white/40">{t('clipPreview.cannotLoad')}</p>
         </div>
       )}
 
@@ -95,7 +97,7 @@ export function ClipPreviewModal({ clip, onClose, onPublish }: Props) {
             size="lg"
             className="flex-1"
           >
-            Télécharger
+            {t('common.download')}
           </Button>
           {onPublish && (
             <Button
@@ -105,7 +107,7 @@ export function ClipPreviewModal({ clip, onClose, onPublish }: Props) {
               size="lg"
               className="flex-1"
             >
-              Publier
+              {t('common.publish')}
             </Button>
           )}
         </div>

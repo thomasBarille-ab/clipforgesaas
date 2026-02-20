@@ -1,68 +1,73 @@
+'use client'
+
 import Link from 'next/link'
 import { Check } from 'lucide-react'
-
-const PLANS = [
-  {
-    name: 'Free',
-    price: '0',
-    description: 'Pour découvrir ClipForge',
-    features: [
-      '10 clips / mois',
-      'Toutes les features',
-      'Preview live',
-      'Export multi-format',
-    ],
-    caveats: ['Watermark ClipForge'],
-    cta: 'Commencer gratuitement',
-    href: '/signup',
-    highlighted: false,
-  },
-  {
-    name: 'Pro',
-    price: '24',
-    description: 'Pour les créateurs sérieux',
-    badge: 'Populaire',
-    features: [
-      'Clips illimités',
-      'Sans watermark',
-      'Tous styles de sous-titres',
-      'Templates personnalisés',
-      'Support prioritaire',
-      'Historique illimité',
-    ],
-    caveats: [],
-    cta: 'Passer Pro',
-    href: '/signup',
-    highlighted: true,
-  },
-  {
-    name: 'Business',
-    price: '49',
-    description: 'Pour les équipes',
-    features: [
-      'Tout Pro +',
-      'Équipe (5 membres)',
-      'White label',
-      'API access',
-      'Account manager dédié',
-      'Factures personnalisées',
-    ],
-    caveats: [],
-    cta: 'Contactez-nous',
-    href: '/signup',
-    highlighted: false,
-  },
-]
+import { useTranslation } from 'react-i18next'
 
 export function PricingSection() {
+  const { t } = useTranslation()
+
+  const PLANS = [
+    {
+      name: t('landing.pricing.free.name'),
+      price: t('landing.pricing.free.price'),
+      description: t('landing.pricing.free.description'),
+      features: [
+        t('landing.pricing.free.features.0'),
+        t('landing.pricing.free.features.1'),
+        t('landing.pricing.free.features.2'),
+        t('landing.pricing.free.features.3'),
+      ],
+      caveats: [t('landing.pricing.free.caveats.0')],
+      cta: t('landing.pricing.free.cta'),
+      href: '/signup',
+      highlighted: false,
+    },
+    {
+      name: t('landing.pricing.pro.name'),
+      price: t('landing.pricing.pro.price'),
+      description: t('landing.pricing.pro.description'),
+      badge: t('landing.pricing.popular'),
+      features: [
+        t('landing.pricing.pro.features.0'),
+        t('landing.pricing.pro.features.1'),
+        t('landing.pricing.pro.features.2'),
+        t('landing.pricing.pro.features.3'),
+        t('landing.pricing.pro.features.4'),
+        t('landing.pricing.pro.features.5'),
+      ],
+      caveats: [],
+      cta: t('landing.pricing.pro.cta'),
+      href: '/signup',
+      highlighted: true,
+    },
+    {
+      name: t('landing.pricing.business.name'),
+      price: t('landing.pricing.business.price'),
+      description: t('landing.pricing.business.description'),
+      features: [
+        t('landing.pricing.business.features.0'),
+        t('landing.pricing.business.features.1'),
+        t('landing.pricing.business.features.2'),
+        t('landing.pricing.business.features.3'),
+        t('landing.pricing.business.features.4'),
+        t('landing.pricing.business.features.5'),
+      ],
+      caveats: [],
+      cta: t('landing.pricing.business.cta'),
+      href: '/signup',
+      highlighted: false,
+    },
+  ]
+
   return (
     <section id="pricing" className="bg-slate-900 py-20">
       <div className="mx-auto max-w-6xl px-6">
         <h2 className="mb-4 text-center text-5xl font-bold text-white">
-          Tarifs simples &amp; transparents
+          {t('landing.pricing.title')}
         </h2>
         <p className="mb-16 text-center text-xl text-slate-400">
-          Commencez gratuitement, upgradez quand vous êtes prêt
+          {t('landing.pricing.subtitle')}
         </p>
 
         <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
@@ -84,7 +89,7 @@ export function PricingSection() {
               <h3 className="mb-4 text-2xl font-bold text-white">{plan.name}</h3>
               <div className="mb-2">
                 <span className="text-5xl font-bold text-white">{plan.price}&euro;</span>
-                <span className="text-slate-400">/mois</span>
+                <span className="text-slate-400">{t('common.month')}</span>
               </div>
               <p className="mb-6 text-sm text-slate-400">{plan.description}</p>
 
@@ -116,7 +121,7 @@ export function PricingSection() {
 
               {plan.highlighted && (
                 <p className="mt-4 text-center text-sm text-slate-400">
-                  Garantie satisfait ou remboursé 30 jours
+                  {t('landing.pricing.guarantee')}
                 </p>
               )}
             </div>

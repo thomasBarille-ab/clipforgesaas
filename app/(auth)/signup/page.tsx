@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { UserPlus, CircleCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { AlertBanner, Button, Input, GoogleAuthButton, useToast } from '@/components/ui'
 
@@ -16,11 +17,12 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const toast = useToast()
+  const { t } = useTranslation()
 
   function validate(): string | null {
-    if (!email.trim()) return 'Veuillez entrer votre adresse email'
-    if (password.length < 8) return 'Le mot de passe doit contenir au moins 8 caractères'
-    if (password !== confirmPassword) return 'Les mots de passe ne correspondent pas'
+    if (!email.trim()) return t('auth.signup.enterEmail')
+    if (password.length < 8) return t('auth.signup.passwordMinLength')
+    if (password !== confirmPassword) return t('auth.signup.passwordMismatch')
     return null
   }
 
@@ -47,16 +49,16 @@ export default function SignupPage() {
       })
 
       if (authError) {
-        toast.error("Impossible de créer le compte. Vérifiez vos informations.")
-        setError("Impossible de créer le compte. Vérifiez vos informations.")
+        toast.error(t('auth.signup.cannotCreateAccount'))
+        setError(t('auth.signup.cannotCreateAccount'))
         return
       }
 
       setSuccess(true)
-      toast.success('Compte créé ! Vérifiez votre email.')
+      toast.success(t('auth.signup.toastSuccess'))
       setTimeout(() => router.push('/login'), 4000)
     } catch {
-      setError('Une erreur est survenue. Veuillez réessayer.')
+      setError(t('common.genericError'))
     } finally {
       setLoading(false)
     }
@@ -66,11 +68,11 @@ export default function SignupPage() {
     return (
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-8 text-center backdrop-blur-xl">
         <CircleCheck className="mx-auto mb-4 h-12 w-12 text-emerald-400" />
-        <h2 className="mb-2 text-xl font-bold text-white">Compte créé avec succès !</h2>
+        <h2 className="mb-2 text-xl font-bold text-white">{t('auth.signup.successTitle')}</h2>
         <p className="text-white/60">
-          Vérifiez votre email pour confirmer votre inscription.
+          {t('auth.signup.successMessage')}
           <br />
-          Redirection vers la page de connexion...
+          {t('auth.signup.successRedirect')}
         </p>
       </div>
     )
@@ -79,9 +81,9 @@ export default function SignupPage() {
   return (
     <>
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white">Créer un compte</h1>
+        <h1 className="text-3xl font-bold text-white">{t('auth.signup.title')}</h1>
         <p className="mt-2 text-white/60">
-          Commencez à créer des clips en quelques minutes
+          {t('auth.signup.subtitle')}
         </p>
       </div>
 
@@ -90,7 +92,7 @@ export default function SignupPage() {
 
         <div className="flex items-center gap-4">
           <div className="h-px flex-1 bg-white/20" />
-          <span className="text-sm text-white/40">ou</span>
+          <span className="text-sm text-white/40">{t('common.or')}</span>
           <div className="h-px flex-1 bg-white/20" />
         </div>
 
@@ -98,34 +100,34 @@ export default function SignupPage() {
           <Input
             id="email"
             type="email"
-            label="Email"
+            label={t('auth.signup.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            placeholder="vous@exemple.com"
+            placeholder={t('auth.signup.emailPlaceholder')}
           />
 
           <Input
             id="password"
             type="password"
-            label="Mot de passe"
+            label={t('auth.signup.password')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="new-password"
-            placeholder="8 caractères minimum"
+            placeholder={t('auth.signup.passwordPlaceholder')}
           />
 
           <Input
             id="confirmPassword"
             type="password"
-            label="Confirmer le mot de passe"
+            label={t('auth.signup.confirmPassword')}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             autoComplete="new-password"
-            placeholder="Retapez votre mot de passe"
+            placeholder={t('auth.signup.confirmPasswordPlaceholder')}
           />
 
           {error && <AlertBanner message={error} />}
@@ -137,13 +139,13 @@ export default function SignupPage() {
             size="lg"
             className="w-full"
           >
-            Créer mon compte
+            {t('auth.signup.submit')}
           </Button>
 
           <p className="text-center text-sm text-white/50">
-            Déjà un compte ?{' '}
+            {t('auth.signup.hasAccount')}{' '}
             <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">
-              Se connecter
+              {t('auth.signup.signIn')}
             </Link>
           </p>
         </form>

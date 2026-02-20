@@ -17,9 +17,10 @@ import {
   Download,
   Eye,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize, formatDate } from '@/lib/utils'
-import { VIDEO_STATUS_LABELS, VIDEO_STATUS_COLORS } from '@/lib/constants'
+import { VIDEO_STATUS_KEYS, VIDEO_STATUS_COLORS } from '@/lib/constants'
 import { PageHeader, EmptyState, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
@@ -27,6 +28,7 @@ import { useClipDownload } from '@/hooks/useClipDownload'
 import type { VideoWithClips, Clip } from '@/types/database'
 
 export default function VideosPage() {
+  const { t } = useTranslation()
   const [videos, setVideos] = useState<VideoWithClips[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -115,10 +117,10 @@ export default function VideosPage() {
 
       await supabase.from('videos').delete().eq('id', video.id)
       setVideos((prev) => prev.filter((v) => v.id !== video.id))
-      toast.success('Vidéo supprimée !')
+      toast.success(t('videos.videoDeleted'))
     } catch (err) {
       console.error('Delete error:', err)
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+      toast.error(err instanceof Error ? err.message : t('videos.deleteError'))
     } finally {
       setDeletingId(null)
     }
@@ -135,16 +137,16 @@ export default function VideosPage() {
       })
 
       if (response.ok) {
-        toast.success('Transcription lancée !')
+        toast.success(t('videos.transcriptionStarted'))
         await loadVideos()
       } else {
         const result = await response.json()
         console.error('Transcription error:', result.error)
-        toast.error(result.error ?? 'Erreur lors de la transcription')
+        toast.error(result.error ?? t('videos.transcriptionError'))
       }
     } catch (err) {
       console.error('Transcription error:', err)
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la transcription')
+      toast.error(err instanceof Error ? err.message : t('videos.transcriptionError'))
     } finally {
       setTranscribingId(null)
     }
@@ -168,7 +170,7 @@ export default function VideosPage() {
       const { error } = await supabase.from('clips').delete().eq('id', clip.id)
       if (error) {
         console.error('Delete clip error:', error)
-        toast.error('Erreur lors de la suppression du clip')
+        toast.error(t('videos.deleteClipError'))
         return
       }
 
@@ -179,10 +181,10 @@ export default function VideosPage() {
             : v
         )
       )
-      toast.success('Clip supprimé !')
+      toast.success(t('videos.clipDeleted'))
     } catch (err) {
       console.error('Delete clip error:', err)
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+      toast.error(err instanceof Error ? err.message : t('videos.deleteError'))
     } finally {
       setDeletingClipId(null)
     }
@@ -197,8 +199,8 @@ export default function VideosPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        title="Mes Vidéos"
-        subtitle={!loading ? (videos.length === 0 ? 'Aucune vidéo importée' : `${videos.length} vidéo${videos.length > 1 ? 's' : ''}`) : undefined}
+        title={t('videos.title')}
+        subtitle={!loading ? (videos.length === 0 ? t('videos.noVideos') : t('videos.videoCount', { count: videos.length })) : undefined}
         className="mb-8"
       >
         <Link
@@ -206,7 +208,7 @@ export default function VideosPage() {
           className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
         >
           <Upload className="h-5 w-5" />
-          Importer une vidéo
+          {t('videos.importVideo')}
         </Link>
       </PageHeader>
 
@@ -276,7 +278,7 @@ export default function VideosPage() {
                       <Badge
                         variant={video.status === 'ready' ? 'emerald' : video.status === 'processing' ? 'blue' : video.status === 'failed' ? 'red' : 'yellow'}
                       >
-                        {isTranscribing ? 'Transcription...' : VIDEO_STATUS_LABELS[video.status]}
+                        {isTranscribing ? t('videos.transcription') : t(VIDEO_STATUS_KEYS[video.status])}
                       </Badge>
                     </div>
 
@@ -330,7 +332,7 @@ export default function VideosPage() {
                         ) : (
                           <Play className="h-4 w-4" />
                         )}
-                        <span className="hidden sm:inline">Transcrire</span>
+                        <span className="hidden sm:inline">{t('videos.transcribe')}</span>
                       </button>
                     )}
 
@@ -340,7 +342,7 @@ export default function VideosPage() {
                         className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
                       >
                         <Sparkles className="h-4 w-4" />
-                        <span className="hidden sm:inline">Créer clips</span>
+                        <span className="hidden sm:inline">{t('videos.createClips')}</span>
                       </Link>
                     )}
 
@@ -351,7 +353,7 @@ export default function VideosPage() {
                         'rounded-lg p-2 text-white/30 transition-colors hover:bg-red-500/20 hover:text-red-400',
                         isDeleting && 'opacity-50'
                       )}
-                      title="Supprimer"
+                      title={t('common.delete')}
                     >
                       {isDeleting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -367,7 +369,7 @@ export default function VideosPage() {
                   <div className="border-t border-white/10 bg-white/[0.02]">
                     <div className="px-5 py-3">
                       <p className="mb-3 text-xs font-medium uppercase tracking-wider text-white/30">
-                        Clips générés ({clipCount})
+                        {t('videos.generatedClips', { count: clipCount })}
                       </p>
                       <div className="space-y-2">
                         {readyClips.map((clip) => {
@@ -408,7 +410,7 @@ export default function VideosPage() {
                                 <button
                                   onClick={() => setPreviewClip(clip)}
                                   className="rounded-lg p-2 text-white/30 transition-colors hover:bg-white/10 hover:text-white/60"
-                                  title="Prévisualiser"
+                                  title={t('common.preview')}
                                 >
                                   <Eye className="h-4 w-4" />
                                 </button>
@@ -416,7 +418,7 @@ export default function VideosPage() {
                                   onClick={() => downloadClip(clip)}
                                   disabled={downloadingId === clip.id}
                                   className="rounded-lg p-2 text-white/30 transition-colors hover:bg-purple-500/20 hover:text-purple-400"
-                                  title="Télécharger"
+                                  title={t('common.download')}
                                 >
                                   {downloadingId === clip.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -428,7 +430,7 @@ export default function VideosPage() {
                                   onClick={() => setConfirmDeleteClipId(clip.id)}
                                   disabled={deletingClipId === clip.id}
                                   className="rounded-lg p-2 text-white/30 transition-colors hover:bg-red-500/20 hover:text-red-400"
-                                  title="Supprimer"
+                                  title={t('common.delete')}
                                 >
                                   {deletingClipId === clip.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -454,9 +456,9 @@ export default function VideosPage() {
       {!loading && videos.length === 0 && (
         <EmptyState
           icon={Upload}
-          title="Aucune vidéo importée"
-          description="Importez votre première vidéo pour commencer à créer des clips viraux"
-          actionLabel="Importer une vidéo"
+          title={t('videos.noVideos')}
+          description={t('videos.importDesc')}
+          actionLabel={t('videos.importVideo')}
           actionHref="/upload"
           actionIcon={Upload}
           className="py-20"
@@ -469,10 +471,10 @@ export default function VideosPage() {
           open={!!confirmDeleteId}
           onClose={() => setConfirmDeleteId(null)}
           onConfirm={() => deleteVideo(videoToDelete)}
-          title="Supprimer cette vidéo ?"
-          description={`La vidéo "${videoToDelete.title}" sera définitivement supprimée, ainsi que tous ses clips et transcriptions associés.`}
-          warning="Cette action est irréversible."
-          confirmLabel="Supprimer"
+          title={t('videos.deleteVideo')}
+          description={t('videos.deleteVideoDesc', { title: videoToDelete.title })}
+          warning={t('common.irreversible')}
+          confirmLabel={t('common.delete')}
           icon={Trash2}
         />
       )}
@@ -483,10 +485,10 @@ export default function VideosPage() {
           open={!!confirmDeleteClipId}
           onClose={() => setConfirmDeleteClipId(null)}
           onConfirm={() => deleteClip(clipToDelete)}
-          title="Supprimer ce clip ?"
-          description={`Le clip "${clipToDelete.title}" sera définitivement supprimé.`}
-          warning="Cette action est irréversible."
-          confirmLabel="Supprimer"
+          title={t('videos.deleteClip')}
+          description={t('videos.deleteClipDesc', { title: clipToDelete.title })}
+          warning={t('common.irreversible')}
+          confirmLabel={t('common.delete')}
           icon={Trash2}
         />
       )}

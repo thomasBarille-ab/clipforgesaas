@@ -1,5 +1,6 @@
 'use client'
 
+import '@/lib/i18n'
 import { ToastProvider } from '@/components/ui/Toast'
 
 export function Providers({ children }: { children: React.ReactNode }) {

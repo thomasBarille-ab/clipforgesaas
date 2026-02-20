@@ -1,59 +1,24 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Sparkles, Wand2 } from 'lucide-react'
 import { useOnboarding } from '@/hooks/useOnboarding'
 
 interface Step {
   id: string
   target: string | null
-  title: string
-  description: string
+  titleKey: string
+  descriptionKey: string
 }
 
 const STEPS: Step[] = [
-  {
-    id: 'welcome',
-    target: null,
-    title: 'Bienvenue dans l\'éditeur !',
-    description:
-      'Personnalisez votre clip avant de le générer : cadrage, sous-titres, découpe sur la timeline...',
-  },
-  {
-    id: 'left-panel',
-    target: 'editor-left-panel',
-    title: 'Informations & Cadrage',
-    description:
-      'Modifiez le titre, la description et les hashtags. Ajustez le cadrage horizontal pour le format 9:16.',
-  },
-  {
-    id: 'preview',
-    target: 'editor-preview',
-    title: 'Prévisualisation',
-    description:
-      'Visualisez votre clip en temps réel. Basculez entre le mode Cadrage et Aperçu pour voir le rendu final.',
-  },
-  {
-    id: 'subtitles',
-    target: 'editor-subtitles',
-    title: 'Sous-titres',
-    description:
-      'Activez et personnalisez les sous-titres : police, taille, couleur, position...',
-  },
-  {
-    id: 'timeline',
-    target: 'editor-timeline',
-    title: 'La timeline',
-    description:
-      'Découpez et ajustez vos segments. Utilisez les poignées latérales pour modifier les points d\'entrée et de sortie.',
-  },
-  {
-    id: 'done',
-    target: null,
-    title: 'Prêt à générer !',
-    description:
-      'Quand votre clip est parfait, cliquez sur "Générer le clip" dans la barre d\'outils en haut à droite.',
-  },
+  { id: 'welcome', target: null, titleKey: 'editorOnboarding.welcome.title', descriptionKey: 'editorOnboarding.welcome.description' },
+  { id: 'left-panel', target: 'editor-left-panel', titleKey: 'editorOnboarding.leftPanel.title', descriptionKey: 'editorOnboarding.leftPanel.description' },
+  { id: 'preview', target: 'editor-preview', titleKey: 'editorOnboarding.preview.title', descriptionKey: 'editorOnboarding.preview.description' },
+  { id: 'subtitles', target: 'editor-subtitles', titleKey: 'editorOnboarding.subtitles.title', descriptionKey: 'editorOnboarding.subtitles.description' },
+  { id: 'timeline', target: 'editor-timeline', titleKey: 'editorOnboarding.timeline.title', descriptionKey: 'editorOnboarding.timeline.description' },
+  { id: 'done', target: null, titleKey: 'editorOnboarding.done.title', descriptionKey: 'editorOnboarding.done.description' },
 ]
 
 interface SpotlightRect {
@@ -64,6 +29,7 @@ interface SpotlightRect {
 }
 
 export function EditorOnboardingOverlay() {
+  const { t } = useTranslation()
   const { active, step, totalSteps, next, skip } = useOnboarding({
     key: 'clipforge:editor-onboarding',
     totalSteps: STEPS.length,
@@ -191,12 +157,12 @@ export function EditorOnboardingOverlay() {
           <h3
             className={`text-lg font-bold text-white ${isModal ? 'text-center' : ''}`}
           >
-            {currentStep.title}
+            {t(currentStep.titleKey)}
           </h3>
           <p
             className={`mt-2 text-sm leading-relaxed text-white/70 ${isModal ? 'text-center' : ''}`}
           >
-            {currentStep.description}
+            {t(currentStep.descriptionKey)}
           </p>
 
           {/* Progress dots */}
@@ -217,14 +183,14 @@ export function EditorOnboardingOverlay() {
               onClick={skip}
               className="rounded-lg px-4 py-2 text-sm text-white/50 transition-colors hover:text-white/80"
             >
-              Passer
+              {t('common.skip')}
             </button>
 
             <button
               onClick={next}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
             >
-              {isLastStep ? 'C\'est compris !' : 'Suivant'}
+              {isLastStep ? t('editorOnboarding.gotIt') : t('common.next')}
             </button>
           </div>
         </div>
