@@ -18,7 +18,8 @@ import { Timeline } from './timeline/Timeline'
 import { EditorPreview } from './preview/EditorPreview'
 import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
 import type { SubtitleStyle } from '@/types/subtitles'
-import type { ClipSuggestion, ClipInsert, TranscriptionSegment } from '@/types/database'
+import { getPlanLimits, canCreateClip } from '@/lib/plans'
+import type { ClipSuggestion, ClipInsert, TranscriptionSegment, PlanType } from '@/types/database'
 import type { TimelineSegment } from './types'
 
 type GeneratingState = {
@@ -41,6 +42,7 @@ interface VideoEditorProps {
   suggestion: ClipSuggestion
   segments: TranscriptionSegment[]
   videoId: string
+  userPlan?: PlanType
   onClose: () => void
   onGenerated: () => void
 }
@@ -50,6 +52,7 @@ function EditorContent({
   suggestion,
   segments,
   videoId,
+  userPlan = 'pro',
   onClose,
   onGenerated,
 }: VideoEditorProps) {
@@ -210,6 +213,14 @@ function EditorContent({
         return
       }
 
+      // Vérifier la limite de clips avant tout traitement
+      const clipCheck = await canCreateClip(supabase, session.user.id, userPlan)
+      if (!clipCheck.allowed) {
+        toast.error(t('plans.limitReached', { used: clipCheck.used, limit: clipCheck.limit }))
+        setGenerating(null)
+        return
+      }
+
       const firstSeg = state.segments[0]
       const lastSeg = state.segments[state.segments.length - 1]
 
@@ -269,6 +280,7 @@ function EditorContent({
         segments: state.segments,
         srtContent,
         subtitleStyle: subtitleStyle.enabled ? subtitleStyle : undefined,
+        watermark: getPlanLimits(userPlan).watermark,
         onProgress: (p) => {
           // p est 0-100 de FFmpeg ; on mappe vers la plage 10-70 du progrès global
           const clamped = Math.max(0, Math.min(100, p))
@@ -353,7 +365,7 @@ function EditorContent({
     }
   }, [
     generating, state.segments, segmentOffsets, videoUrl, videoId, suggestion,
-    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router, toast
+    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router, toast, userPlan
   ])
 
   const isGenerating = generating !== null && generating.step !== 'done'
@@ -370,6 +382,15 @@ function EditorContent({
         generatingLabel={generating ? t(STEP_LABEL_KEYS[generating.step]) : null}
         disabled={generating !== null}
       />
+
+      {/* Watermark badge pour plan free */}
+      {getPlanLimits(userPlan).watermark && (
+        <div className="flex-shrink-0 px-4 py-1.5 bg-yellow-500/10 border-b border-yellow-500/20">
+          <p className="text-xs text-yellow-300 text-center">
+            {t('plans.watermarkNotice')}
+          </p>
+        </div>
+      )}
 
       {/* Barre de progression */}
       {generating && (
@@ -495,6 +516,7 @@ function EditorContent({
             videoUrl={videoUrl}
             subtitleStyle={subtitleStyle}
             transcriptionSegments={segments}
+            showWatermark={getPlanLimits(userPlan).watermark}
           />
         </div>
 

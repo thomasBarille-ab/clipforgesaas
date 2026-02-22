@@ -586,6 +586,16 @@
     "bottomZoom": "Bottom: zoom on selected area"
   },
 
+  "plans": {
+    "monthlyClips": "Clips this month",
+    "unlimited": "Unlimited",
+    "upgrade": "Go Pro",
+    "searchProOnly": "Search by prompt is available on Pro and Business plans. Upgrade to unlock this feature.",
+    "watermarkNotice": "Free plan — A ClipForge watermark will be added. Go Pro to remove it.",
+    "limitReached": "Limit reached: {{used}}/{{limit}} clips this month. Go Pro for unlimited clips.",
+    "clipQuota": "{{used}}/{{limit}} clips this month"
+  },
+
   "cropTimeline": {
     "title": "Cropping",
     "alreadyVertical": "The source video is already in vertical format, cropping is not necessary.",

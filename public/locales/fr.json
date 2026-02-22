@@ -586,6 +586,16 @@
     "bottomZoom": "Bas : zoom sur la zone sélectionnée"
   },
 
+  "plans": {
+    "monthlyClips": "Clips ce mois-ci",
+    "unlimited": "Illimité",
+    "upgrade": "Passer Pro",
+    "searchProOnly": "La recherche par prompt est réservée aux plans Pro et Business. Passez à un plan supérieur pour débloquer cette fonctionnalité.",
+    "watermarkNotice": "Plan Free — Un watermark ClipForge sera ajouté. Passez Pro pour le retirer.",
+    "limitReached": "Limite atteinte : {{used}}/{{limit}} clips ce mois-ci. Passez Pro pour des clips illimités.",
+    "clipQuota": "{{used}}/{{limit}} clips ce mois-ci"
+  },
+
   "cropTimeline": {
     "title": "Cadrage",
     "alreadyVertical": "La vidéo source est déjà en format vertical, le cadrage n'est pas nécessaire.",

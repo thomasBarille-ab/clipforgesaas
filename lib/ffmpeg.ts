@@ -238,6 +238,7 @@ export interface TrimOptions {
   srtContent?: string | null
   subtitleStyle?: import('@/types/subtitles').SubtitleStyle
   cropSegments?: CropSegmentOption[]
+  watermark?: boolean
   onProgress?: (progress: number) => void
 }
 
@@ -373,6 +374,39 @@ async function renderSubtitlePng(
 }
 
 /**
+ * Rend un PNG transparent plein écran (1080x1920) avec le texte "Made with ClipForge"
+ * centré, blanc semi-transparent (opacity ~0.3).
+ * Utilisé comme overlay FFmpeg pour les utilisateurs free.
+ */
+async function renderWatermarkPng(
+  width: number = 1080,
+  height: number = 1920
+): Promise<Uint8Array> {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+
+  ctx.clearRect(0, 0, width, height)
+
+  const fontSize = 36
+  ctx.font = `bold ${fontSize}px 'Arial', sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+  ctx.fillText('Made with ClipForge', width / 2, height / 2)
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (b) resolve(b)
+      else reject(new Error('Canvas toBlob a retourné null (watermark)'))
+    }, 'image/png')
+  })
+  return new Uint8Array(await blob.arrayBuffer())
+}
+
+/**
  * Génère une miniature JPEG à partir d'un Blob vidéo via Canvas API.
  * Utilise le décodeur vidéo natif du navigateur (pas de WASM).
  */
@@ -475,6 +509,7 @@ export interface ConcatOptions {
   segments: ConcatSegment[]
   srtContent?: string | null
   subtitleStyle?: import('@/types/subtitles').SubtitleStyle
+  watermark?: boolean
   onProgress?: (progress: number) => void
 }
 
@@ -487,6 +522,7 @@ export async function trimAndConcatSegments({
   segments: timelineSegments,
   srtContent,
   subtitleStyle,
+  watermark,
   onProgress,
 }: ConcatOptions): Promise<TrimResult> {
   // Cas simple : 1 segment → réutiliser trimAndCropVideo
@@ -499,6 +535,7 @@ export async function trimAndConcatSegments({
       srtContent,
       subtitleStyle,
       cropSegments: [{ startTime: 0, cropX: seg.cropX }],
+      watermark,
       onProgress,
     })
   }
@@ -539,12 +576,25 @@ export async function trimAndConcatSegments({
       }
     }
 
+    // Watermark PNG (free plan)
+    if (watermark) {
+      const wmPng = await renderWatermarkPng()
+      await ffmpeg.writeFile('watermark.png', wmPng)
+      console.log('[ffmpeg] Watermark PNG written')
+    }
+
     const args: string[] = []
     args.push('-ss', earliest.toString())
     args.push('-i', 'input.mp4')
 
     for (let i = 0; i < subtitleEntries.length; i++) {
       args.push('-i', `sub_${i}.png`)
+    }
+
+    // Watermark is the last input
+    const wmInputIdx = watermark ? 1 + subtitleEntries.length : -1
+    if (watermark) {
+      args.push('-i', 'watermark.png')
     }
 
     // filter_complex : chaque segment a trim+setpts+crop+scale, puis concat
@@ -571,6 +621,8 @@ export async function trimAndConcatSegments({
     fc += `concat=n=${n}:v=1:a=1[concatv][concata]`
 
     // Sous-titres overlay sur le résultat concaténé
+    // Le dernier label vidéo avant watermark sera "subout" si sous-titres, sinon "concatv"
+    let lastVideoLabel = 'concatv'
     if (subtitleEntries.length > 0) {
       const pos = subtitleStyle?.position ?? 'bottom'
       const overlayY =
@@ -581,14 +633,20 @@ export async function trimAndConcatSegments({
       let prevLabel = 'concatv'
       for (let i = 0; i < subtitleEntries.length; i++) {
         const inputIdx = i + 1
-        const outLabel = i === subtitleEntries.length - 1 ? 'vout' : `sv${i}`
+        const outLabel = i === subtitleEntries.length - 1 ? 'subout' : `sv${i}`
         const s = subtitleEntries[i].start.toFixed(3)
         const e = subtitleEntries[i].end.toFixed(3)
         fc += `;[${inputIdx}:v]format=rgba[s${i}];[${prevLabel}][s${i}]overlay=(main_w-overlay_w)/2:${overlayY}:enable='between(t,${s},${e})'[${outLabel}]`
         prevLabel = outLabel
       }
+      lastVideoLabel = 'subout'
+    }
+
+    // Watermark overlay (après sous-titres, visible toute la durée)
+    if (watermark) {
+      fc += `;[${wmInputIdx}:v]format=rgba[wm];[${lastVideoLabel}][wm]overlay=0:0[vout]`
     } else {
-      fc += ';[concatv]null[vout]'
+      fc += `;[${lastVideoLabel}]null[vout]`
     }
     fc += ';[concata]anull[aout]'
 
@@ -615,6 +673,9 @@ export async function trimAndConcatSegments({
     try { await ffmpeg.deleteFile('input.mp4') } catch { /* ignore */ }
     for (let i = 0; i < subtitleEntries.length; i++) {
       try { await ffmpeg.deleteFile(`sub_${i}.png`) } catch { /* ignore */ }
+    }
+    if (watermark) {
+      try { await ffmpeg.deleteFile('watermark.png') } catch { /* ignore */ }
     }
 
     console.log('[ffmpeg] Reading output...')
@@ -653,6 +714,7 @@ export async function trimAndCropVideo({
   srtContent,
   subtitleStyle,
   cropSegments,
+  watermark,
   onProgress,
 }: TrimOptions): Promise<TrimResult> {
   console.log('[ffmpeg] Starting trim...')
@@ -696,6 +758,13 @@ export async function trimAndCropVideo({
       }
     }
 
+    // Watermark PNG (free plan)
+    if (watermark) {
+      const wmPng = await renderWatermarkPng()
+      await ffmpeg.writeFile('watermark.png', wmPng)
+      console.log('[ffmpeg] Watermark PNG written')
+    }
+
     // Construire les arguments FFmpeg
     // -ss avant -i = input seeking (saute directement au bon endroit, économise la mémoire)
     // Les timestamps décodés commencent à ~0 après -ss
@@ -707,6 +776,12 @@ export async function trimAndCropVideo({
     // Ajouter les PNG de sous-titres comme inputs
     for (let i = 0; i < subtitleEntries.length; i++) {
       args.push('-i', `sub_${i}.png`)
+    }
+
+    // Watermark is the last input
+    const wmInputIdx = watermark ? 1 + subtitleEntries.length : -1
+    if (watermark) {
+      args.push('-i', 'watermark.png')
     }
 
     // filter_complex : trim relatif (timestamps commencent à ~0 grâce au -ss input)
@@ -722,6 +797,9 @@ export async function trimAndCropVideo({
 
     fc += `;[0:a]atrim=end=${duration},asetpts=PTS-STARTPTS[aout]`
 
+    // Sous-titres overlay
+    // Le dernier label vidéo avant watermark sera "subout" si sous-titres, sinon "base"
+    let lastVideoLabel = 'base'
     if (subtitleEntries.length > 0) {
       // Position Y de l'overlay selon le style
       const pos = subtitleStyle?.position ?? 'bottom'
@@ -733,16 +811,21 @@ export async function trimAndCropVideo({
       let prevLabel = 'base'
       for (let i = 0; i < subtitleEntries.length; i++) {
         const inputIdx = i + 1
-        const outLabel = i === subtitleEntries.length - 1 ? 'vout' : `v${i}`
+        const outLabel = i === subtitleEntries.length - 1 ? 'subout' : `v${i}`
         // Les temps SRT sont déjà relatifs au début du clip (generateSrt les ajuste)
         const s = subtitleEntries[i].start.toFixed(3)
         const e = subtitleEntries[i].end.toFixed(3)
         fc += `;[${inputIdx}:v]format=rgba[s${i}];[${prevLabel}][s${i}]overlay=(main_w-overlay_w)/2:${overlayY}:enable='between(t,${s},${e})'[${outLabel}]`
         prevLabel = outLabel
       }
+      lastVideoLabel = 'subout'
+    }
+
+    // Watermark overlay (après sous-titres, visible toute la durée)
+    if (watermark) {
+      fc += `;[${wmInputIdx}:v]format=rgba[wm];[${lastVideoLabel}][wm]overlay=0:0[vout]`
     } else {
-      // Pas de sous-titres : renommer base → vout
-      fc += ';[base]null[vout]'
+      fc += `;[${lastVideoLabel}]null[vout]`
     }
 
     args.push('-filter_complex', fc)
@@ -769,6 +852,9 @@ export async function trimAndCropVideo({
     try { await ffmpeg.deleteFile('input.mp4') } catch { /* ignore */ }
     for (let i = 0; i < subtitleEntries.length; i++) {
       try { await ffmpeg.deleteFile(`sub_${i}.png`) } catch { /* ignore */ }
+    }
+    if (watermark) {
+      try { await ffmpeg.deleteFile('watermark.png') } catch { /* ignore */ }
     }
 
     // Lire l'output

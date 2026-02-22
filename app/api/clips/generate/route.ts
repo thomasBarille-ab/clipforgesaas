@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { canCreateClip } from '@/lib/plans'
+import type { PlanType } from '@/types/database'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -13,7 +15,24 @@ export async function POST(request: Request) {
     )
   }
 
-  // 2. Parse body
+  // 2. Vérifier la limite de clips par mois
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user.id)
+    .single()
+
+  const plan = (profile?.plan as PlanType) ?? 'free'
+  const clipCheck = await canCreateClip(supabase, user.id, plan)
+
+  if (!clipCheck.allowed) {
+    return NextResponse.json(
+      { error: `Limite atteinte : ${clipCheck.used}/${clipCheck.limit} clips ce mois-ci. Passez au plan Pro pour des clips illimités.` },
+      { status: 403 }
+    )
+  }
+
+  // 3. Parse body
   let clipId: string
   let storagePath: string
   let thumbnailPath: string | null = null
@@ -36,7 +55,7 @@ export async function POST(request: Request) {
     )
   }
 
-  // 3. Vérifier ownership du clip
+  // 4. Vérifier ownership du clip
   const { data: clip, error: clipError } = await supabase
     .from('clips')
     .select('id')
