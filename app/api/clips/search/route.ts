@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { fetchPersonaForUser } from '@/lib/persona'
-import type { TranscriptionSegment } from '@/types/database'
+import { hasFeatureAccess } from '@/lib/plans'
+import type { TranscriptionSegment, PlanType } from '@/types/database'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -116,6 +117,22 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Vous devez être connecté' },
       { status: 401 }
+    )
+  }
+
+  // Vérifier accès à la recherche par prompt (Pro/Business only)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user.id)
+    .single()
+
+  const plan = (profile?.plan as PlanType) ?? 'free'
+
+  if (!hasFeatureAccess(plan, 'searchByPrompt')) {
+    return NextResponse.json(
+      { error: 'La recherche par prompt est réservée aux plans Pro et Business. Passez à un plan supérieur pour y accéder.' },
+      { status: 403 }
     )
   }
 

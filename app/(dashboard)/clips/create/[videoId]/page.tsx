@@ -14,10 +14,11 @@ import {
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { formatTime, formatFileSize } from '@/lib/utils'
-import { AlertBanner, Button, Input } from '@/components/ui'
+import { hasFeatureAccess } from '@/lib/plans'
+import { AlertBanner, Button, Input, Badge } from '@/components/ui'
 import { SuggestionCard } from '@/components/SuggestionCard'
 import { VideoEditor } from '@/components/editor/VideoEditor'
-import type { Video, TranscriptionSegment, ClipSuggestion } from '@/types/database'
+import type { Video, TranscriptionSegment, ClipSuggestion, PlanType } from '@/types/database'
 
 export default function CreateClipsPage() {
   const { t } = useTranslation()
@@ -31,6 +32,31 @@ export default function CreateClipsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [createdIndices, setCreatedIndices] = useState<Set<number>>(new Set())
+
+  // Plan utilisateur — re-fetch au focus pour capter les changements depuis les settings
+  const [userPlan, setUserPlan] = useState<PlanType>('free')
+
+  useEffect(() => {
+    async function fetchPlan() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', session.user.id)
+        .single()
+
+      if (data?.plan) setUserPlan(data.plan as PlanType)
+    }
+
+    fetchPlan()
+
+    function onFocus() { fetchPlan() }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [])
 
   // Recherche par prompt
   const [searchPrompt, setSearchPrompt] = useState('')
@@ -155,6 +181,7 @@ export default function CreateClipsPage() {
         suggestion={suggestion}
         segments={segments}
         videoId={videoId}
+        userPlan={userPlan}
         onClose={closeCustomizer}
         onGenerated={() => {
           setCreatedIndices((prev) => new Set(prev).add(index))
@@ -198,27 +225,36 @@ export default function CreateClipsPage() {
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/70">
           <MessageSquare className="h-4 w-4 text-pink-400" />
           {t('createClips.searchTitle')}
+          {!hasFeatureAccess(userPlan, 'searchByPrompt') && (
+            <Badge variant="purple" className="ml-1 px-2 py-0.5 text-[10px]">Pro</Badge>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Input
-            value={searchPrompt}
-            onChange={(e) => setSearchPrompt(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder={t('createClips.searchPlaceholder')}
-            disabled={searching || loading}
-            className="flex-1 rounded-xl px-4 py-3 text-sm border-white/10"
-          />
-          <Button
-            onClick={handleSearch}
-            disabled={!searchPrompt.trim() || loading}
-            loading={searching}
-            icon={Send}
-            size="md"
-            className="rounded-xl bg-gradient-to-r from-pink-600 to-purple-600"
-          >
-            <span className="hidden sm:inline">{t('common.search')}</span>
-          </Button>
-        </div>
+        {!hasFeatureAccess(userPlan, 'searchByPrompt') ? (
+          <p className="text-sm text-white/40">
+            {t('plans.searchProOnly')}
+          </p>
+        ) : (
+          <div className="flex gap-2">
+            <Input
+              value={searchPrompt}
+              onChange={(e) => setSearchPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder={t('createClips.searchPlaceholder')}
+              disabled={searching || loading}
+              className="flex-1 rounded-xl px-4 py-3 text-sm border-white/10"
+            />
+            <Button
+              onClick={handleSearch}
+              disabled={!searchPrompt.trim() || loading}
+              loading={searching}
+              icon={Send}
+              size="md"
+              className="rounded-xl bg-gradient-to-r from-pink-600 to-purple-600"
+            >
+              <span className="hidden sm:inline">{t('common.search')}</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Résultats de recherche */}

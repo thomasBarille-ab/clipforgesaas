@@ -586,6 +586,16 @@
     "bottomZoom": "Abajo: zoom en la zona seleccionada"
   },
 
+  "plans": {
+    "monthlyClips": "Clips este mes",
+    "unlimited": "Ilimitado",
+    "upgrade": "Pasar a Pro",
+    "searchProOnly": "La búsqueda por prompt está disponible en los planes Pro y Business. Actualice para desbloquear esta función.",
+    "watermarkNotice": "Plan Free — Se añadirá una marca de agua ClipForge. Pase a Pro para eliminarla.",
+    "limitReached": "Límite alcanzado: {{used}}/{{limit}} clips este mes. Pase a Pro para clips ilimitados.",
+    "clipQuota": "{{used}}/{{limit}} clips este mes"
+  },
+
   "cropTimeline": {
     "title": "Encuadre",
     "alreadyVertical": "El vídeo fuente ya está en formato vertical, el encuadre no es necesario.",

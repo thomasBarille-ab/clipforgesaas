@@ -14,9 +14,10 @@ interface EditorPreviewProps {
   videoUrl: string
   subtitleStyle: SubtitleStyle
   transcriptionSegments: TranscriptionSegment[]
+  showWatermark?: boolean
 }
 
-export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments }: EditorPreviewProps) {
+export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, showWatermark }: EditorPreviewProps) {
   const { t } = useTranslation()
   const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
   const { segments, playing } = state
@@ -333,6 +334,34 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments }
             ) : mode === 'preview' ? (
               <div className={cn('absolute left-0 right-0 flex justify-center px-3 pointer-events-none z-10', positionClass)}>
                 <span style={subtitleCss}>{displayText}</span>
+              </div>
+            ) : null
+          )}
+
+          {/* Watermark overlay (free plan) */}
+          {showWatermark && (
+            mode === 'crop' && cropBoxRect ? (
+              <div
+                className="absolute pointer-events-none z-10 overflow-hidden"
+                style={{ left: cropBoxRect.left, top: cropBoxRect.top, width: cropBoxRect.width, height: cropBoxRect.height }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    className="text-white/30 font-bold select-none"
+                    style={{ fontSize: `${Math.max(10, 36 * scale)}px` }}
+                  >
+                    Made with ClipForge
+                  </span>
+                </div>
+              </div>
+            ) : mode === 'preview' ? (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <span
+                  className="text-white/30 font-bold select-none"
+                  style={{ fontSize: `${Math.max(10, 36 * scale)}px` }}
+                >
+                  Made with ClipForge
+                </span>
               </div>
             ) : null
           )}

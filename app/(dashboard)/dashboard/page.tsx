@@ -16,10 +16,11 @@ import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, formatFileSize } from '@/lib/utils'
 import { VIDEO_STATUS_KEYS, VIDEO_STATUS_COLORS } from '@/lib/constants'
+import { getPlanLimits } from '@/lib/plans'
 import { PageHeader, EmptyState, Badge } from '@/components/ui'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { OnboardingOverlay } from '@/components/OnboardingOverlay'
-import type { Video, ClipWithVideo } from '@/types/database'
+import type { Video, ClipWithVideo, PlanType } from '@/types/database'
 
 interface Stats {
   totalVideos: number
@@ -39,6 +40,8 @@ export default function DashboardPage() {
   const [clips, setClips] = useState<ClipWithVideo[]>([])
   const [stats, setStats] = useState<Stats>({ totalVideos: 0, readyClips: 0, processingJobs: 0 })
   const [loading, setLoading] = useState(true)
+  const [userPlan, setUserPlan] = useState<PlanType>('free')
+  const [monthlyClipsUsed, setMonthlyClipsUsed] = useState(0)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -46,7 +49,10 @@ export default function DashboardPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
-    const [videosRes, clipsRes, jobsRes] = await Promise.all([
+    const now = new Date()
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+    const [videosRes, clipsRes, jobsRes, profileRes, monthlyClipsRes] = await Promise.all([
       supabase
         .from('videos')
         .select('*')
@@ -65,6 +71,16 @@ export default function DashboardPage() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', session.user.id)
         .in('status', ['pending', 'processing']),
+      supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', session.user.id)
+        .single(),
+      supabase
+        .from('clips')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .gte('created_at', firstOfMonth),
     ])
 
     const videosList = (videosRes.data ?? []) as Video[]
@@ -77,11 +93,17 @@ export default function DashboardPage() {
       readyClips: clipsList.length,
       processingJobs: jobsRes.count ?? 0,
     })
+    setUserPlan((profileRes.data?.plan as PlanType) ?? 'free')
+    setMonthlyClipsUsed(monthlyClipsRes.count ?? 0)
     setLoading(false)
   }, [])
 
   useEffect(() => {
     loadData()
+
+    function onFocus() { loadData() }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [loadData])
 
   return (
@@ -133,6 +155,52 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Quota clips mensuel */}
+      {!loading && (
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
+                <Scissors className="h-5 w-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">{t('plans.monthlyClips')}</p>
+                {getPlanLimits(userPlan).clipsPerMonth === -1 ? (
+                  <p className="text-lg font-bold text-emerald-400">{t('plans.unlimited')}</p>
+                ) : (
+                  <p className="text-lg font-bold text-white">
+                    {monthlyClipsUsed} / {getPlanLimits(userPlan).clipsPerMonth}
+                  </p>
+                )}
+              </div>
+            </div>
+            {userPlan === 'free' && (
+              <Link
+                href="/settings"
+                className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-xs font-semibold text-white transition-transform hover:scale-105"
+              >
+                {t('plans.upgrade')}
+              </Link>
+            )}
+          </div>
+          {userPlan === 'free' && getPlanLimits(userPlan).clipsPerMonth > 0 && (
+            <div className="mt-3">
+              <div className="h-2 rounded-full bg-white/10">
+                <div
+                  className={cn(
+                    'h-2 rounded-full transition-all',
+                    monthlyClipsUsed >= getPlanLimits(userPlan).clipsPerMonth
+                      ? 'bg-red-500'
+                      : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                  )}
+                  style={{ width: `${Math.min(100, (monthlyClipsUsed / getPlanLimits(userPlan).clipsPerMonth) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Vidéos récentes */}
       <section>

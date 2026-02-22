@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { canCreateClip } from '@/lib/plans'
+import type { PlanType } from '@/types/database'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -15,6 +17,23 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Vous devez être connecté' },
         { status: 401 }
+      )
+    }
+
+    // Vérifier la limite de clips par mois
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .single()
+
+    const plan = (profile?.plan as PlanType) ?? 'free'
+    const clipCheck = await canCreateClip(supabase, user.id, plan)
+
+    if (!clipCheck.allowed) {
+      return NextResponse.json(
+        { error: `Limite atteinte : ${clipCheck.used}/${clipCheck.limit} clips ce mois-ci. Passez au plan Pro pour des clips illimités.` },
+        { status: 403 }
       )
     }
 
