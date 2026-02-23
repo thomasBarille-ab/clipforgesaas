@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { stripe, PLAN_PRICE_IDS } from '@/lib/stripe'
 import type { PlanType } from '@/types/database'
 
 const VALID_PLANS: PlanType[] = ['free', 'pro', 'business']
-
-const PLAN_CREDITS: Record<PlanType, number> = {
-  free: 10,
-  pro: -1,      // illimité
-  business: -1, // illimité
-}
 
 interface UpdatePlanBody {
   plan: PlanType
@@ -42,7 +37,7 @@ export async function POST(request: Request) {
   // Fetch current profile
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('plan')
+    .select('plan, stripe_customer_id, stripe_subscription_id, email')
     .eq('id', user.id)
     .single()
 
@@ -60,21 +55,89 @@ export async function POST(request: Request) {
     )
   }
 
-  // Update plan + credits
-  const credits = PLAN_CREDITS[body.plan]
-  const updateData: Record<string, unknown> = { plan: body.plan }
+  const newPlan = body.plan
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-  // Reset credits when switching plans
-  if (credits === -1) {
-    // Pro/Business : set a high number to represent unlimited
-    updateData.credits_remaining = 999999
-  } else {
-    updateData.credits_remaining = credits
+  try {
+  // Case 1: Upgrading to a paid plan without existing subscription → Checkout
+  if (newPlan !== 'free' && !profile.stripe_subscription_id) {
+    // Create Stripe customer if needed
+    let customerId = profile.stripe_customer_id
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: profile.email ?? user.email ?? undefined,
+        metadata: { userId: user.id },
+      })
+      customerId = customer.id
+
+      await supabase
+        .from('profiles')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', user.id)
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      line_items: [
+        {
+          price: PLAN_PRICE_IDS[newPlan as Exclude<PlanType, 'free'>],
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId: user.id,
+        plan: newPlan,
+      },
+      success_url: `${appUrl}/settings?success=true`,
+      cancel_url: `${appUrl}/settings?canceled=true`,
+    })
+
+    return NextResponse.json({ action: 'checkout', url: session.url })
   }
 
+  // Case 2: Changing paid plan (upgrade/downgrade between pro/business) → Portal
+  if (newPlan !== 'free' && profile.stripe_subscription_id) {
+    if (!profile.stripe_customer_id) {
+      return NextResponse.json(
+        { error: 'Compte de facturation introuvable' },
+        { status: 400 }
+      )
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${appUrl}/settings`,
+    })
+
+    return NextResponse.json({ action: 'portal', url: session.url })
+  }
+
+  // Case 3: Downgrade to free with active subscription → Portal (to cancel)
+  if (newPlan === 'free' && profile.stripe_subscription_id) {
+    if (!profile.stripe_customer_id) {
+      return NextResponse.json(
+        { error: 'Compte de facturation introuvable' },
+        { status: 400 }
+      )
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${appUrl}/settings`,
+    })
+
+    return NextResponse.json({ action: 'portal', url: session.url })
+  }
+
+  // Case 4: Downgrade to free without subscription (edge case) → direct update
   const { error: updateError } = await supabase
     .from('profiles')
-    .update(updateData)
+    .update({
+      plan: 'free',
+      credits_remaining: 3,
+    })
     .eq('id', user.id)
 
   if (updateError) {
@@ -85,8 +148,13 @@ export async function POST(request: Request) {
     )
   }
 
-  return NextResponse.json({
-    success: true,
-    plan: body.plan,
-  })
+  return NextResponse.json({ success: true, plan: 'free' })
+
+  } catch (err) {
+    console.error('Stripe API error in update-plan:', err)
+    return NextResponse.json(
+      { error: 'Erreur lors de la communication avec Stripe' },
+      { status: 500 }
+    )
+  }
 }

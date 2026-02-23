@@ -464,7 +464,10 @@
       "memberSince": "Miembro desde el",
       "creditsRemaining": "{{count}} crédito restante",
       "creditsRemaining_plural": "{{count}} créditos restantes",
-      "unlimitedClips": "Clips ilimitados"
+      "unlimitedClips": "Clips ilimitados",
+      "paymentSuccess": "Pago exitoso! Su suscripción está activa.",
+      "paymentCanceled": "Pago cancelado. Su plan no ha cambiado.",
+      "manageSubscription": "Gestionar suscripción"
     },
     "persona": {
       "title": "Persona IA",
