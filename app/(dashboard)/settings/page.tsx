@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   User,
   Mail,
@@ -18,6 +18,7 @@ import {
   ArrowDown,
   Sparkles,
   RefreshCw,
+  CreditCard,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
@@ -66,6 +67,7 @@ const PLANS_DETAILS: {
 export default function SettingsPage() {
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [authProvider, setAuthProvider] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -131,6 +133,25 @@ export default function SettingsPage() {
   useEffect(() => {
     loadProfile()
   }, [loadProfile])
+
+  // Handle Stripe checkout redirect (run once)
+  const stripeHandled = useRef(false)
+  useEffect(() => {
+    if (stripeHandled.current) return
+    const success = searchParams.get('success')
+    const canceled = searchParams.get('canceled')
+
+    if (success === 'true') {
+      stripeHandled.current = true
+      toast.success(t('settings.subscription.paymentSuccess'))
+      router.replace('/settings')
+      loadProfile()
+    } else if (canceled === 'true') {
+      stripeHandled.current = true
+      toast.error(t('settings.subscription.paymentCanceled'))
+      router.replace('/settings')
+    }
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSaveName() {
     if (!profile || saving) return
@@ -223,6 +244,12 @@ export default function SettingsPage() {
         return
       }
 
+      // Redirect to Stripe Checkout or Portal
+      if (data.url) {
+        window.location.href = data.url
+        return
+      }
+
       toast.success(t('settings.subscription.planChanged', { plan: t(PLAN_CONFIG[newPlan].labelKey) }))
       await loadProfile()
     } catch {
@@ -230,6 +257,22 @@ export default function SettingsPage() {
       setError(t('common.genericError'))
     } finally {
       setSwitchingPlan(null)
+    }
+  }
+
+  async function handleManageSubscription() {
+    try {
+      const response = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast.error(data.error ?? t('common.genericError'))
+        return
+      }
+
+      window.location.href = data.url
+    } catch {
+      toast.error(t('common.genericError'))
     }
   }
 
@@ -468,7 +511,7 @@ export default function SettingsPage() {
           })}
         </div>
 
-        <div className="mt-4 rounded-lg border border-white/5 bg-white/[0.03] p-4">
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] p-4">
           <p className="text-sm text-white/40">
             {t('settings.subscription.memberSince')}{' '}
             <span className="text-white/60">
@@ -489,6 +532,15 @@ export default function SettingsPage() {
               <span className="text-purple-300">{t('settings.subscription.unlimitedClips')}</span>
             )}
           </p>
+          {profile?.stripe_subscription_id && (
+            <button
+              onClick={handleManageSubscription}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              {t('settings.subscription.manageSubscription')}
+            </button>
+          )}
         </div>
       </section>
 

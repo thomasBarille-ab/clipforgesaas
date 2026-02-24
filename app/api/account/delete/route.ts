@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { stripe } from '@/lib/stripe'
 
 export async function DELETE() {
   const supabase = await createClient()
@@ -44,6 +45,22 @@ export async function DELETE() {
     if (thumbClipFiles && thumbClipFiles.length > 0) {
       const thumbClipPaths = thumbClipFiles.map((f) => `${user.id}/thumbnails/clips/${f.name}`)
       await supabase.storage.from('videos').remove(thumbClipPaths)
+    }
+
+    // Cancel Stripe subscription if active
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_subscription_id')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.stripe_subscription_id) {
+      try {
+        await stripe.subscriptions.cancel(profile.stripe_subscription_id)
+      } catch (stripeErr) {
+        console.error('Failed to cancel Stripe subscription:', stripeErr)
+        // Non-blocking: continue with account deletion
+      }
     }
 
     // Les données DB (videos, clips, transcriptions, jobs) sont supprimées

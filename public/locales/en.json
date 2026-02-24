@@ -464,7 +464,10 @@
       "memberSince": "Member since",
       "creditsRemaining": "{{count}} credit remaining",
       "creditsRemaining_plural": "{{count}} credits remaining",
-      "unlimitedClips": "Unlimited clips"
+      "unlimitedClips": "Unlimited clips",
+      "paymentSuccess": "Payment successful! Your subscription is active.",
+      "paymentCanceled": "Payment canceled. Your plan has not changed.",
+      "manageSubscription": "Manage subscription"
     },
     "persona": {
       "title": "AI Persona",
