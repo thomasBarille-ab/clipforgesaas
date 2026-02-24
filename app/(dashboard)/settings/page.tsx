@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   User,
@@ -64,10 +64,31 @@ const PLANS_DETAILS: {
   },
 ]
 
-export default function SettingsPage() {
+// Composant séparé pour gérer les search params (nécessite Suspense)
+function StripeRedirectHandler({ onSuccess, onCanceled }: { onSuccess: () => void; onCanceled: () => void }) {
+  const searchParams = useSearchParams()
+  const stripeHandled = useRef(false)
+
+  useEffect(() => {
+    if (stripeHandled.current) return
+    const success = searchParams.get('success')
+    const canceled = searchParams.get('canceled')
+
+    if (success === 'true') {
+      stripeHandled.current = true
+      onSuccess()
+    } else if (canceled === 'true') {
+      stripeHandled.current = true
+      onCanceled()
+    }
+  }, [searchParams, onSuccess, onCanceled])
+
+  return null
+}
+
+function SettingsPageContent() {
   const { t } = useTranslation()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [authProvider, setAuthProvider] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -134,24 +155,17 @@ export default function SettingsPage() {
     loadProfile()
   }, [loadProfile])
 
-  // Handle Stripe checkout redirect (run once)
-  const stripeHandled = useRef(false)
-  useEffect(() => {
-    if (stripeHandled.current) return
-    const success = searchParams.get('success')
-    const canceled = searchParams.get('canceled')
+  // Callbacks pour le handler Stripe
+  const handleStripeSuccess = useCallback(() => {
+    toast.success(t('settings.subscription.paymentSuccess'))
+    router.replace('/settings')
+    loadProfile()
+  }, [t, router, loadProfile, toast])
 
-    if (success === 'true') {
-      stripeHandled.current = true
-      toast.success(t('settings.subscription.paymentSuccess'))
-      router.replace('/settings')
-      loadProfile()
-    } else if (canceled === 'true') {
-      stripeHandled.current = true
-      toast.error(t('settings.subscription.paymentCanceled'))
-      router.replace('/settings')
-    }
-  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleStripeCanceled = useCallback(() => {
+    toast.error(t('settings.subscription.paymentCanceled'))
+    router.replace('/settings')
+  }, [t, router, toast])
 
   async function handleSaveName() {
     if (!profile || saving) return
@@ -318,6 +332,11 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
+      {/* Handler pour les redirections Stripe (avec Suspense car utilise useSearchParams) */}
+      <Suspense fallback={null}>
+        <StripeRedirectHandler onSuccess={handleStripeSuccess} onCanceled={handleStripeCanceled} />
+      </Suspense>
+
       <PageHeader title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
       {error && <AlertBanner message={error} />}
@@ -655,5 +674,20 @@ export default function SettingsPage() {
         </div>
       </section>
     </div>
+  )
+}
+
+// Export avec Suspense boundary
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[400px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+        </div>
+      }
+    >
+      <SettingsPageContent />
+    </Suspense>
   )
 }
