@@ -8,24 +8,74 @@ const inter = Inter({
   subsets: ['latin'],
 })
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://creaclip.com'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'CreaClip — Créez des clips viraux en quelques clics',
+    default: 'CreaClip — Transformez vos vidéos longues en clips viraux avec l\'IA',
     template: '%s | CreaClip',
   },
   description:
-    'CreaClip transforme vos vidéos longues en clips courts et percutants grâce à l\'IA. Transcription automatique, suggestions intelligentes, export en un clic.',
-  keywords: ['clips vidéo', 'IA', 'montage automatique', 'transcription', 'SaaS', 'créateur contenu'],
+    'CreaClip est l\'outil IA qui transforme vos vidéos longues en clips TikTok, Reels et Shorts en 4 minutes. Pré-sélection guidée, preview live, export multi-format en 1 clic. Essai gratuit, 10 clips offerts.',
+  keywords: [
+    'créer clips vidéo IA',
+    'couper vidéo en clips automatiquement',
+    'outil clips TikTok',
+    'outil clips Reels',
+    'outil clips YouTube Shorts',
+    'montage vidéo automatique IA',
+    'transcription vidéo automatique',
+    'sous-titres automatiques vidéo',
+    'repurpose vidéo',
+    'clip vidéo gratuit',
+    'SaaS montage vidéo',
+    'CreaClip',
+    'créateur de contenu',
+    'video clipping tool',
+    'AI video editor',
+    'repurpose long videos',
+  ],
+  authors: [{ name: 'CreaClip' }],
+  creator: 'CreaClip',
+  publisher: 'CreaClip',
+  applicationName: 'CreaClip',
+  category: 'Technology',
   openGraph: {
-    title: 'CreaClip — Créez des clips viraux en quelques clics',
+    title: 'CreaClip — Transformez vos vidéos longues en clips viraux avec l\'IA',
     description:
-      'Transformez vos vidéos longues en clips courts et percutants grâce à l\'IA.',
+      'L\'IA qui crée vos clips TikTok, Reels et Shorts en 4 minutes. Pré-sélection guidée, preview live, export multi-format. 10 clips gratuits.',
     type: 'website',
     locale: 'fr_FR',
+    alternateLocale: ['en_US', 'es_ES'],
+    siteName: 'CreaClip',
+    url: SITE_URL,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CreaClip — Clips viraux en 4 minutes avec l\'IA',
+    description:
+      'Transformez vos vidéos longues en clips TikTok, Reels et Shorts. Pré-sélection guidée + preview live + export 1 clic.',
+    creator: '@creaclip',
+  },
+  alternates: {
+    canonical: SITE_URL,
+    languages: {
+      'fr': `${SITE_URL}`,
+      'en': `${SITE_URL}?lang=en`,
+      'es': `${SITE_URL}?lang=es`,
+    },
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 }
 

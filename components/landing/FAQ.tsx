@@ -1,7 +1,54 @@
 'use client'
 
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { fadeUp, staggerContainer } from '@/lib/motion'
+
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <motion.div
+      variants={fadeUp}
+      className={`rounded-xl border transition-colors ${
+        open
+          ? 'border-purple-500/20 bg-purple-500/[0.03]'
+          : 'border-white/10 bg-white/[0.03] hover:border-white/15'
+      }`}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full cursor-pointer items-center justify-between gap-4 px-6 py-4 text-left font-medium text-white"
+      >
+        {question}
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown className="h-4 w-4 shrink-0 text-white/30" />
+        </motion.div>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-6 pb-4">
+              <p className="text-sm leading-relaxed text-white/50">{answer}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
 
 export function FAQ() {
   const { t } = useTranslation()
@@ -18,29 +65,32 @@ export function FAQ() {
   return (
     <section id="faq" className="bg-slate-950 py-20">
       <div className="mx-auto max-w-3xl px-6">
-        <div className="mb-14 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple-400">{t('landing.faq.label')}</p>
-          <h2 className="text-3xl font-bold text-white md:text-4xl">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={staggerContainer}
+          className="mb-14 text-center"
+        >
+          <motion.p variants={fadeUp} className="mb-3 text-sm font-semibold uppercase tracking-wider text-purple-400">
+            {t('landing.faq.label')}
+          </motion.p>
+          <motion.h2 variants={fadeUp} className="text-3xl font-bold text-white md:text-4xl">
             {t('landing.faq.title')}
-          </h2>
-        </div>
+          </motion.h2>
+        </motion.div>
 
-        <div className="space-y-3">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={staggerContainer}
+          className="space-y-3"
+        >
           {QUESTIONS.map(({ q, a }) => (
-            <details
-              key={q}
-              className="group rounded-xl border border-white/10 bg-white/[0.03] transition-colors hover:border-white/15 [&[open]]:border-purple-500/20 [&[open]]:bg-purple-500/[0.03]"
-            >
-              <summary className="flex cursor-pointer items-center justify-between gap-4 px-6 py-4 text-left font-medium text-white marker:content-none [&::-webkit-details-marker]:hidden">
-                {q}
-                <ChevronDown className="h-4 w-4 shrink-0 text-white/30 transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="px-6 pb-4">
-                <p className="text-sm leading-relaxed text-white/50">{a}</p>
-              </div>
-            </details>
+            <FAQItem key={q} question={q} answer={a} />
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

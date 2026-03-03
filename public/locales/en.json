@@ -247,6 +247,17 @@
       "benefit2": "10 free clips",
       "benefit3": "Cancel in 1 click"
     },
+    "beforeAfter": {
+      "title": "Before / After CreaClip",
+      "beforeTitle": "Without CreaClip",
+      "afterTitle": "With CreaClip",
+      "before1": "2-5h wasted per week editing manually",
+      "before2": "90% of AI-generated clips are generic and unusable",
+      "before3": "Tedious export format by format",
+      "after1": "4 minutes for publish-ready clips",
+      "after2": "100% relevant clips thanks to guided pre-selection",
+      "after3": "1-click multi-format export (TikTok, Reels, Shorts)"
+    },
     "footer": {
       "copyright": "\u00a9 {{year}} CreaClip. All rights reserved."
     }

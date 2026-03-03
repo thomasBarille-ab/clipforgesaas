@@ -247,6 +247,17 @@
       "benefit2": "10 clips gratuits",
       "benefit3": "Annulation en 1 clic"
     },
+    "beforeAfter": {
+      "title": "Avant / Après CreaClip",
+      "beforeTitle": "Sans CreaClip",
+      "afterTitle": "Avec CreaClip",
+      "before1": "2-5h perdues par semaine à monter manuellement",
+      "before2": "90% des clips IA génériques et inutilisables",
+      "before3": "Export laborieux format par format",
+      "after1": "4 minutes pour des clips prêts à publier",
+      "after2": "100% de clips pertinents grâce à la pré-sélection guidée",
+      "after3": "Export multi-format en 1 clic (TikTok, Reels, Shorts)"
+    },
     "footer": {
       "copyright": "© {{year}} CreaClip. Tous droits réservés."
     }
