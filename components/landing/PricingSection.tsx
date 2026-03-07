@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { fadeUp, staggerContainer } from '@/lib/motion'
 
 export function PricingSection() {
   const { t } = useTranslation()
@@ -63,20 +65,37 @@ export function PricingSection() {
   return (
     <section id="pricing" className="bg-slate-900 py-20">
       <div className="mx-auto max-w-6xl px-6">
-        <h2 className="mb-4 text-center text-5xl font-bold text-white">
-          {t('landing.pricing.title')}
-        </h2>
-        <p className="mb-16 text-center text-xl text-slate-400">
-          {t('landing.pricing.subtitle')}
-        </p>
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={staggerContainer}
+          className="text-center"
+        >
+          <motion.h2 variants={fadeUp} className="mb-4 text-5xl font-bold text-white">
+            {t('landing.pricing.title')}
+          </motion.h2>
+          <motion.p variants={fadeUp} className="mb-16 text-xl text-slate-400">
+            {t('landing.pricing.subtitle')}
+          </motion.p>
+        </motion.div>
 
-        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={staggerContainer}
+          className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3"
+        >
           {PLANS.map((plan) => (
-            <div
+            <motion.div
               key={plan.name}
+              variants={fadeUp}
+              whileHover={{ y: -8 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               className={`relative rounded-2xl p-8 backdrop-blur-xl ${
                 plan.highlighted
-                  ? 'border-2 border-purple-500 bg-white/5'
+                  ? 'border-2 border-purple-500 bg-white/5 animate-glow-pulse'
                   : 'border border-white/10 bg-white/5'
               }`}
             >
@@ -124,9 +143,9 @@ export function PricingSection() {
                   {t('landing.pricing.guarantee')}
                 </p>
               )}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { Play, Sparkles, Captions } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { fadeUp, staggerContainer } from '@/lib/motion'
 
 export function HeroSection() {
   const { t } = useTranslation()
@@ -12,27 +14,32 @@ export function HeroSection() {
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-950 to-pink-900/20" />
       <div className="absolute inset-0">
-        <div className="absolute left-1/4 top-1/4 h-96 w-96 animate-pulse rounded-full bg-purple-600/30 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 animate-pulse rounded-full bg-pink-600/30 blur-3xl [animation-delay:1s]" />
+        <div className="absolute left-1/4 top-1/4 h-96 w-96 animate-float rounded-full bg-purple-600/30 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 animate-float-slow rounded-full bg-pink-600/30 blur-3xl [animation-delay:2s]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 pt-20">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           {/* Content */}
-          <div className="space-y-8">
-            <h1 className="text-5xl font-black leading-tight text-white md:text-6xl">
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={staggerContainer}
+            className="space-y-8"
+          >
+            <motion.h1 variants={fadeUp} className="text-5xl font-black leading-tight text-white md:text-6xl">
               {t('landing.hero.headline1')}
               <span className="block bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
                 {t('landing.hero.headline2')}
               </span>
-            </h1>
+            </motion.h1>
 
-            <p className="text-xl leading-relaxed text-slate-300">
+            <motion.p variants={fadeUp} className="text-xl leading-relaxed text-slate-300">
               {t('landing.hero.description')}
-            </p>
+            </motion.p>
 
             {/* CTAs */}
-            <div className="flex flex-col gap-4 sm:flex-row">
+            <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/signup"
                 className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 text-center font-semibold text-white shadow-lg transition-transform hover:scale-105 hover:shadow-purple-500/50"
@@ -48,10 +55,10 @@ export function HeroSection() {
                 <Play className="h-5 w-5" />
                 {t('landing.hero.demo')}
               </a>
-            </div>
+            </motion.div>
 
             {/* Social proof */}
-            <div className="flex items-center gap-4 pt-4">
+            <motion.div variants={fadeUp} className="flex items-center gap-4 pt-4">
               <div className="flex -space-x-2">
                 {[
                   'bg-purple-500',
@@ -72,11 +79,16 @@ export function HeroSection() {
                 {t('landing.hero.socialProofText')}
                 <span className="block text-yellow-400">&#9733;&#9733;&#9733;&#9733;&#9733; {t('landing.hero.socialProofRating')}</span>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Visual - Dashboard mockup */}
-          <div className="relative hidden lg:block">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
+            className="relative hidden lg:block"
+          >
             <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
               <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
                 <div className="flex items-center gap-8">
@@ -112,7 +124,7 @@ export function HeroSection() {
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-purple-600/20 to-transparent" />
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

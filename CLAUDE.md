@@ -1,7 +1,7 @@
-# ClipForge - Claude Code Rules
+# CreaClip - Claude Code Rules
 
 ## 🎯 Contexte Projet
-- Nom : ClipForge
+- Nom : CreaClip
 - Type : SaaS B2C de création de clips vidéo
 - Stack : Next.js 14 App Router + TypeScript + Supabase
 - Phase : MVP (6 semaines)

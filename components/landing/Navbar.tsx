@@ -12,9 +12,9 @@ export function Navbar() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
         <Link href="/" className="text-xl font-bold tracking-tight">
           <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Clip
+            Crea
           </span>
-          <span className="text-white">Forge</span>
+          <span className="text-white">Clip</span>
         </Link>
 
         <div className="hidden items-center gap-8 text-sm text-white/60 md:flex">
