@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { sendWelcomeEmail } from '@/lib/email/send'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -40,6 +41,17 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[Auth Callback] exchangeCodeForSession error:', error.message)
     } else {
+      // Envoyer un email de bienvenue si nouvel utilisateur (créé il y a moins de 60s)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.created_at) {
+        const createdAt = new Date(user.created_at).getTime()
+        const isNewUser = Date.now() - createdAt < 60_000
+        if (isNewUser) {
+          const name = user.user_metadata?.full_name || user.email?.split('@')[0] || ''
+          sendWelcomeEmail(user.email!, name).catch(console.error)
+        }
+      }
+
       console.log('[Auth Callback] Session created, redirecting to:', `${baseUrl}${next}`)
       return response
     }
