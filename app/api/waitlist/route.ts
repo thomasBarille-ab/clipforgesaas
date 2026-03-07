@@ -42,16 +42,16 @@ export async function POST(request: Request) {
     }
 
     // Send confirmation email
+    const normalizedEmail = email.toLowerCase().trim()
     const { error: emailError } = await resend.emails.send({
       from: FROM_EMAIL,
-      to: email.toLowerCase().trim(),
+      to: normalizedEmail,
       subject: 'Bienvenue sur la waitlist CreaClip !',
-      react: WaitlistConfirmEmail({ email: email.toLowerCase().trim() }),
+      react: WaitlistConfirmEmail({ email: normalizedEmail }),
     })
 
     if (emailError) {
       console.error('Resend error:', emailError)
-      // Don't fail — the email is already in the DB
     }
 
     return NextResponse.json({ success: true })
