@@ -146,7 +146,7 @@ export default async function Image() {
             display: 'flex',
           }}
         >
-          creaclip.com
+          creaclip.io
         </div>
       </div>
     ),
