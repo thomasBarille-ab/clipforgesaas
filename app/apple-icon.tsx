@@ -17,9 +17,16 @@ export default function AppleIcon() {
           background: 'linear-gradient(135deg, #ea580c, #f59e0b)',
         }}
       >
-        <svg width="100" height="100" viewBox="0 0 24 24" fill="none">
-          <path d="M8 5v14l11-7z" fill="white" />
-        </svg>
+        <span
+          style={{
+            fontSize: '100px',
+            fontWeight: 900,
+            color: 'white',
+            letterSpacing: '-5px',
+          }}
+        >
+          CC
+        </span>
       </div>
     ),
     { ...size }

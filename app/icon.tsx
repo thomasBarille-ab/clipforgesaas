@@ -17,9 +17,16 @@ export default function Icon() {
           background: 'linear-gradient(135deg, #ea580c, #f59e0b)',
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M8 5v14l11-7z" fill="white" />
-        </svg>
+        <span
+          style={{
+            fontSize: '18px',
+            fontWeight: 900,
+            color: 'white',
+            letterSpacing: '-1px',
+          }}
+        >
+          CC
+        </span>
       </div>
     ),
     { ...size }
