@@ -59,12 +59,12 @@ export function WaitlistForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="votre@email.com"
         required
-        className="flex-1 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none transition-colors"
+        className="flex-1 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-400 focus:border-orange-500 focus:outline-none transition-colors"
       />
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white shadow-lg transition-transform hover:scale-105 hover:shadow-purple-500/50 disabled:opacity-50 disabled:hover:scale-100"
+        className="rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-6 py-3 font-semibold text-white shadow-lg transition-transform hover:scale-105 hover:shadow-orange-500/50 disabled:opacity-50 disabled:hover:scale-100"
       >
         {status === 'loading' ? 'Envoi...' : 'Rejoindre la waitlist'}
       </button>
