@@ -15,7 +15,7 @@ export default function HomePage() {
     <div className="min-h-screen">
       <Navbar />
       <HeroSection />
-      <LogoBar />
+      {/* <LogoBar /> */}
       <ProductDemo />
       <HowItWorks />
       <PricingSection />

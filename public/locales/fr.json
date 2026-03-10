@@ -252,7 +252,7 @@
       },
       "pro": {
         "name": "Pro",
-        "price": "24",
+        "price": "29",
         "description": "Pour les créateurs sérieux",
         "features": ["50 clips / mois", "Sans watermark", "Toutes les features", "Preview live"],
         "cta": "Passer Pro"
@@ -261,7 +261,7 @@
         "name": "Business",
         "price": "49",
         "description": "Pour les créateurs ambitieux",
-        "features": ["Tout Pro +", "200 clips / mois", "Persona individuelle", "Et bien plus encore"],
+        "features": ["Tout Pro +", "200 clips / mois", "Persona individuel", "Et bien plus encore"],
         "cta": "Passer Business"
       }
     },

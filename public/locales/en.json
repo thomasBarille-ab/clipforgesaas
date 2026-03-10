@@ -252,7 +252,7 @@
       },
       "pro": {
         "name": "Pro",
-        "price": "24",
+        "price": "29",
         "description": "For serious creators",
         "features": ["50 clips / month", "No watermark", "All features", "Live preview"],
         "cta": "Go Pro"
