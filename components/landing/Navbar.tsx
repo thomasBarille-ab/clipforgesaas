@@ -25,7 +25,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <LanguageSwitcher className="hidden sm:block" dropUp={false} />
+          <LanguageSwitcher dropUp={false} />
           <a
             href="#hero"
             className="rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-105"
