@@ -32,6 +32,8 @@ export interface EditorState {
   playheadTime: number        // position sur la timeline (pas le temps source)
   playing: boolean
   zoom: TimelineZoom
+  history: TimelineSegment[][]
+  historyIndex: number
 }
 
 /** Actions du reducer */
@@ -46,3 +48,5 @@ export type EditorAction =
   | { type: 'SET_ZOOM'; zoom: Partial<TimelineZoom> }
   | { type: 'TRIM_SEGMENT_START'; id: string; newSourceStart: number }
   | { type: 'TRIM_SEGMENT_END'; id: string; newSourceEnd: number }
+  | { type: 'UNDO' }
+  | { type: 'REDO' }

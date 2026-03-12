@@ -25,7 +25,8 @@
     "genericError": "Une erreur est survenue. Veuillez réessayer.",
     "irreversible": "Cette action est irréversible.",
     "copiedToClipboard": "Copié dans le presse-papiers !",
-    "cannotCopy": "Impossible de copier"
+    "cannotCopy": "Impossible de copier",
+    "viralityScoreTooltip": "Score de viralité estimé par l'IA (sur 10), basé sur le rythme, les émotions et le potentiel d'engagement du passage."
   },
 
   "nav": {
@@ -424,11 +425,14 @@
       "customizeClip": "Personnaliser le clip",
       "split": "Diviser",
       "delete": "Supprimer",
+      "undo": "Annuler",
+      "redo": "Rétablir",
       "generate": "Générer le clip",
       "clipCreated": "Clip créé !",
       "generating": "Génération...",
       "segmentInfo": "{{count}} segment — {{duration}}",
-      "segmentInfo_plural": "{{count}} segments — {{duration}}"
+      "segmentInfo_plural": "{{count}} segments — {{duration}}",
+      "totalDuration": "Durée totale"
     },
     "steps": {
       "creating": "Création du clip...",
@@ -452,7 +456,10 @@
     "crop": {
       "title": "Cadrage",
       "hint": "Ajustez le cadrage 9:16 en cliquant sur la preview ou en déplaçant le slider.",
-      "horizontalPosition": "Position horizontale"
+      "horizontalPosition": "Position horizontale",
+      "left": "Gauche",
+      "center": "Centre",
+      "right": "Droite"
     },
     "preview": {
       "crop": "Cadrage",

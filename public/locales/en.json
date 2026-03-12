@@ -25,7 +25,8 @@
     "genericError": "An error occurred. Please try again.",
     "irreversible": "This action is irreversible.",
     "copiedToClipboard": "Copied to clipboard!",
-    "cannotCopy": "Unable to copy"
+    "cannotCopy": "Unable to copy",
+    "viralityScoreTooltip": "AI-estimated virality score (out of 10), based on pacing, emotions, and engagement potential of the segment."
   },
 
   "nav": {
@@ -424,11 +425,14 @@
       "customizeClip": "Customize clip",
       "split": "Split",
       "delete": "Delete",
+      "undo": "Undo",
+      "redo": "Redo",
       "generate": "Generate clip",
       "clipCreated": "Clip created!",
       "generating": "Generating...",
       "segmentInfo": "{{count}} segment — {{duration}}",
-      "segmentInfo_plural": "{{count}} segments — {{duration}}"
+      "segmentInfo_plural": "{{count}} segments — {{duration}}",
+      "totalDuration": "Total duration"
     },
     "steps": {
       "creating": "Creating the clip...",
@@ -452,7 +456,10 @@
     "crop": {
       "title": "Cropping",
       "hint": "Adjust the 9:16 framing by clicking on the preview or moving the slider.",
-      "horizontalPosition": "Horizontal position"
+      "horizontalPosition": "Horizontal position",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right"
     },
     "preview": {
       "crop": "Framing",

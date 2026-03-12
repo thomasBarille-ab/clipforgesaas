@@ -25,7 +25,8 @@
     "genericError": "Ha ocurrido un error. Por favor, inténtelo de nuevo.",
     "irreversible": "Esta acción es irreversible.",
     "copiedToClipboard": "Copiado al portapapeles!",
-    "cannotCopy": "No se pudo copiar"
+    "cannotCopy": "No se pudo copiar",
+    "viralityScoreTooltip": "Puntuación de viralidad estimada por IA (sobre 10), basada en el ritmo, las emociones y el potencial de engagement del fragmento."
   },
 
   "nav": {
@@ -424,11 +425,14 @@
       "customizeClip": "Personalizar el clip",
       "split": "Dividir",
       "delete": "Eliminar",
+      "undo": "Deshacer",
+      "redo": "Rehacer",
       "generate": "Generar el clip",
       "clipCreated": "Clip creado!",
       "generating": "Generando...",
       "segmentInfo": "{{count}} segmento — {{duration}}",
-      "segmentInfo_plural": "{{count}} segmentos — {{duration}}"
+      "segmentInfo_plural": "{{count}} segmentos — {{duration}}",
+      "totalDuration": "Duración total"
     },
     "steps": {
       "creating": "Creando el clip...",
@@ -452,7 +456,10 @@
     "crop": {
       "title": "Encuadre",
       "hint": "Ajuste el encuadre 9:16 haciendo clic en la vista previa o desplazando el slider.",
-      "horizontalPosition": "Posición horizontal"
+      "horizontalPosition": "Posición horizontal",
+      "left": "Izquierda",
+      "center": "Centro",
+      "right": "Derecha"
     },
     "preview": {
       "crop": "Encuadre",

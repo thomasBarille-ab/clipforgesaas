@@ -4,7 +4,7 @@ import { useRef, useEffect, useCallback, useState, useMemo, type CSSProperties }
 import { useTranslation } from 'react-i18next'
 import { useEditor } from '../EditorProvider'
 import { CropOverlay } from './CropOverlay'
-import { PreviewControls } from './PreviewControls'
+
 import { FONT_SIZE_MAP } from '@/types/subtitles'
 import { cn } from '@/lib/utils'
 import type { SubtitleStyle } from '@/types/subtitles'
@@ -368,7 +368,6 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
         </div>
       </div>
 
-      <PreviewControls />
     </div>
   )
 }

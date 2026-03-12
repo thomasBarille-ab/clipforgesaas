@@ -3,11 +3,11 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
-import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2 } from 'lucide-react'
+import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2, AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Scissors, Trash2, Undo2, Redo2, Play, Pause, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { trimAndConcatSegments } from '@/lib/ffmpeg'
 import { generateSrtForSegments } from '@/lib/generateSrt'
-import { formatTime } from '@/lib/utils'
+import { formatTime, cn } from '@/lib/utils'
 import { Input, Textarea, AlertBanner, ProgressBar, useToast } from '@/components/ui'
 import { CollapsibleBlock } from '@/components/CollapsibleBlock'
 import { SubtitleEditor } from '@/components/SubtitleEditor'
@@ -45,6 +45,118 @@ interface VideoEditorProps {
   userPlan?: PlanType
   onClose: () => void
   onGenerated: () => void
+}
+
+function TimelineActions({ generating }: { generating: boolean }) {
+  const { t } = useTranslation()
+  const { state, dispatch, segmentOffsets, totalDuration, canUndo, canRedo } = useEditor()
+  const { segments, selectedSegmentId, playheadTime, playing } = state
+
+  const canSplit = (() => {
+    for (let i = 0; i < segments.length; i++) {
+      const off = segmentOffsets[i]
+      if (playheadTime > off.timelineStart && playheadTime < off.timelineEnd) {
+        const seg = segments[i]
+        const splitSourceTime = seg.sourceStart + (playheadTime - off.timelineStart)
+        return splitSourceTime - seg.sourceStart >= 1 && seg.sourceEnd - splitSourceTime >= 1
+      }
+    }
+    return false
+  })()
+
+  const canDelete = selectedSegmentId !== null && segments.length > 1
+
+  return (
+    <div className="flex flex-shrink-0 items-center justify-between border-b border-white/10 px-4 py-2">
+      {/* Gauche : actions d'édition */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => dispatch({ type: 'UNDO' })}
+          disabled={!canUndo || generating}
+          title={`${t('editor.toolbar.undo')} (Ctrl+Z)`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all',
+            canUndo && !generating
+              ? 'bg-white/10 text-white hover:bg-white/15'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Undo2 className="h-4 w-4" />
+        </button>
+
+        <button
+          onClick={() => dispatch({ type: 'REDO' })}
+          disabled={!canRedo || generating}
+          title={`${t('editor.toolbar.redo')} (Ctrl+Y)`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all',
+            canRedo && !generating
+              ? 'bg-white/10 text-white hover:bg-white/15'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Redo2 className="h-4 w-4" />
+        </button>
+
+        <div className="mx-1 h-5 w-px bg-white/10" />
+
+        <button
+          onClick={() => dispatch({ type: 'SPLIT_AT_PLAYHEAD' })}
+          disabled={!canSplit || generating}
+          title={t('editor.toolbar.split')}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            canSplit && !generating
+              ? 'bg-white/10 text-white hover:bg-white/15'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Scissors className="h-4 w-4" />
+          {t('editor.toolbar.split')}
+        </button>
+
+        <button
+          onClick={() => selectedSegmentId && dispatch({ type: 'DELETE_SEGMENT', id: selectedSegmentId })}
+          disabled={!canDelete || generating}
+          title={`${t('editor.toolbar.delete')} (Suppr)`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            canDelete && !generating
+              ? 'bg-white/10 text-red-400 hover:bg-red-500/20'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Trash2 className="h-4 w-4" />
+          {t('editor.toolbar.delete')}
+        </button>
+      </div>
+
+      {/* Droite : playback + timecode */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            dispatch({ type: 'SET_PLAYHEAD', time: 0 })
+            dispatch({ type: 'SET_PLAYING', playing: false })
+          }}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
+
+        <button
+          onClick={() => dispatch({ type: 'SET_PLAYING', playing: !playing })}
+          title={`${playing ? 'Pause' : 'Lecture'} (${t('editor.toolbar.split') ? 'Espace' : 'Space'})`}
+          className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-white transition-all hover:bg-white/20"
+        >
+          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+        </button>
+
+        <span className="ml-1 text-xs text-white/50 tabular-nums">
+          {formatTime(playheadTime)} / {formatTime(totalDuration)}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function EditorContent({
@@ -150,6 +262,19 @@ function EditorContent({
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+
+      // Undo: Ctrl+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        dispatch({ type: 'UNDO' })
+        return
+      }
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        dispatch({ type: 'REDO' })
+        return
+      }
 
       switch (e.code) {
         case 'Space':
@@ -454,29 +579,61 @@ function EditorContent({
                 {t('editor.crop.hint')}
               </p>
               {currentSegment && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-white/50">
-                    <span>{t('editor.crop.horizontalPosition')}</span>
-                    <span>{Math.round(currentSegment.cropX * 100)}%</span>
+                <div className="space-y-3">
+                  {/* Quick position buttons */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { value: 0, label: t('editor.crop.left'), icon: AlignHorizontalJustifyStart },
+                      { value: 0.5, label: t('editor.crop.center'), icon: AlignHorizontalJustifyCenter },
+                      { value: 1, label: t('editor.crop.right'), icon: AlignHorizontalJustifyEnd },
+                    ] as const).map(({ value, label, icon: Icon }) => (
+                      <button
+                        key={value}
+                        onClick={() =>
+                          dispatch({
+                            type: 'UPDATE_SEGMENT',
+                            id: currentSegment.id,
+                            updates: { cropX: value },
+                          })
+                        }
+                        disabled={generating !== null}
+                        className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-medium transition-all ${
+                          currentSegment.cropX === value
+                            ? 'border-orange-500 bg-orange-500/20 text-orange-400'
+                            : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </button>
+                    ))}
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={currentSegment.cropX}
-                    onChange={(e) => {
-                      if (currentSegment) {
-                        dispatch({
-                          type: 'UPDATE_SEGMENT',
-                          id: currentSegment.id,
-                          updates: { cropX: Number(e.target.value) },
-                        })
-                      }
-                    }}
-                    disabled={generating !== null}
-                    className="w-full accent-orange-500"
-                  />
+
+                  {/* Fine-tune slider */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-white/50">
+                      <span>{t('editor.crop.horizontalPosition')}</span>
+                      <span>{Math.round(currentSegment.cropX * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={currentSegment.cropX}
+                      onChange={(e) => {
+                        if (currentSegment) {
+                          dispatch({
+                            type: 'UPDATE_SEGMENT',
+                            id: currentSegment.id,
+                            updates: { cropX: Number(e.target.value) },
+                          })
+                        }
+                      }}
+                      disabled={generating !== null}
+                      className="w-full accent-orange-500"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -490,7 +647,10 @@ function EditorContent({
                 {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
               </span>
               {suggestion.score > 0 && (
-                <span className="flex items-center gap-1 font-bold text-orange-400">
+                <span
+                  className="flex items-center gap-1 font-bold text-orange-400 cursor-help"
+                  title={t('common.viralityScoreTooltip')}
+                >
                   <TrendingUp className="h-3.5 w-3.5" />
                   {suggestion.score.toFixed(1)}
                 </span>
@@ -533,9 +693,12 @@ function EditorContent({
         onMouseDown={handleTimelineResizeStart}
       />
 
-      {/* Timeline */}
-      <div data-onboarding-editor="editor-timeline" className="flex-shrink-0" style={{ height: timelineHeight }}>
-        <Timeline videoUrl={videoUrl} />
+      {/* Timeline + actions */}
+      <div data-onboarding-editor="editor-timeline" className="flex flex-shrink-0 flex-col border-t border-white/10 bg-slate-900/50 mb-4" style={{ height: timelineHeight }}>
+        <TimelineActions generating={generating !== null} />
+        <div className="flex-1 min-h-0">
+          <Timeline videoUrl={videoUrl} />
+        </div>
       </div>
 
       <EditorOnboardingOverlay />

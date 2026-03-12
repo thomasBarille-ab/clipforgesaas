@@ -21,6 +21,15 @@ export function Timeline({ videoUrl }: TimelineProps) {
   const ppsRef = useRef(pixelsPerSecond)
   ppsRef.current = pixelsPerSecond
 
+  // Auto-fit : ajuster le zoom pour que la timeline remplisse le container
+  useEffect(() => {
+    if (totalDuration > 0 && containerWidth > 0) {
+      const padding = 32 // px-4 * 2
+      const fitPps = (containerWidth - padding) / totalDuration
+      dispatch({ type: 'SET_ZOOM', zoom: { pixelsPerSecond: Math.max(10, fitPps) } })
+    }
+  }, [containerWidth, totalDuration, dispatch])
+
   const contentWidth = totalDuration * pixelsPerSecond
 
   // Mesurer la largeur du container
@@ -35,24 +44,6 @@ export function Timeline({ videoUrl }: TimelineProps) {
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
-
-  // Ctrl+Wheel pour zoom — addEventListener non-passif pour pouvoir preventDefault
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault()
-        const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2
-        const newPps = Math.max(10, Math.min(200, ppsRef.current * factor))
-        dispatch({ type: 'SET_ZOOM', zoom: { pixelsPerSecond: newPps } })
-      }
-    }
-
-    el.addEventListener('wheel', handleWheel, { passive: false })
-    return () => el.removeEventListener('wheel', handleWheel)
-  }, [dispatch])
 
   // Clic sur la timeline → déplacer le playhead + sélectionner le segment
   const handleClick = useCallback(
@@ -78,11 +69,11 @@ export function Timeline({ videoUrl }: TimelineProps) {
   )
 
   return (
-    <div className="flex h-full flex-col border-t border-white/10 bg-slate-900/50">
-      {/* Zone scrollable */}
+    <div className="flex h-full flex-col">
+      {/* Zone timeline */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-x-auto overflow-y-auto px-4 py-2"
+        className="flex-1 overflow-hidden px-4 py-2"
         onClick={handleClick}
       >
         <div className="relative" style={{ width: contentWidth, minWidth: '100%' }}>

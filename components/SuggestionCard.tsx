@@ -60,7 +60,10 @@ export function SuggestionCard({ suggestion, isCreated, onSelect, variant = 'def
             {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
           </span>
           {suggestion.score > 0 && (
-            <span className={cn('flex items-center gap-1 font-bold', isSearch ? 'text-amber-400' : 'text-orange-400')}>
+            <span
+              className={cn('flex items-center gap-1 font-bold cursor-help', isSearch ? 'text-amber-400' : 'text-orange-400')}
+              title={t('common.viralityScoreTooltip')}
+            >
               <TrendingUp className="h-3.5 w-3.5" />
               {suggestion.score.toFixed(1)}
             </span>
