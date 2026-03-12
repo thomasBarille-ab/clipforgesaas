@@ -186,7 +186,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
           onClick={(e) => { e.stopPropagation(); onChange({ ...config, enabled: !config.enabled }) }}
           className={cn(
             'ml-auto mr-2 cursor-pointer rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors',
-            config.enabled ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'
+            config.enabled ? 'bg-orange-500/30 text-orange-200' : 'bg-white/10 text-white/40'
           )}
         >
           {config.enabled ? t('splitScreen.on') : t('splitScreen.off')}
@@ -242,8 +242,8 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                       onMouseDown={handleCropMouseDown}
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        'absolute bottom-0 top-0 z-10 border-x-2 border-purple-400',
-                        dragging ? 'cursor-grabbing' : 'cursor-grab hover:border-purple-300'
+                        'absolute bottom-0 top-0 z-10 border-x-2 border-orange-400',
+                        dragging ? 'cursor-grabbing' : 'cursor-grab hover:border-orange-300'
                       )}
                       style={{ left: `${cropLeft}%`, width: `${cropWidth}%` }}
                     >
@@ -278,9 +278,9 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                     const hue = seg.cropX * 60 // 0=purple(0°), 1=pink(60°)
                     const bg =
                       seg.cropX <= 0.3
-                        ? 'bg-purple-500/40'
+                        ? 'bg-orange-500/40'
                         : seg.cropX >= 0.7
-                          ? 'bg-pink-500/40'
+                          ? 'bg-amber-500/40'
                           : 'bg-white/15'
 
                     return (
@@ -291,7 +291,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                           'relative flex items-center justify-center text-[9px] font-medium transition-all',
                           bg,
                           isSelected
-                            ? 'ring-2 ring-inset ring-purple-400 text-white'
+                            ? 'ring-2 ring-inset ring-orange-400 text-white'
                             : 'text-white/50 hover:brightness-125'
                         )}
                         style={{ width: `${widthPct}%` }}
@@ -343,7 +343,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                         className={cn(
                           'flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium transition-all',
                           Math.abs(selected.cropX - value) < 0.05
-                            ? 'bg-purple-500/30 text-purple-200'
+                            ? 'bg-orange-500/30 text-orange-200'
                             : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
                         )}
                       >
@@ -367,7 +367,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                       onChange={(e) =>
                         updateSegment(selected.id, { cropX: Number(e.target.value) / 100 })
                       }
-                      className="w-full accent-purple-500"
+                      className="w-full accent-orange-500"
                     />
                   </div>
 
@@ -387,7 +387,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
                           const t = Math.max(0.1, Math.min(clipDuration - 0.1, Number(e.target.value)))
                           updateSegment(selected.id, { time: t })
                         }}
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:border-orange-500 focus:outline-none"
                       />
                     </div>
                   )}
@@ -397,7 +397,7 @@ export function CropTimelineEditor({ config, onChange, videoUrl, startSeconds, c
               {/* Ajouter un segment */}
               <button
                 onClick={addSegment}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] py-2 text-xs font-medium text-white/40 transition-colors hover:border-purple-500/30 hover:bg-white/5 hover:text-white/60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] py-2 text-xs font-medium text-white/40 transition-colors hover:border-orange-500/30 hover:bg-white/5 hover:text-white/60"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t('cropTimeline.addCutPoint')}

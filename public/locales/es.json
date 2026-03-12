@@ -40,7 +40,9 @@
     "clips": "Clips",
     "upload": "Importar",
     "settings": "Ajustes",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse"
   },
 
   "auth": {
@@ -125,7 +127,8 @@
       "socialProofText": "creadores en la waitlist",
       "socialProofRating": "4.9/5",
       "videoSource": "Vídeo fuente",
-      "clip": "Clip {{num}}"
+      "clip": "Clip {{num}}",
+      "getStarted": "Empezar gratis"
     },
     "logoBar": {
       "label": "Compatible con tus plataformas"

@@ -44,10 +44,10 @@ export function Sidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center px-5">
           <Link href="/dashboard" className="text-xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Clip
+            <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
+              Crea
             </span>
-            <span className="text-white">Forge</span>
+            <span className="text-white">Clip</span>
           </Link>
         </div>
 
@@ -63,11 +63,11 @@ export function Sidebar() {
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
                   isActive
-                    ? 'bg-purple-500/15 text-white'
+                    ? 'bg-orange-500/15 text-white'
                     : 'text-white/45 hover:bg-white/5 hover:text-white/80'
                 )}
               >
-                <Icon className={cn('h-[18px] w-[18px]', isActive && 'text-purple-400')} />
+                <Icon className={cn('h-[18px] w-[18px]', isActive && 'text-orange-400')} />
                 {label}
               </Link>
             )
@@ -81,11 +81,11 @@ export function Sidebar() {
             className={cn(
               'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
               pathname === '/settings'
-                ? 'bg-purple-500/15 text-white'
+                ? 'bg-orange-500/15 text-white'
                 : 'text-white/45 hover:bg-white/5 hover:text-white/80'
             )}
           >
-            <Settings className={cn('h-[18px] w-[18px]', pathname === '/settings' && 'text-purple-400')} />
+            <Settings className={cn('h-[18px] w-[18px]', pathname === '/settings' && 'text-orange-400')} />
             {t('nav.settings')}
           </Link>
           <button
@@ -117,18 +117,18 @@ export function Sidebar() {
               className={cn(
                 'flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
                 isUpload
-                  ? 'text-purple-400'
+                  ? 'text-orange-400'
                   : isActive
                     ? 'text-white'
                     : 'text-white/35'
               )}
             >
               {isUpload ? (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-orange-600 to-amber-600">
                   <Icon className="h-4 w-4 text-white" />
                 </div>
               ) : (
-                <Icon className={cn('h-5 w-5', isActive && 'text-purple-400')} />
+                <Icon className={cn('h-5 w-5', isActive && 'text-orange-400')} />
               )}
               {!isUpload && label}
             </Link>
@@ -141,7 +141,7 @@ export function Sidebar() {
             pathname === '/settings' ? 'text-white' : 'text-white/35'
           )}
         >
-          <Settings className={cn('h-5 w-5', pathname === '/settings' && 'text-purple-400')} />
+          <Settings className={cn('h-5 w-5', pathname === '/settings' && 'text-orange-400')} />
           {t('nav.settings')}
         </Link>
       </nav>

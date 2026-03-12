@@ -18,7 +18,7 @@ export function PricingSection() {
       ],
       caveats: [t('landing.pricing.free.caveats.0')],
       cta: t('landing.pricing.free.cta'),
-      href: '#hero',
+      href: '/signup',
       highlighted: false,
     },
     {
@@ -34,7 +34,7 @@ export function PricingSection() {
       ],
       caveats: [],
       cta: t('landing.pricing.pro.cta'),
-      href: '#hero',
+      href: '/signup',
       highlighted: true,
     },
     {
@@ -49,7 +49,7 @@ export function PricingSection() {
       ],
       caveats: [],
       cta: t('landing.pricing.business.cta'),
-      href: '#hero',
+      href: '/signup',
       highlighted: false,
     },
   ]

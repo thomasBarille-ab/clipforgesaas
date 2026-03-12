@@ -65,7 +65,7 @@ function ColorSwatch({
       onClick={onClick}
       className={cn(
         'h-8 w-8 rounded-lg border-2 transition-all',
-        selected ? 'border-purple-400 scale-110' : 'border-white/20 hover:border-white/40'
+        selected ? 'border-orange-400 scale-110' : 'border-white/20 hover:border-white/40'
       )}
       style={{ backgroundColor: isTransparent ? undefined : color }}
     >
@@ -125,7 +125,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
           onClick={(e) => { e.stopPropagation(); update('enabled', !style.enabled) }}
           className={cn(
             'ml-auto mr-2 cursor-pointer rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors',
-            style.enabled ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'
+            style.enabled ? 'bg-orange-500/30 text-orange-200' : 'bg-white/10 text-white/40'
           )}
         >
           {style.enabled ? 'ON' : 'OFF'}
@@ -150,7 +150,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
           {!saving && (
             <button
               onClick={() => setSaving(true)}
-              className="flex items-center gap-1 text-xs text-purple-400 transition-colors hover:text-purple-300"
+              className="flex items-center gap-1 text-xs text-orange-400 transition-colors hover:text-orange-300"
             >
               <Save className="h-3 w-3" />
               {t('subtitles.savePreset')}
@@ -168,12 +168,12 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
               onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
               placeholder={t('subtitles.presetNamePlaceholder')}
               autoFocus
-              className="flex-1 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none"
+              className="flex-1 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:border-orange-500 focus:outline-none"
             />
             <button
               onClick={handleSavePreset}
               disabled={!presetName.trim()}
-              className="rounded-lg bg-purple-500/20 px-3 py-1.5 text-sm font-medium text-purple-300 transition-colors hover:bg-purple-500/30 disabled:opacity-40"
+              className="rounded-lg bg-orange-500/20 px-3 py-1.5 text-sm font-medium text-orange-300 transition-colors hover:bg-orange-500/30 disabled:opacity-40"
             >
               OK
             </button>
@@ -192,7 +192,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
             {presets.map((preset) => (
               <div
                 key={preset.id}
-                className="group flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 transition-all hover:border-purple-500/30"
+                className="group flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 transition-all hover:border-orange-500/30"
               >
                 <button
                   onClick={() => handleApplyPreset(preset)}
@@ -230,7 +230,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'rounded-lg border px-3 py-2 text-sm transition-all',
                     style.fontFamily === font.value
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white'
                   )}
                   style={{ fontFamily: `'${font.value}', sans-serif` }}
@@ -251,7 +251,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex-1 rounded-lg border py-2 text-sm font-medium transition-all',
                     style.fontSize === size
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -307,7 +307,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                 step={1}
                 value={style.strokeWidth}
                 onChange={(e) => update('strokeWidth', Number(e.target.value))}
-                className="flex-1 accent-purple-500"
+                className="flex-1 accent-orange-500"
               />
               <span className="w-6 text-right text-xs text-white/50">{style.strokeWidth}</span>
             </div>
@@ -327,7 +327,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-sm transition-all',
                     style.position === value
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -352,7 +352,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-sm transition-all',
                     style.textTransform === 'none'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -364,7 +364,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-sm transition-all',
                     style.textTransform === 'uppercase'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -386,7 +386,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex-1 rounded-lg border py-2 text-sm transition-all',
                     style.background === 'none'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -397,7 +397,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex-1 rounded-lg border py-2 text-sm transition-all',
                     style.background === 'box'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >

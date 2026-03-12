@@ -475,7 +475,7 @@ function EditorContent({
                       }
                     }}
                     disabled={generating !== null}
-                    className="w-full accent-purple-500"
+                    className="w-full accent-orange-500"
                   />
                 </div>
               )}
@@ -490,7 +490,7 @@ function EditorContent({
                 {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
               </span>
               {suggestion.score > 0 && (
-                <span className="flex items-center gap-1 font-bold text-purple-400">
+                <span className="flex items-center gap-1 font-bold text-orange-400">
                   <TrendingUp className="h-3.5 w-3.5" />
                   {suggestion.score.toFixed(1)}
                 </span>
@@ -501,7 +501,7 @@ function EditorContent({
 
         {/* Séparateur gauche */}
         <div
-          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-orange-500/30 active:bg-orange-500/50 transition-colors"
           onMouseDown={(e) => handleResizeStart('left', e)}
         />
 
@@ -517,7 +517,7 @@ function EditorContent({
 
         {/* Séparateur droite */}
         <div
-          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-orange-500/30 active:bg-orange-500/50 transition-colors"
           onMouseDown={(e) => handleResizeStart('right', e)}
         />
 
@@ -529,7 +529,7 @@ function EditorContent({
 
       {/* Séparateur timeline */}
       <div
-        className="flex-shrink-0 h-1.5 cursor-row-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+        className="flex-shrink-0 h-1.5 cursor-row-resize bg-white/5 hover:bg-orange-500/30 active:bg-orange-500/50 transition-colors"
         onMouseDown={handleTimelineResizeStart}
       />
 

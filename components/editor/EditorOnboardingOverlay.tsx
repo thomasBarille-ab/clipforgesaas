@@ -144,7 +144,7 @@ export function EditorOnboardingOverlay() {
           {/* Icon for modal steps */}
           {isModal && (
             <div className="mb-4 flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-600 to-amber-600">
                 {isLastStep ? (
                   <Wand2 className="h-7 w-7 text-white" />
                 ) : (
@@ -171,7 +171,7 @@ export function EditorOnboardingOverlay() {
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === step ? 'w-6 bg-purple-500' : 'w-1.5 bg-white/20'
+                  i === step ? 'w-6 bg-orange-500' : 'w-1.5 bg-white/20'
                 }`}
               />
             ))}
@@ -188,7 +188,7 @@ export function EditorOnboardingOverlay() {
 
             <button
               onClick={next}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
             >
               {isLastStep ? t('editorOnboarding.gotIt') : t('common.next')}
             </button>

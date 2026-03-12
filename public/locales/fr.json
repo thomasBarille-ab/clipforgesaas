@@ -40,7 +40,9 @@
     "clips": "Clips",
     "upload": "Importer",
     "settings": "Paramètres",
-    "signOut": "Déconnexion"
+    "signOut": "Déconnexion",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire"
   },
 
   "auth": {
@@ -125,7 +127,8 @@
       "socialProofText": "créateurs sur la waitlist",
       "socialProofRating": "4.9/5",
       "videoSource": "Vidéo source",
-      "clip": "Clip {{num}}"
+      "clip": "Clip {{num}}",
+      "getStarted": "Commencer gratuitement"
     },
     "logoBar": {
       "label": "Compatible avec vos plateformes"

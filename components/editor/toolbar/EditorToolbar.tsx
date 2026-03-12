@@ -104,7 +104,7 @@ export function EditorToolbar({
           'flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all',
           generating || disabled || generatingDone
             ? 'bg-white/10 text-white/40 cursor-not-allowed'
-            : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25'
+            : 'bg-gradient-to-r from-orange-600 to-amber-600 text-white hover:scale-105 hover:shadow-lg hover:shadow-orange-500/25'
         )}
       >
         {generatingDone ? (

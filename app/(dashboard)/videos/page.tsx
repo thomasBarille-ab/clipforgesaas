@@ -201,7 +201,7 @@ export default function VideosPage() {
       >
         <Link
           href="/upload"
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
         >
           <Upload className="h-5 w-5" />
           {t('videos.importVideo')}
@@ -246,15 +246,15 @@ export default function VideosPage() {
                   'group overflow-hidden rounded-2xl border bg-white/5 transition-all duration-200',
                   isDeleting
                     ? 'border-red-500/30 opacity-50'
-                    : 'border-white/10 hover:border-purple-500/30'
+                    : 'border-white/10 hover:border-orange-500/30'
                 )}
               >
                 <div className="flex items-start gap-4 p-5">
                   {/* Miniature */}
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl">
                     {video.status === 'processing' || isTranscribing ? (
-                      <div className="flex h-full w-full items-center justify-center bg-purple-500/20">
-                        <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
+                      <div className="flex h-full w-full items-center justify-center bg-orange-500/20">
+                        <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
                       </div>
                     ) : video.status === 'failed' ? (
                       <div className="flex h-full w-full items-center justify-center bg-red-500/20">
@@ -296,7 +296,7 @@ export default function VideosPage() {
                       {clipCount > 0 && (
                         <button
                           onClick={() => setExpandedVideoId(isExpanded ? null : video.id)}
-                          className="flex items-center gap-1.5 text-purple-400 transition-colors hover:text-purple-300"
+                          className="flex items-center gap-1.5 text-orange-400 transition-colors hover:text-orange-300"
                         >
                           <Scissors className="h-3.5 w-3.5" />
                           {clipCount} clip{clipCount > 1 ? 's' : ''}
@@ -335,7 +335,7 @@ export default function VideosPage() {
                     {video.status === 'ready' && (
                       <Link
                         href={`/clips/create/${video.id}`}
-                        className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
+                        className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 px-3 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
                       >
                         <Sparkles className="h-4 w-4" />
                         <span className="hidden sm:inline">{t('videos.createClips')}</span>
@@ -375,8 +375,8 @@ export default function VideosPage() {
                               key={clip.id}
                               className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:bg-white/[0.07]"
                             >
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/15">
-                                <Scissors className="h-4 w-4 text-purple-400" />
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-500/15">
+                                <Scissors className="h-4 w-4 text-orange-400" />
                               </div>
 
                               <div className="min-w-0 flex-1">
@@ -389,7 +389,7 @@ export default function VideosPage() {
                                     {formatTime(clipDuration)}
                                   </span>
                                   {clip.virality_score && (
-                                    <span className="flex items-center gap-1 font-bold text-purple-400">
+                                    <span className="flex items-center gap-1 font-bold text-orange-400">
                                       <TrendingUp className="h-3 w-3" />
                                       {clip.virality_score.toFixed(1)}
                                     </span>
@@ -413,7 +413,7 @@ export default function VideosPage() {
                                 <button
                                   onClick={() => downloadClip(clip)}
                                   disabled={downloadingId === clip.id}
-                                  className="rounded-lg p-2 text-white/30 transition-colors hover:bg-purple-500/20 hover:text-purple-400"
+                                  className="rounded-lg p-2 text-white/30 transition-colors hover:bg-orange-500/20 hover:text-orange-400"
                                   title={t('common.download')}
                                 >
                                   {downloadingId === clip.id ? (

@@ -26,12 +26,18 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           <LanguageSwitcher dropUp={false} />
-          <a
-            href="#hero"
+          <Link
+            href="/login"
+            className="rounded-xl border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+          >
+            {t('nav.signIn')}
+          </Link>
+          <Link
+            href="/signup"
             className="rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-105"
           >
-            {t('landing.waitlist.cta')}
-          </a>
+            {t('nav.signUp')}
+          </Link>
         </div>
       </div>
     </nav>

@@ -82,7 +82,7 @@ export function ClipPreviewModal({ clip, onClose, onPublish }: Props) {
             {formatTime(duration)}
           </span>
           {clip.virality_score && (
-            <span className="flex items-center gap-1 font-bold text-purple-400">
+            <span className="flex items-center gap-1 font-bold text-orange-400">
               <TrendingUp className="h-3.5 w-3.5" />
               {clip.virality_score.toFixed(1)}/10
             </span>

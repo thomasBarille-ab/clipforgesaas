@@ -45,7 +45,7 @@ export function ProblemSolution() {
           <div className="mx-auto max-w-3xl space-y-6">
             {steps.map((step) => (
               <div key={step.num} className="flex items-center gap-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-2xl font-bold">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-orange-600 to-amber-600 text-2xl font-bold">
                   {step.num}
                 </div>
                 <div>
@@ -55,7 +55,7 @@ export function ProblemSolution() {
               </div>
             ))}
 
-            <div className="mt-8 rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-6 text-center">
+            <div className="mt-8 rounded-xl border border-orange-500/30 bg-gradient-to-r from-orange-500/20 to-amber-500/20 p-6 text-center">
               <strong className="mb-2 block text-2xl text-white">{t('landing.solution.totalTime')}</strong>
               <span className="text-slate-300">{t('landing.solution.totalCompare')}</span>
             </div>

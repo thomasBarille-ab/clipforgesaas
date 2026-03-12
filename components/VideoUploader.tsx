@@ -235,8 +235,8 @@ export function VideoUploader() {
             'relative flex min-h-[400px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed text-center transition-all duration-300',
             uploading && 'pointer-events-none',
             isDragActive
-              ? 'border-purple-500 bg-purple-500/10 scale-[1.01]'
-              : 'border-white/20 hover:border-purple-500/50 hover:bg-white/5'
+              ? 'border-orange-500 bg-orange-500/10 scale-[1.01]'
+              : 'border-white/20 hover:border-orange-500/50 hover:bg-white/5'
           )}
         >
           <input {...getInputProps()} />
@@ -245,10 +245,10 @@ export function VideoUploader() {
           {!file && !uploading && (
             <div className="flex flex-col items-center gap-4 px-6">
               <div className="rounded-2xl bg-white/10 p-5">
-                <CloudUpload className="h-12 w-12 text-purple-400" />
+                <CloudUpload className="h-12 w-12 text-orange-400" />
               </div>
               {isDragActive ? (
-                <p className="text-lg font-semibold text-purple-300">
+                <p className="text-lg font-semibold text-orange-300">
                   {t('upload.dropzoneActive')}
                 </p>
               ) : (
@@ -272,8 +272,8 @@ export function VideoUploader() {
           {/* File selected */}
           {file && !uploading && (
             <div className="flex flex-col items-center gap-6 px-6">
-              <div className="rounded-2xl bg-purple-500/20 p-5">
-                <Film className="h-12 w-12 text-purple-400" />
+              <div className="rounded-2xl bg-orange-500/20 p-5">
+                <Film className="h-12 w-12 text-orange-400" />
               </div>
               <div className="text-center">
                 <p className="font-medium text-white">{file.name}</p>
@@ -307,8 +307,8 @@ export function VideoUploader() {
           {/* Uploading */}
           {uploading && (
             <div className="flex w-full flex-col items-center gap-6 px-8">
-              <div className="rounded-2xl bg-purple-500/20 p-5">
-                <Film className="h-12 w-12 animate-pulse text-purple-400" />
+              <div className="rounded-2xl bg-orange-500/20 p-5">
+                <Film className="h-12 w-12 animate-pulse text-orange-400" />
               </div>
               <div className="text-center">
                 <p className="font-medium text-white">{file?.name}</p>
@@ -320,7 +320,7 @@ export function VideoUploader() {
               </div>
               <div className="h-3 w-full max-w-sm overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-600 transition-all duration-300 ease-out"
+                  className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-600 transition-all duration-300 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>

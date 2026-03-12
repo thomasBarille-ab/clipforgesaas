@@ -227,7 +227,7 @@ export function SubtitlePreview({
         {/* Barre de progression */}
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-150"
+            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-150"
             style={{ width: `${Math.min(progressPercent, 100)}%` }}
           />
         </div>

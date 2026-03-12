@@ -42,8 +42,8 @@ export function VideoThumbnail({ storagePath, className }: VideoThumbnailProps) 
 
   if (error || (!loading && !url)) {
     return (
-      <div className={cn('flex items-center justify-center bg-purple-500/20', className)}>
-        <Film className="h-6 w-6 text-purple-400" />
+      <div className={cn('flex items-center justify-center bg-orange-500/20', className)}>
+        <Film className="h-6 w-6 text-orange-400" />
       </div>
     )
   }

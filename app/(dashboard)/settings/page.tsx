@@ -28,8 +28,8 @@ import type { Profile, PlanType, CreatorPersona } from '@/types/database'
 
 const PLAN_CONFIG: Record<PlanType, { labelKey: string; color: string; icon: React.ElementType }> = {
   free: { labelKey: 'settings.subscription.planFree', color: 'bg-white/10 text-white/70', icon: Zap },
-  pro: { labelKey: 'settings.subscription.planPro', color: 'bg-purple-500/20 text-purple-300', icon: Crown },
-  business: { labelKey: 'settings.subscription.planBusiness', color: 'bg-pink-500/20 text-pink-300', icon: Shield },
+  pro: { labelKey: 'settings.subscription.planPro', color: 'bg-orange-500/20 text-orange-300', icon: Crown },
+  business: { labelKey: 'settings.subscription.planBusiness', color: 'bg-amber-500/20 text-amber-300', icon: Shield },
 }
 
 const PLANS_DETAILS: {
@@ -350,7 +350,7 @@ function SettingsPageContent() {
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover" />
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-lg font-bold text-white">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-lg font-bold text-white">
               {initials}
             </div>
           )}
@@ -393,7 +393,7 @@ function SettingsPageContent() {
                 </span>
                 <button
                   onClick={() => setEditing(true)}
-                  className="rounded-md p-1 text-white/30 transition-colors hover:text-purple-400"
+                  className="rounded-md p-1 text-white/30 transition-colors hover:text-orange-400"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -458,18 +458,18 @@ function SettingsPageContent() {
                 className={cn(
                   'relative flex flex-col rounded-xl border p-5 transition-all',
                   isCurrent
-                    ? 'border-purple-500/50 bg-purple-500/10'
+                    ? 'border-orange-500/50 bg-orange-500/10'
                     : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/5'
                 )}
               >
                 {p.badge && !isCurrent && (
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-0.5 text-xs font-semibold text-white">
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-orange-600 to-amber-600 px-3 py-0.5 text-xs font-semibold text-white">
                     {t(p.badge)}
                   </div>
                 )}
 
                 {isCurrent && (
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-purple-500 px-3 py-0.5 text-xs font-semibold text-white">
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-orange-500 px-3 py-0.5 text-xs font-semibold text-white">
                     {t('settings.subscription.currentPlan')}
                   </div>
                 )}
@@ -497,7 +497,7 @@ function SettingsPageContent() {
                 </ul>
 
                 {isCurrent ? (
-                  <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 px-4 py-2 text-center text-sm font-medium text-purple-300">
+                  <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 px-4 py-2 text-center text-sm font-medium text-orange-300">
                     {t('settings.subscription.active')}
                   </div>
                 ) : (
@@ -507,7 +507,7 @@ function SettingsPageContent() {
                     className={cn(
                       'flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:opacity-50',
                       isUpgrade
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-[1.02] hover:shadow-lg'
+                        ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white hover:scale-[1.02] hover:shadow-lg'
                         : 'border border-white/20 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
                     )}
                   >
@@ -548,7 +548,7 @@ function SettingsPageContent() {
                 {t('settings.subscription.creditsRemaining', { count: profile?.credits_remaining ?? 0 })}
               </span>
             ) : (
-              <span className="text-purple-300">{t('settings.subscription.unlimitedClips')}</span>
+              <span className="text-orange-300">{t('settings.subscription.unlimitedClips')}</span>
             )}
           </p>
           {profile?.stripe_subscription_id && (
@@ -565,11 +565,11 @@ function SettingsPageContent() {
 
       {/* Persona IA — Business only */}
       {plan === 'business' && (
-        <section className="rounded-2xl border border-pink-500/20 bg-gradient-to-br from-pink-500/5 to-purple-500/5 p-6 backdrop-blur-sm">
+        <section className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-orange-500/5 p-6 backdrop-blur-sm">
           <div className="mb-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20">
-                <Sparkles className="h-5 w-5 text-pink-300" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+                <Sparkles className="h-5 w-5 text-amber-300" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">{t('settings.persona.title')}</h2>

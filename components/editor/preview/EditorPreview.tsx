@@ -279,7 +279,7 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
           onClick={() => setMode('crop')}
           className={cn(
             'rounded-md px-3 py-1 text-xs font-medium transition-all',
-            mode === 'crop' ? 'bg-purple-500/30 text-purple-200' : 'text-white/40 hover:text-white/60'
+            mode === 'crop' ? 'bg-orange-500/30 text-orange-200' : 'text-white/40 hover:text-white/60'
           )}
         >
           {t('editor.preview.crop')}
@@ -288,7 +288,7 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
           onClick={() => setMode('preview')}
           className={cn(
             'rounded-md px-3 py-1 text-xs font-medium transition-all',
-            mode === 'preview' ? 'bg-purple-500/30 text-purple-200' : 'text-white/40 hover:text-white/60'
+            mode === 'preview' ? 'bg-orange-500/30 text-orange-200' : 'text-white/40 hover:text-white/60'
           )}
         >
           {t('editor.preview.preview')}

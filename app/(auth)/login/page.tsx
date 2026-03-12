@@ -93,7 +93,7 @@ export default function LoginPage() {
               </label>
               <Link
                 href="/reset-password"
-                className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                className="text-xs text-orange-400 hover:text-orange-300 transition-colors"
               >
                 {t('auth.login.forgotPassword')}
               </Link>
@@ -123,7 +123,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-white/50">
             {t('auth.login.noAccount')}{' '}
-            <Link href="/signup" className="text-purple-400 hover:text-purple-300 transition-colors">
+            <Link href="/signup" className="text-orange-400 hover:text-orange-300 transition-colors">
               {t('auth.login.createAccount')}
             </Link>
           </p>

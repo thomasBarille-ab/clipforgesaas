@@ -29,8 +29,8 @@ interface Stats {
 }
 
 const STAT_CARDS = [
-  { key: 'totalVideos' as const, labelKey: 'dashboard.statVideos', icon: Film, color: 'bg-purple-500/20', iconColor: 'text-purple-400' },
-  { key: 'readyClips' as const, labelKey: 'dashboard.statClips', icon: Scissors, color: 'bg-pink-500/20', iconColor: 'text-pink-400' },
+  { key: 'totalVideos' as const, labelKey: 'dashboard.statVideos', icon: Film, color: 'bg-orange-500/20', iconColor: 'text-orange-400' },
+  { key: 'readyClips' as const, labelKey: 'dashboard.statClips', icon: Scissors, color: 'bg-amber-500/20', iconColor: 'text-amber-400' },
   { key: 'processingJobs' as const, labelKey: 'dashboard.statProcessing', icon: Loader2, color: 'bg-blue-500/20', iconColor: 'text-blue-400' },
 ]
 
@@ -112,7 +112,7 @@ export default function DashboardPage() {
         <Link
           href="/upload"
           data-onboarding="upload-btn"
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 font-semibold text-white transition-transform hover:scale-105"
         >
           <Upload className="h-5 w-5" />
           {t('dashboard.importVideo')}
@@ -123,7 +123,7 @@ export default function DashboardPage() {
       <div data-onboarding="quick-actions" className="grid gap-4 md:grid-cols-2">
         <Link
           href="/upload"
-          className="rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-left transition-transform hover:scale-[1.02]"
+          className="rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 p-6 text-left transition-transform hover:scale-[1.02]"
         >
           <Upload className="mb-2 h-8 w-8 text-white" />
           <strong className="mb-1 block text-white">{t('dashboard.uploadVideo')}</strong>
@@ -131,9 +131,9 @@ export default function DashboardPage() {
         </Link>
         <Link
           href="/clips"
-          className="rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-colors hover:border-purple-500/50"
+          className="rounded-2xl border border-white/10 bg-white/5 p-6 text-left transition-colors hover:border-orange-500/50"
         >
-          <Scissors className="mb-2 h-8 w-8 text-purple-400" />
+          <Scissors className="mb-2 h-8 w-8 text-orange-400" />
           <strong className="mb-1 block text-white">{t('dashboard.myClips')}</strong>
           <span className="text-sm text-slate-400">{t('dashboard.myClipsDesc')}</span>
         </Link>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
             {userPlan === 'free' && (
               <Link
                 href="/settings"
-                className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-xs font-semibold text-white transition-transform hover:scale-105"
+                className="rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-2 text-xs font-semibold text-white transition-transform hover:scale-105"
               >
                 {t('plans.upgrade')}
               </Link>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                     'h-2 rounded-full transition-all',
                     monthlyClipsUsed >= getPlanLimits(userPlan).clipsPerMonth
                       ? 'bg-red-500'
-                      : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                      : 'bg-gradient-to-r from-orange-500 to-amber-500'
                   )}
                   style={{ width: `${Math.min(100, (monthlyClipsUsed / getPlanLimits(userPlan).clipsPerMonth) * 100)}%` }}
                 />
@@ -207,7 +207,7 @@ export default function DashboardPage() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">{t('dashboard.recentVideos')}</h2>
           {videos.length > 0 && (
-            <Link href="/videos" className="flex items-center gap-1 text-sm text-purple-400 transition-colors hover:text-purple-300">
+            <Link href="/videos" className="flex items-center gap-1 text-sm text-orange-400 transition-colors hover:text-orange-300">
               {t('common.seeAll')}
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -246,12 +246,12 @@ export default function DashboardPage() {
               <Link
                 key={video.id}
                 href={video.status === 'ready' ? `/clips/create/${video.id}` : '/videos'}
-                className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all hover:border-purple-500/30 hover:bg-white/[0.07]"
+                className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all hover:border-orange-500/30 hover:bg-white/[0.07]"
               >
                 <div className="relative aspect-square overflow-hidden bg-white/5">
                   {video.status === 'processing' ? (
-                    <div className="flex h-full w-full items-center justify-center bg-purple-500/10">
-                      <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+                    <div className="flex h-full w-full items-center justify-center bg-orange-500/10">
+                      <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
                     </div>
                   ) : video.status === 'failed' ? (
                     <div className="flex h-full w-full items-center justify-center bg-red-500/10">
@@ -290,7 +290,7 @@ export default function DashboardPage() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">{t('dashboard.latestClips')}</h2>
           {clips.length > 0 && (
-            <Link href="/clips" className="flex items-center gap-1 text-sm text-purple-400 transition-colors hover:text-purple-300">
+            <Link href="/clips" className="flex items-center gap-1 text-sm text-orange-400 transition-colors hover:text-orange-300">
               {t('common.seeAll')}
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -328,14 +328,14 @@ export default function DashboardPage() {
                 <Link
                   key={clip.id}
                   href="/clips"
-                  className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all hover:border-purple-500/30 hover:bg-white/[0.07]"
+                  className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all hover:border-orange-500/30 hover:bg-white/[0.07]"
                 >
                   <div className="relative aspect-square overflow-hidden bg-white/5">
                     {clip.thumbnail_path ? (
                       <VideoThumbnail storagePath={clip.thumbnail_path} className="h-full w-full" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-purple-500/10">
-                        <Scissors className="h-8 w-8 text-purple-400/40" />
+                      <div className="flex h-full w-full items-center justify-center bg-orange-500/10">
+                        <Scissors className="h-8 w-8 text-orange-400/40" />
                       </div>
                     )}
 
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                     </span>
 
                     {clip.virality_score && (
-                      <span className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-md bg-purple-500/80 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                      <span className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-md bg-orange-500/80 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
                         <TrendingUp className="h-2.5 w-2.5" />
                         {clip.virality_score.toFixed(1)}
                       </span>
@@ -360,7 +360,7 @@ export default function DashboardPage() {
                   <div className="p-2.5">
                     <p className="truncate text-sm font-medium text-white">{clip.title}</p>
                     {clip.hashtags.length > 0 && (
-                      <p className="mt-1 truncate text-xs text-purple-300/60">
+                      <p className="mt-1 truncate text-xs text-orange-300/60">
                         {clip.hashtags.slice(0, 3).map((t) => `#${t}`).join(' ')}
                       </p>
                     )}

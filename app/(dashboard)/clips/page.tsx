@@ -196,12 +196,12 @@ export default function ClipsPage() {
             return (
               <div
                 key={clip.id}
-                className="group overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-purple-500/50"
+                className="group overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-orange-500/50"
               >
                 {/* Thumbnail */}
                 <button
                   onClick={() => setPreviewClip(clip)}
-                  className="relative flex aspect-[9/16] max-h-64 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-purple-900/40 to-pink-900/40"
+                  className="relative flex aspect-[9/16] max-h-64 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-orange-900/40 to-amber-900/40"
                 >
                   {clip.thumbnail_path ? (
                     <VideoThumbnail storagePath={clip.thumbnail_path} className="h-full w-full" />
@@ -279,7 +279,7 @@ export default function ClipsPage() {
                       {clip.hashtags.length > 0 && (
                         <div className="mb-4 flex flex-wrap gap-1.5">
                           {clip.hashtags.map((tag) => (
-                            <Badge key={tag} variant="purple" className="px-2.5 py-0.5 text-xs">
+                            <Badge key={tag} variant="orange" className="px-2.5 py-0.5 text-xs">
                               #{tag}
                             </Badge>
                           ))}
@@ -292,7 +292,7 @@ export default function ClipsPage() {
                           {formatTime(clip.start_time_seconds)} → {formatTime(clip.end_time_seconds)}
                         </span>
                         {clip.virality_score && (
-                          <span className="flex items-center gap-1 font-bold text-purple-400">
+                          <span className="flex items-center gap-1 font-bold text-orange-400">
                             <TrendingUp className="h-3.5 w-3.5" />
                             {clip.virality_score.toFixed(1)}
                           </span>

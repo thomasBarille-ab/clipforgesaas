@@ -223,10 +223,10 @@ export default function CreateClipsPage() {
       {/* Recherche par prompt */}
       <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/70">
-          <MessageSquare className="h-4 w-4 text-pink-400" />
+          <MessageSquare className="h-4 w-4 text-amber-400" />
           {t('createClips.searchTitle')}
           {!hasFeatureAccess(userPlan, 'searchByPrompt') && (
-            <Badge variant="purple" className="ml-1 px-2 py-0.5 text-[10px]">Pro</Badge>
+            <Badge variant="orange" className="ml-1 px-2 py-0.5 text-[10px]">Pro</Badge>
           )}
         </div>
         {!hasFeatureAccess(userPlan, 'searchByPrompt') ? (
@@ -249,7 +249,7 @@ export default function CreateClipsPage() {
               loading={searching}
               icon={Send}
               size="md"
-              className="rounded-xl bg-gradient-to-r from-pink-600 to-purple-600"
+              className="rounded-xl bg-gradient-to-r from-amber-600 to-orange-600"
             >
               <span className="hidden sm:inline">{t('common.search')}</span>
             </Button>
@@ -261,8 +261,8 @@ export default function CreateClipsPage() {
       {searchResults.length > 0 && (
         <div className="mb-8">
           <div className="mb-4 flex items-center gap-3">
-            <div className="rounded-xl bg-pink-500/20 p-2.5">
-              <Search className="h-5 w-5 text-pink-400" />
+            <div className="rounded-xl bg-amber-500/20 p-2.5">
+              <Search className="h-5 w-5 text-amber-400" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-white">{t('createClips.searchResults')}</h2>
@@ -291,8 +291,8 @@ export default function CreateClipsPage() {
 
       {/* Section Suggestions IA */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="rounded-xl bg-purple-500/20 p-2.5">
-          <Sparkles className="h-5 w-5 text-purple-400" />
+        <div className="rounded-xl bg-orange-500/20 p-2.5">
+          <Sparkles className="h-5 w-5 text-orange-400" />
         </div>
         <div>
           <h2 className="text-xl font-semibold text-white">{t('createClips.suggestionsTitle')}</h2>

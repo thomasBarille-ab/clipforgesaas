@@ -61,7 +61,7 @@ export function LanguageSwitcher({ className, dropUp = true }: LanguageSwitcherP
               className={cn(
                 'flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors',
                 lang.code === current.code
-                  ? 'bg-purple-500/15 text-purple-300'
+                  ? 'bg-orange-500/15 text-orange-300'
                   : 'text-white/60 hover:bg-white/5 hover:text-white'
               )}
             >

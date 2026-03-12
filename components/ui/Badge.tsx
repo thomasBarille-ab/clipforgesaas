@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-type BadgeVariant = 'purple' | 'pink' | 'emerald' | 'yellow' | 'blue' | 'red' | 'default'
+type BadgeVariant = 'orange' | 'amber' | 'emerald' | 'yellow' | 'blue' | 'red' | 'default'
 
 interface Props {
   children: React.ReactNode
@@ -9,8 +9,8 @@ interface Props {
 }
 
 const VARIANT_STYLES: Record<BadgeVariant, string> = {
-  purple: 'bg-purple-500/20 text-purple-300',
-  pink: 'bg-pink-500/20 text-pink-300',
+  orange: 'bg-orange-500/20 text-orange-300',
+  amber: 'bg-amber-500/20 text-amber-300',
   emerald: 'bg-emerald-500/20 text-emerald-300',
   yellow: 'bg-yellow-500/20 text-yellow-300',
   blue: 'bg-blue-500/20 text-blue-300',

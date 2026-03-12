@@ -162,7 +162,7 @@ export function CropOverlay({ videoRef }: CropOverlayProps) {
       />
       {/* Crop box outline */}
       <div
-        className="absolute border-2 border-purple-500 shadow-lg shadow-purple-500/20"
+        className="absolute border-2 border-orange-500 shadow-lg shadow-orange-500/20"
         style={{
           left: cropBoxX,
           top: offsetY,
@@ -170,7 +170,7 @@ export function CropOverlay({ videoRef }: CropOverlayProps) {
           height: cropBoxH,
         }}
       >
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded bg-purple-500/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
+        <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded bg-orange-500/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
           9:16
         </div>
       </div>

@@ -40,7 +40,9 @@
     "clips": "Clips",
     "upload": "Upload",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "signIn": "Sign in",
+    "signUp": "Sign up"
   },
 
   "auth": {
@@ -125,7 +127,8 @@
       "socialProofText": "creators on the waitlist",
       "socialProofRating": "4.9/5",
       "videoSource": "Source video",
-      "clip": "Clip {{num}}"
+      "clip": "Clip {{num}}",
+      "getStarted": "Get started for free"
     },
     "logoBar": {
       "label": "Compatible with your platforms"
