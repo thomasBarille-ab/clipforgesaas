@@ -50,7 +50,7 @@ const PLANS_DETAILS: {
   {
     key: 'pro',
     name: 'Pro',
-    price: '24',
+    price: '29',
     descriptionKey: 'settings.subscription.proDesc',
     badge: 'settings.subscription.popular',
     featuresKey: 'settings.subscription.proFeatures',
@@ -649,7 +649,11 @@ function SettingsPageContent() {
                   {t('settings.subscription.creditsRemaining', { count: profile?.credits_remaining ?? 0 })}
                 </span>
               ) : (
-                <span className="text-orange-300">{t('settings.subscription.unlimitedClips')}</span>
+                <span className="text-orange-300">
+                  {plan === 'pro'
+                    ? t('settings.subscription.proClipsQuota')
+                    : t('settings.subscription.businessClipsQuota')}
+                </span>
               )}
             </p>
             {profile?.stripe_subscription_id && (

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     if (!clipCheck.allowed) {
       return NextResponse.json(
-        { error: `Limite atteinte : ${clipCheck.used}/${clipCheck.limit} clips ce mois-ci. Passez au plan Pro pour des clips illimités.` },
+        { error: `Limite atteinte : ${clipCheck.used}/${clipCheck.limit} clips ce mois-ci. Passez au plan supérieur pour plus de clips.` },
         { status: 403 }
       )
     }

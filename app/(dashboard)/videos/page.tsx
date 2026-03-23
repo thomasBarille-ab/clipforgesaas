@@ -18,10 +18,11 @@ import {
   Eye,
   CircleAlert,
   RefreshCw,
+  Timer,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
-import { cn, formatTime, formatFileSize, formatDate } from '@/lib/utils'
+import { cn, formatTime, formatFileSize, formatDate, getDaysRemaining } from '@/lib/utils'
 import { VIDEO_STATUS_KEYS, VIDEO_STATUS_COLORS } from '@/lib/constants'
 import { EmptyState, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
@@ -333,6 +334,25 @@ export default function VideosPage() {
                           <Calendar className="h-3.5 w-3.5" />
                           {formatDate(video.created_at)}
                         </span>
+                        {(() => {
+                          const days = getDaysRemaining(video.created_at, 7)
+                          if (days <= 0) return null
+                          return (
+                            <span className={cn(
+                              'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                              days <= 1
+                                ? 'bg-red-500/20 text-red-400'
+                                : days <= 2
+                                  ? 'bg-orange-500/20 text-orange-400'
+                                  : 'bg-white/10 text-white/50'
+                            )}>
+                              <Timer className="h-3 w-3" />
+                              {days <= 1
+                                ? t('videos.expiresToday')
+                                : t('videos.expiresIn', { days })}
+                            </span>
+                          )
+                        })()}
                         {clipCount > 0 && (
                           <button
                             onClick={() => setExpandedVideoId(isExpanded ? null : video.id)}
@@ -455,9 +475,28 @@ export default function VideosPage() {
                                     )}
                                     {clip.hashtags.length > 0 && (
                                       <span className="hidden text-white/30 sm:inline">
-                                        {clip.hashtags.slice(0, 3).map((t) => `#${t}`).join(' ')}
+                                        {clip.hashtags.slice(0, 3).map((tag) => `#${tag}`).join(' ')}
                                       </span>
                                     )}
+                                    {(() => {
+                                      const days = getDaysRemaining(clip.created_at, 7)
+                                      if (days <= 0) return null
+                                      return (
+                                        <span className={cn(
+                                          'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                                          days <= 1
+                                            ? 'bg-red-500/20 text-red-400'
+                                            : days <= 2
+                                              ? 'bg-orange-500/20 text-orange-400'
+                                              : 'bg-white/10 text-white/50'
+                                        )}>
+                                          <Timer className="h-3 w-3" />
+                                          {days <= 1
+                                            ? t('clips.expiresToday')
+                                            : t('clips.expiresIn', { days })}
+                                        </span>
+                                      )
+                                    })()}
                                   </div>
                                 </div>
 

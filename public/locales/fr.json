@@ -360,7 +360,11 @@
     "deleteError": "Erreur lors de la suppression",
     "deleteClipError": "Erreur lors de la suppression du clip",
     "transcriptionError": "Erreur lors de la transcription",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "expiresIn": "Expire dans {{days}} jour(s)",
+    "expiresTomorrow": "Expire demain",
+    "expiresToday": "Expire aujourd'hui",
+    "retentionNotice": "Les vidéos sont disponibles 7 jours après l'upload"
   },
 
   "clips": {
@@ -381,7 +385,11 @@
     "title_label": "Titre",
     "description_label": "Description",
     "hashtags": "Hashtags",
-    "hashtagsHint": "Séparés par des virgules"
+    "hashtagsHint": "Séparés par des virgules",
+    "expiresIn": "Expire dans {{days}} jour(s)",
+    "expiresTomorrow": "Expire demain",
+    "expiresToday": "Expire aujourd'hui",
+    "retentionNotice": "Les clips sont disponibles 7 jours après leur génération"
   },
 
   "upload": {
@@ -406,7 +414,8 @@
     "errorInvalidFile": "Fichier invalide",
     "errorNotLoggedIn": "Vous devez être connecté pour importer une vidéo",
     "errorSaving": "Erreur lors de l'enregistrement de la vidéo",
-    "errorUnexpected": "Une erreur inattendue est survenue"
+    "errorUnexpected": "Une erreur inattendue est survenue",
+    "retentionNotice": "Les vidéos et clips sont disponibles 7 jours après l'upload. Pensez à télécharger vos clips avant leur expiration."
   },
 
   "createClips": {
@@ -542,10 +551,10 @@
       "planBusiness": "Business",
       "freeDesc": "Pour découvrir CreaClip",
       "proDesc": "Pour les créateurs sérieux",
-      "businessDesc": "Pour les équipes",
-      "freeFeatures": ["10 clips / mois", "Toutes les features", "Preview live", "Export multi-format"],
-      "proFeatures": ["Clips illimités", "Sans watermark", "Tous styles de sous-titres", "Support prioritaire"],
-      "businessFeatures": ["Tout Pro +", "IA personnalisée (Persona)", "API access", "Account manager dédié"],
+      "businessDesc": "Pour les créateurs ambitieux",
+      "freeFeatures": ["3 clips / mois", "Preview live", "Export multi-format", "Watermark CreaClip"],
+      "proFeatures": ["50 clips / mois", "Sans watermark", "Toutes les features", "Recherche par prompt IA"],
+      "businessFeatures": ["Tout Pro +", "200 clips / mois", "Persona individuel", "Recherche par prompt IA"],
       "popular": "Populaire",
       "upgrade": "Passer en {{name}}",
       "downgrade": "Revenir en {{name}}",
@@ -556,6 +565,8 @@
       "creditsRemaining": "{{count}} crédit restant",
       "creditsRemaining_plural": "{{count}} crédits restants",
       "unlimitedClips": "Clips illimités",
+      "proClipsQuota": "50 clips / mois",
+      "businessClipsQuota": "200 clips / mois",
       "paymentSuccess": "Paiement réussi ! Votre abonnement est actif.",
       "paymentCanceled": "Paiement annulé. Votre plan n'a pas changé.",
       "manageSubscription": "Gérer l'abonnement"
@@ -686,7 +697,7 @@
     "upgrade": "Passer Pro",
     "searchProOnly": "La recherche par prompt est réservée aux plans Pro et Business. Passez à un plan supérieur pour débloquer cette fonctionnalité.",
     "watermarkNotice": "Plan Free — Un watermark CreaClip sera ajouté. Passez Pro pour le retirer.",
-    "limitReached": "Limite atteinte : {{used}}/{{limit}} clips ce mois-ci. Passez Pro pour des clips illimités.",
+    "limitReached": "Limite atteinte : {{used}}/{{limit}} clips ce mois-ci. Passez au plan supérieur pour plus de clips.",
     "clipQuota": "{{used}}/{{limit}} clips ce mois-ci"
   },
 

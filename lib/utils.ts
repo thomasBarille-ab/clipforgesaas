@@ -42,3 +42,11 @@ export function formatDate(dateStr: string): string {
     year: 'numeric',
   })
 }
+
+export function getDaysRemaining(createdAt: string, retentionDays: number): number {
+  const created = new Date(createdAt)
+  const expiresAt = new Date(created.getTime() + retentionDays * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  const diffMs = expiresAt.getTime() - now.getTime()
+  return Math.ceil(diffMs / (24 * 60 * 60 * 1000))
+}

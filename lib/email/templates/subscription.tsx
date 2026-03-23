@@ -16,9 +16,15 @@ const PLAN_LABELS: Record<string, string> = {
 }
 
 const PLAN_PRICES: Record<string, string> = {
-  pro: '24€/mois',
+  pro: '29€/mois',
   business: '49€/mois',
   free: '0€',
+}
+
+const PLAN_CLIPS: Record<string, string> = {
+  pro: '50 clips/mois',
+  business: '200 clips/mois',
+  free: '3 clips/mois',
 }
 
 // Email de bienvenue sur un plan payant
@@ -45,7 +51,7 @@ export function SubscriptionStartedEmail({ plan }: SubscriptionStartedProps) {
               Vous avez désormais accès à toutes les fonctionnalités de votre plan :
             </Text>
             <Text style={list}>
-              • Clips illimités{'\n'}
+              • {PLAN_CLIPS[plan] || '50 clips/mois'}{'\n'}
               • Sans filigrane{'\n'}
               • Recherche par prompt IA
               {plan === 'business' ? '\n• Persona créateur personnalisée' : ''}

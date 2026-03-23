@@ -17,10 +17,11 @@ import {
   X,
   Share2,
   Trash2,
+  Timer,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
-import { cn, formatTime } from '@/lib/utils'
+import { cn, formatTime, getDaysRemaining } from '@/lib/utils'
 import { EmptyState, Button, Input, Textarea, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { PublishModal } from '@/components/PublishModal'
@@ -347,6 +348,25 @@ export default function ClipsPage() {
                               {clip.virality_score.toFixed(1)}
                             </span>
                           )}
+                          {(() => {
+                            const days = getDaysRemaining(clip.created_at, 7)
+                            if (days <= 0) return null
+                            return (
+                              <span className={cn(
+                                'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                                days <= 1
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : days <= 2
+                                    ? 'bg-orange-500/20 text-orange-400'
+                                    : 'bg-white/10 text-white/50'
+                              )}>
+                                <Timer className="h-3 w-3" />
+                                {days <= 1
+                                  ? t('clips.expiresToday')
+                                  : t('clips.expiresIn', { days })}
+                              </span>
+                            )
+                          })()}
                           <Badge className="rounded bg-white/10 px-1.5 py-0.5 text-[10px]">
                             9:16
                           </Badge>

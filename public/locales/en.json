@@ -360,7 +360,11 @@
     "deleteError": "Error during deletion",
     "deleteClipError": "Error deleting clip",
     "transcriptionError": "Error during transcription",
-    "retry": "Retry"
+    "retry": "Retry",
+    "expiresIn": "Expires in {{days}} day(s)",
+    "expiresTomorrow": "Expires tomorrow",
+    "expiresToday": "Expires today",
+    "retentionNotice": "Videos are available for 7 days after upload"
   },
 
   "clips": {
@@ -381,7 +385,11 @@
     "title_label": "Title",
     "description_label": "Description",
     "hashtags": "Hashtags",
-    "hashtagsHint": "Separated by commas"
+    "hashtagsHint": "Separated by commas",
+    "expiresIn": "Expires in {{days}} day(s)",
+    "expiresTomorrow": "Expires tomorrow",
+    "expiresToday": "Expires today",
+    "retentionNotice": "Clips are available for 7 days after generation"
   },
 
   "upload": {
@@ -406,7 +414,8 @@
     "errorInvalidFile": "Invalid file",
     "errorNotLoggedIn": "You must be logged in to import a video",
     "errorSaving": "Error saving the video",
-    "errorUnexpected": "An unexpected error occurred"
+    "errorUnexpected": "An unexpected error occurred",
+    "retentionNotice": "Videos and clips are available for 7 days after upload. Remember to download your clips before they expire."
   },
 
   "createClips": {
@@ -542,10 +551,10 @@
       "planBusiness": "Business",
       "freeDesc": "To discover CreaClip",
       "proDesc": "For serious creators",
-      "businessDesc": "For teams",
-      "freeFeatures": ["10 clips / month", "All features", "Live preview", "Multi-format export"],
-      "proFeatures": ["Unlimited clips", "No watermark", "All subtitle styles", "Priority support"],
-      "businessFeatures": ["Everything in Pro +", "Personalized AI (Persona)", "API access", "Dedicated account manager"],
+      "businessDesc": "For ambitious creators",
+      "freeFeatures": ["3 clips / month", "Live preview", "Multi-format export", "CreaClip watermark"],
+      "proFeatures": ["50 clips / month", "No watermark", "All features", "AI prompt search"],
+      "businessFeatures": ["Everything in Pro +", "200 clips / month", "Individual persona", "AI prompt search"],
       "popular": "Popular",
       "upgrade": "Upgrade to {{name}}",
       "downgrade": "Downgrade to {{name}}",
@@ -556,6 +565,8 @@
       "creditsRemaining": "{{count}} credit remaining",
       "creditsRemaining_plural": "{{count}} credits remaining",
       "unlimitedClips": "Unlimited clips",
+      "proClipsQuota": "50 clips / month",
+      "businessClipsQuota": "200 clips / month",
       "paymentSuccess": "Payment successful! Your subscription is active.",
       "paymentCanceled": "Payment canceled. Your plan has not changed.",
       "manageSubscription": "Manage subscription"
@@ -686,7 +697,7 @@
     "upgrade": "Go Pro",
     "searchProOnly": "Search by prompt is available on Pro and Business plans. Upgrade to unlock this feature.",
     "watermarkNotice": "Free plan — A CreaClip watermark will be added. Go Pro to remove it.",
-    "limitReached": "Limit reached: {{used}}/{{limit}} clips this month. Go Pro for unlimited clips.",
+    "limitReached": "Limit reached: {{used}}/{{limit}} clips this month. Upgrade for more clips.",
     "clipQuota": "{{used}}/{{limit}} clips this month"
   },
 

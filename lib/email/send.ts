@@ -7,6 +7,7 @@ import {
   SubscriptionCanceledEmail,
   InvoicePaidEmail,
 } from './templates/subscription'
+import { ExpiryWarningEmail } from './templates/expiry-warning'
 
 export async function sendWelcomeEmail(to: string, userName: string) {
   try {
@@ -85,6 +86,30 @@ export async function sendInvoicePaidEmail(to: string, amount: string, invoiceUr
       to,
       subject: `Facture CreaClip - ${amount} 💳`,
       react: InvoicePaidEmail({ amount, invoiceUrl, plan }),
+    })
+    if (error) console.error('Email send error:', error)
+  } catch (error) {
+    console.error('Email send exception:', error)
+  }
+}
+
+interface ExpiryItem {
+  title: string
+}
+
+export async function sendExpiryWarningEmail(
+  to: string,
+  videos: ExpiryItem[],
+  clips: ExpiryItem[]
+) {
+  const totalCount = videos.length + clips.length
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.creaclip.com'
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: `${totalCount} fichier${totalCount > 1 ? 's' : ''} expire${totalCount > 1 ? 'nt' : ''} demain`,
+      react: ExpiryWarningEmail({ videos, clips, appUrl }),
     })
     if (error) console.error('Email send error:', error)
   } catch (error) {

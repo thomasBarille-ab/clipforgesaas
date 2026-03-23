@@ -224,13 +224,9 @@ export default function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-white/50">{t('plans.monthlyClips')}</p>
-                    {clipsPerMonth === -1 ? (
-                      <p className="text-xs font-bold text-emerald-400">{t('plans.unlimited')}</p>
-                    ) : (
-                      <p className={cn('text-xs font-bold', isWarning ? 'text-red-400' : 'text-white')}>
-                        {monthlyClipsUsed}/{clipsPerMonth}
-                      </p>
-                    )}
+                    <p className={cn('text-xs font-bold', isWarning ? 'text-red-400' : 'text-white')}>
+                      {monthlyClipsUsed}/{clipsPerMonth}
+                    </p>
                   </div>
                   {clipsPerMonth > 0 && (
                     <div className="mt-1.5 h-1.5 rounded-full bg-white/10">

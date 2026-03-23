@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslation } from 'react-i18next'
+import { Info } from 'lucide-react'
 import { VideoUploader } from '@/components/VideoUploader'
 
 export default function UploadPage() {
@@ -25,6 +26,10 @@ export default function UploadPage() {
           <p className="mt-1 text-sm text-white/40">
             {t('upload.subtitle')}
           </p>
+        </div>
+        <div className="animate-fade-in-up-2 flex items-start gap-2.5 rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3 text-sm text-orange-300/80">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
+          <span>{t('upload.retentionNotice')}</span>
         </div>
         <div className="animate-fade-in-up-2">
           <VideoUploader />
