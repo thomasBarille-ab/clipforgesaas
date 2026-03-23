@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
-import { cn, formatTime, formatFileSize } from '@/lib/utils'
+import { cn, formatTime } from '@/lib/utils'
 import { VIDEO_STATUS_KEYS, VIDEO_STATUS_COLORS } from '@/lib/constants'
 import { getPlanLimits } from '@/lib/plans'
 import { EmptyState, Badge } from '@/components/ui'
@@ -364,7 +364,7 @@ export default function DashboardPage() {
               {videos.map((video) => (
                 <Link
                   key={video.id}
-                  href={video.status === 'ready' ? `/clips/create/${video.id}` : '/videos'}
+                  href="/videos"
                   className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:-translate-y-0.5 hover:border-orange-500/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-orange-600/5"
                 >
                   <div className="relative aspect-square overflow-hidden bg-white/5">
@@ -396,7 +396,6 @@ export default function DashboardPage() {
 
                   <div className="p-2.5">
                     <p className="truncate text-sm font-medium text-white">{video.title}</p>
-                    <p className="mt-0.5 text-xs text-white/40">{formatFileSize(video.file_size_bytes)}</p>
                   </div>
                 </Link>
               ))}

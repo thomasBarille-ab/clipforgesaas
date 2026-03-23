@@ -12,6 +12,8 @@ const anthropic = new Anthropic({
 interface SearchRequestBody {
   videoId: string
   prompt: string
+  minDuration?: number
+  maxDuration?: number
 }
 
 interface ClipSuggestion {
@@ -27,7 +29,9 @@ function buildSearchPrompt(
   userPrompt: string,
   fullText: string,
   segments: TranscriptionSegment[],
-  persona: string | null
+  persona: string | null,
+  minDuration: number,
+  maxDuration: number
 ): string {
   const segmentsJson = JSON.stringify(segments, null, 2)
 
@@ -46,13 +50,19 @@ ${segmentsJson}
 L'utilisateur cherche un clip spécifique. Voici sa demande :
 "${userPrompt}"
 
-Ta mission : Trouve dans la transcription les 1 à 3 meilleurs passages qui correspondent à cette demande. Chaque clip doit durer entre 15 et 90 secondes.
+Ta mission : Trouve dans la transcription les 1 à 3 meilleurs passages qui correspondent à cette demande. Chaque clip doit durer entre ${minDuration} et ${maxDuration} secondes.
 
-Règles :
+RÈGLES OBLIGATOIRES pour les timestamps :
+- Chaque clip DOIT commencer au début d'une phrase (au timestamp "start" d'un segment existant)
+- Chaque clip DOIT finir à la fin d'une phrase (au timestamp "end" d'un segment existant)
+- Ne coupe JAMAIS une phrase en cours
 - Les timestamps start/end DOIVENT correspondre à des segments existants dans la transcription
 - Le clip doit être compréhensible de manière autonome
 - Privilégie les passages avec un hook fort au début
 - Si aucun passage ne correspond vraiment à la demande, retourne un tableau vide
+- EXCLURE les placements de produit/sponsors (ex: "cette vidéo est sponsorisée par...", "merci à ... pour le partenariat")
+- EXCLURE les appels à l'action YouTube (ex: "abonnez-vous", "likez la vidéo", "activez la cloche", "laissez un commentaire")
+- EXCLURE les intros/outros promotionnelles
 
 Réponds UNIQUEMENT en JSON valide :
 {
@@ -185,12 +195,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    const canUseFilters = hasFeatureAccess(plan, 'clipFilters')
+    const minDuration = canUseFilters && typeof body.minDuration === 'number' && body.minDuration >= 15
+      ? body.minDuration : 60
+    const maxDuration = canUseFilters && typeof body.maxDuration === 'number' && body.maxDuration >= 30
+      ? Math.max(body.maxDuration, minDuration) : 180
+
     const persona = await fetchPersonaForUser(supabase, user.id)
     const prompt = buildSearchPrompt(
       body.prompt.trim(),
       transcription.full_text,
       transcription.segments as TranscriptionSegment[],
-      persona
+      persona,
+      minDuration,
+      maxDuration
     )
 
     const message = await anthropic.messages.create({
@@ -210,6 +228,7 @@ export async function POST(request: Request) {
     }
 
     const suggestions = parseResponse(responseText)
+      .filter((s) => (s.end - s.start) >= minDuration)
 
     return NextResponse.json({
       success: true,

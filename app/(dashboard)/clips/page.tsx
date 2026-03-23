@@ -15,7 +15,6 @@ import {
   Pencil,
   Save,
   X,
-  Share2,
   Trash2,
   Timer,
 } from 'lucide-react'
@@ -24,7 +23,6 @@ import { createClient } from '@/lib/supabase/client'
 import { cn, formatTime, getDaysRemaining } from '@/lib/utils'
 import { EmptyState, Button, Input, Textarea, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
-import { PublishModal } from '@/components/PublishModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { useClipDownload } from '@/hooks/useClipDownload'
 import type { ClipWithVideo } from '@/types/database'
@@ -34,7 +32,6 @@ export default function ClipsPage() {
   const [clips, setClips] = useState<ClipWithVideo[]>([])
   const [loading, setLoading] = useState(true)
   const [previewClip, setPreviewClip] = useState<ClipWithVideo | null>(null)
-  const [publishClip, setPublishClip] = useState<ClipWithVideo | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
@@ -372,7 +369,7 @@ export default function ClipsPage() {
                           </Badge>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <Button variant="secondary" onClick={() => setPreviewClip(clip)} icon={Eye} size="sm" className="w-full">
                             {t('common.preview')}
                           </Button>
@@ -387,15 +384,6 @@ export default function ClipsPage() {
                             className="w-full"
                           >
                             {t('common.download')}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => setPublishClip(clip)}
-                            icon={Share2}
-                            size="sm"
-                            className="w-full"
-                          >
-                            {t('common.publish')}
                           </Button>
                         </div>
                       </>
@@ -425,14 +413,7 @@ export default function ClipsPage() {
         <ClipPreviewModal
           clip={previewClip}
           onClose={() => setPreviewClip(null)}
-          onPublish={() => {
-            if (previewClip) {
-              setPreviewClip(null)
-              setPublishClip(previewClip)
-            }
-          }}
         />
-        <PublishModal clip={publishClip} onClose={() => setPublishClip(null)} />
 
         {clipToDelete && (
           <ConfirmModal

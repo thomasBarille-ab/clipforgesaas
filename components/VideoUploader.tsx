@@ -11,7 +11,6 @@ import {
   cn,
   MAX_FILE_SIZE,
   ALLOWED_MIME_TYPES,
-  formatFileSize,
   generateStoragePath,
 } from '@/lib/utils'
 import { AlertBanner, Button, ProgressBar, useToast } from '@/components/ui'
@@ -354,7 +353,6 @@ export function VideoUploader() {
               </div>
               <div className="text-center">
                 <p className="font-medium text-white">{file.name}</p>
-                <p className="mt-1 text-sm text-white/50">{formatFileSize(file.size)}</p>
               </div>
               <div className="flex items-center gap-3">
                 <Button

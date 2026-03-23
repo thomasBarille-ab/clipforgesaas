@@ -9,7 +9,6 @@ import {
   Sparkles,
   Trash2,
   Play,
-  HardDrive,
   Calendar,
   Scissors,
   ChevronDown,
@@ -22,7 +21,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
-import { cn, formatTime, formatFileSize, formatDate, getDaysRemaining } from '@/lib/utils'
+import { cn, formatTime, formatDate, getDaysRemaining } from '@/lib/utils'
 import { VIDEO_STATUS_KEYS, VIDEO_STATUS_COLORS } from '@/lib/constants'
 import { EmptyState, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
@@ -320,10 +319,6 @@ export default function VideosPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/40">
-                        <span className="flex items-center gap-1.5">
-                          <HardDrive className="h-3.5 w-3.5" />
-                          {formatFileSize(video.file_size_bytes)}
-                        </span>
                         {video.duration_seconds && (
                           <span className="flex items-center gap-1.5">
                             <Clock className="h-3.5 w-3.5" />

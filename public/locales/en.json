@@ -433,7 +433,13 @@
     "noSuggestionsDesc": "Make sure the video transcription is complete",
     "searchBadge": "Search",
     "created": "Created",
-    "create": "Create"
+    "create": "Create",
+    "filters": "Suggestion filters",
+    "filtersProOnly": "Upgrade to Pro to customize duration filters and clip count.",
+    "minDuration": "Minimum duration (sec)",
+    "maxDuration": "Maximum duration (sec)",
+    "clipCount": "Number of clips",
+    "regenerate": "Regenerate"
   },
 
   "editor": {

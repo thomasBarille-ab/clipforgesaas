@@ -433,7 +433,13 @@
     "noSuggestionsDesc": "Verifique que la transcripción del vídeo haya terminado",
     "searchBadge": "Búsqueda",
     "created": "Creado",
-    "create": "Crear"
+    "create": "Crear",
+    "filters": "Filtros de sugerencias",
+    "filtersProOnly": "Pase al plan Pro para personalizar los filtros de duración y el número de clips.",
+    "minDuration": "Duración mínima (seg)",
+    "maxDuration": "Duración máxima (seg)",
+    "clipCount": "Número de clips",
+    "regenerate": "Regenerar"
   },
 
   "editor": {

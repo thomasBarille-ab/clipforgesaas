@@ -58,6 +58,7 @@ export function SuggestionCard({ suggestion, isCreated, onSelect, variant = 'def
           <span className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
             {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
+            <span className="text-white/30">({formatTime(suggestion.end - suggestion.start)})</span>
           </span>
           {suggestion.score > 0 && (
             <span
