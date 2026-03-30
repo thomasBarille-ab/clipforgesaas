@@ -7,15 +7,14 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
 
-interface ClipForAnalysis {
+interface ClipRow {
   title: string
   description: string | null
   hashtags: string[]
   virality_score: number | null
   suggestion_data: SuggestionData
-  title_modified: boolean
-  description_modified: boolean
-  hashtags_modified: boolean
+  source_start: number | null
+  source_end: number | null
 }
 
 export async function POST() {
@@ -43,7 +42,7 @@ export async function POST() {
   // Fetch les 50 derniers clips ready avec suggestion_data
   const { data: clips, error: clipsError } = await supabase
     .from('clips')
-    .select('title, description, hashtags, virality_score, suggestion_data')
+    .select('title, description, hashtags, virality_score, suggestion_data, source_start, source_end')
     .eq('user_id', user.id)
     .eq('status', 'ready')
     .not('suggestion_data', 'is', null)
@@ -58,7 +57,6 @@ export async function POST() {
     )
   }
 
-  // Pas assez de données pour construire un persona
   if (clips.length < 3) {
     return NextResponse.json({
       success: true,
@@ -67,36 +65,87 @@ export async function POST() {
     })
   }
 
-  // Construire le payload d'analyse
-  const clipsAnalysis: ClipForAnalysis[] = clips.map((clip) => {
+  // ── Staleness check: skip if clip count hasn't changed ──
+  const { data: existingPersona } = await supabase
+    .from('creator_personas')
+    .select('clip_count')
+    .eq('user_id', user.id)
+    .single()
+
+  if (existingPersona && existingPersona.clip_count === clips.length) {
+    return NextResponse.json({
+      success: true,
+      skipped: true,
+      reason: 'Persona déjà à jour (même nombre de clips)',
+    })
+  }
+
+  // ── Pre-aggregate data to reduce prompt size ──
+  const typedClips = clips as ClipRow[]
+  let titleModifiedCount = 0
+  let descModifiedCount = 0
+  let hashtagsModifiedCount = 0
+  let totalViralityScore = 0
+  let viralityCount = 0
+  const allHashtags: Record<string, number> = {}
+  const durations: number[] = []
+  const sampleTitles: string[] = []
+
+  for (const clip of typedClips) {
     const sd = clip.suggestion_data as SuggestionData
-    return {
-      title: clip.title,
-      description: clip.description,
-      hashtags: clip.hashtags,
-      virality_score: clip.virality_score,
-      suggestion_data: sd,
-      title_modified: clip.title !== sd.title,
-      description_modified: clip.description !== sd.description,
-      hashtags_modified: JSON.stringify(clip.hashtags) !== JSON.stringify(sd.hashtags),
+
+    if (clip.title !== sd.title) titleModifiedCount++
+    if (clip.description !== sd.description) descModifiedCount++
+    if (JSON.stringify(clip.hashtags) !== JSON.stringify(sd.hashtags)) hashtagsModifiedCount++
+
+    if (clip.virality_score !== null) {
+      totalViralityScore += clip.virality_score
+      viralityCount++
     }
-  })
 
-  const prompt = `Tu es un analyste de contenu. Analyse les ${clipsAnalysis.length} clips de cet utilisateur.
+    for (const tag of clip.hashtags) {
+      allHashtags[tag] = (allHashtags[tag] || 0) + 1
+    }
 
-Pour chaque clip tu as :
-- La suggestion IA originale (suggestion_data)
-- Ce que l'utilisateur a gardé ou modifié (title, description, hashtags)
-- Des booléens indiquant si le titre, la description et les hashtags ont été modifiés
+    if (clip.source_start !== null && clip.source_end !== null) {
+      durations.push(clip.source_end - clip.source_start)
+    }
 
-Données :
-${JSON.stringify(clipsAnalysis, null, 2)}
+    if (sampleTitles.length < 8) {
+      sampleTitles.push(clip.title)
+    }
+  }
+
+  const avgVirality = viralityCount > 0 ? (totalViralityScore / viralityCount).toFixed(1) : 'N/A'
+  const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null
+  const topHashtags = Object.entries(allHashtags)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([tag, count]) => `${tag} (${count}x)`)
+
+  const aggregatedData = `Analyse de ${typedClips.length} clips :
+
+Titres exemples : ${sampleTitles.map(t => `"${t}"`).join(', ')}
+
+Modifications par rapport aux suggestions IA :
+- Titres modifiés : ${titleModifiedCount}/${typedClips.length} (${Math.round(titleModifiedCount / typedClips.length * 100)}%)
+- Descriptions modifiées : ${descModifiedCount}/${typedClips.length} (${Math.round(descModifiedCount / typedClips.length * 100)}%)
+- Hashtags modifiés : ${hashtagsModifiedCount}/${typedClips.length} (${Math.round(hashtagsModifiedCount / typedClips.length * 100)}%)
+
+Score de viralité moyen : ${avgVirality}/10
+${avgDuration ? `Durée moyenne des clips : ${avgDuration}s` : ''}
+
+Hashtags les plus utilisés : ${topHashtags.join(', ')}`
+
+  const prompt = `Tu es un analyste de contenu. Voici les données agrégées de ${typedClips.length} clips créés par un utilisateur.
+
+${aggregatedData}
 
 Génère un profil créateur en 4-6 phrases couvrant :
 - Style et ton général du créateur
-- Thèmes et sujets récurrents
+- Thèmes et sujets récurrents (déduits des titres et hashtags)
 - Durée préférée des clips
-- Style des titres (modifie-t-il souvent ? dans quel sens ?)
+- Style des titres (les modifie-t-il souvent ? dans quel sens ?)
 - Types de hashtags préférés
 - Préférence de viralité (scores élevés ou contenu de niche)
 

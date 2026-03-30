@@ -156,6 +156,40 @@ export function InvoicePaidEmail({ amount, invoiceUrl, plan }: InvoicePaidProps)
   )
 }
 
+// Email d'échec de paiement
+interface PaymentFailedProps {
+  portalUrl: string
+}
+
+export function PaymentFailedEmail({ portalUrl }: PaymentFailedProps) {
+  return (
+    <Html>
+      <Head />
+      <Preview>Problème avec votre paiement CreaClip</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Section style={box}>
+            <Heading style={heading}>Paiement échoué ⚠️</Heading>
+            <Text style={paragraph}>
+              Votre dernier paiement CreaClip n'a pas pu être traité. Votre abonnement risque d'être suspendu si le problème persiste.
+            </Text>
+            <Text style={paragraph}>
+              Veuillez mettre à jour votre moyen de paiement pour continuer à profiter de votre abonnement :
+            </Text>
+            <Text style={paragraph}>
+              <a href={portalUrl} style={link}>Mettre à jour mon paiement</a>
+            </Text>
+            <Text style={paragraph}>
+              Si vous avez des questions, contactez-nous à support@creaclip.io.
+            </Text>
+            <Text style={footer}>L'équipe CreaClip</Text>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  )
+}
+
 const main = {
   backgroundColor: '#0f172a',
   fontFamily:

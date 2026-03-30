@@ -238,6 +238,8 @@ export interface TrimOptions {
   srtContent?: string | null
   subtitleStyle?: import('@/types/subtitles').SubtitleStyle
   cropSegments?: CropSegmentOption[]
+  zoomLevel?: number
+  splitScreen?: { enabled: boolean; cropX: number; cropY: number; cropSize: number }
   watermark?: boolean
   onProgress?: (progress: number) => void
 }
@@ -528,6 +530,13 @@ export interface ConcatSegment {
   sourceStart: number
   sourceEnd: number
   cropX: number // 0=gauche, 0.5=centre, 1=droite
+  zoomLevel?: number // 1 = normal, max 3
+  splitScreen?: {
+    enabled: boolean
+    cropX: number
+    cropY: number
+    cropSize: number
+  }
 }
 
 export interface ConcatOptions {
@@ -561,6 +570,8 @@ export async function trimAndConcatSegments({
       srtContent,
       subtitleStyle,
       cropSegments: [{ startTime: 0, cropX: seg.cropX }],
+      zoomLevel: seg.zoomLevel,
+      splitScreen: seg.splitScreen,
       watermark,
       onProgress,
     })
@@ -632,10 +643,45 @@ export async function trimAndConcatSegments({
       // Timestamps relatifs à -ss (earliest)
       const start = (seg.sourceStart - earliest).toFixed(3)
       const end = (seg.sourceEnd - earliest).toFixed(3)
-      const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+      const zoom = seg.zoomLevel ?? 1
+      const ss = seg.splitScreen
 
       if (i > 0) fc += ';'
-      fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[v${i}]`
+
+      if (ss?.enabled) {
+        // Split-screen: top = normal 9:16 crop, bottom = zoomed area, vstack
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+        const zoomCropW = ss.cropSize // fraction of iw
+        const zoomCropH = zoomCropW * (16 / 9) // fraction of iw, scaled for 16:9 ratio of each half
+        // Zoom source positions (pixel expressions)
+        const zoomX = `${ss.cropX.toFixed(4)}*(iw-iw*${zoomCropW.toFixed(4)})`
+        const zoomY = `${ss.cropY.toFixed(4)}*(ih-iw*${zoomCropH.toFixed(4)})`
+
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,split[top_${i}][bot_${i}]`
+        fc += `;[top_${i}]crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:960[vtop_${i}]`
+        fc += `;[bot_${i}]crop=iw*${zoomCropW.toFixed(4)}:iw*${zoomCropH.toFixed(4)}:${zoomX}:${zoomY},scale=1080:960[vbot_${i}]`
+        fc += `;[vtop_${i}][vbot_${i}]vstack[v${i}]`
+      } else if (zoom > 1) {
+        // Zoom in: smaller crop area + scale = zoom effect
+        const cropW = `ih*9/16/${zoom.toFixed(2)}`
+        const cropH = `ih/${zoom.toFixed(2)}`
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-${cropW})`
+        const cropYExpr = `(ih-${cropH})/2`
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:${cropXExpr}:${cropYExpr},scale=1080:1920[v${i}]`
+      } else if (zoom < 1) {
+        // Zoom out: normal 9:16 crop, scale smaller, pad with black to 1080x1920
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+        const scaledW = Math.round(1080 * zoom / 2) * 2
+        const scaledH = Math.round(1920 * zoom / 2) * 2
+        const padX = (1080 - scaledW) / 2
+        const padY = (1920 - scaledH) / 2
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=${scaledW}:${scaledH},pad=1080:1920:${padX}:${padY}:black[v${i}]`
+      } else {
+        // Normal crop (zoom === 1)
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[v${i}]`
+      }
+
       fc += `;[0:a]atrim=start=${start}:end=${end},asetpts=PTS-STARTPTS[a${i}]`
     }
 
@@ -740,6 +786,8 @@ export async function trimAndCropVideo({
   srtContent,
   subtitleStyle,
   cropSegments,
+  zoomLevel,
+  splitScreen,
   watermark,
   onProgress,
 }: TrimOptions): Promise<TrimResult> {
@@ -812,8 +860,40 @@ export async function trimAndCropVideo({
     // filter_complex : trim relatif (timestamps commencent à ~0 grâce au -ss input)
     let fc: string
 
-    if (cropSegments && cropSegments.length > 0) {
-      // Cadrage dynamique : crop 9:16 avec position X variable dans le temps
+    const zoom = zoomLevel ?? 1
+    const ss = splitScreen
+
+    if (ss?.enabled && cropSegments && cropSegments.length > 0) {
+      // Split-screen: top = normal 9:16 crop, bottom = zoomed area
+      const cropXExpr = buildCropXExpression(cropSegments, duration)
+      const zoomCropW = ss.cropSize
+      const zoomCropH = zoomCropW * (16 / 9)
+      const zoomX = `${ss.cropX.toFixed(4)}*(iw-iw*${zoomCropW.toFixed(4)})`
+      const zoomY = `${ss.cropY.toFixed(4)}*(ih-iw*${zoomCropH.toFixed(4)})`
+
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,split[top_0][bot_0]`
+      fc += `;[top_0]crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:960[vtop]`
+      fc += `;[bot_0]crop=iw*${zoomCropW.toFixed(4)}:iw*${zoomCropH.toFixed(4)}:${zoomX}:${zoomY},scale=1080:960[vbot]`
+      fc += `;[vtop][vbot]vstack[base]`
+    } else if (zoom > 1 && cropSegments && cropSegments.length > 0) {
+      // Zoom in: smaller crop area → scale up = zoom effect
+      const cropW = `ih*9/16/${zoom.toFixed(2)}`
+      const cropH = `ih/${zoom.toFixed(2)}`
+      const cropYExpr = `(ih-${cropH})/2`
+      const zoomCropXExpr = cropSegments.length === 1
+        ? `${cropSegments[0].cropX.toFixed(4)}*(iw-${cropW})`
+        : buildCropXExpression(cropSegments, duration)
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:${zoomCropXExpr}:${cropYExpr},scale=1080:1920[base]`
+    } else if (zoom < 1 && cropSegments && cropSegments.length > 0) {
+      // Zoom out: normal 9:16 crop, scale smaller, pad with black to 1080x1920
+      const cropXExpr = buildCropXExpression(cropSegments, duration)
+      const scaledW = Math.round(1080 * zoom / 2) * 2
+      const scaledH = Math.round(1920 * zoom / 2) * 2
+      const padX = (1080 - scaledW) / 2
+      const padY = (1920 - scaledH) / 2
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=${scaledW}:${scaledH},pad=1080:1920:${padX}:${padY}:black[base]`
+    } else if (cropSegments && cropSegments.length > 0) {
+      // Normal cadrage dynamique
       const cropXExpr = buildCropXExpression(cropSegments, duration)
       fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[base]`
     } else {

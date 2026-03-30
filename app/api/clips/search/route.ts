@@ -201,7 +201,7 @@ export async function POST(request: Request) {
     const maxDuration = canUseFilters && typeof body.maxDuration === 'number' && body.maxDuration >= 30
       ? Math.max(body.maxDuration, minDuration) : 180
 
-    const persona = await fetchPersonaForUser(supabase, user.id)
+    const persona = await fetchPersonaForUser(supabase, user.id, plan)
     const prompt = buildSearchPrompt(
       body.prompt.trim(),
       transcription.full_text,

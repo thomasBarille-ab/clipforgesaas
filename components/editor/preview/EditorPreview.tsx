@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback, useState, useMemo, type CSSProperties }
 import { useTranslation } from 'react-i18next'
 import { useEditor } from '../EditorProvider'
 import { CropOverlay } from './CropOverlay'
+import { SplitScreenPreview } from './SplitScreenPreview'
 
 import { FONT_SIZE_MAP } from '@/types/subtitles'
 import { cn } from '@/lib/utils'
@@ -56,17 +57,21 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
     return () => video.removeEventListener('loadeddata', handleLoaded)
   }, [videoUrl])
 
-  // CropX du segment sous le playhead
-  const playheadCropX = (() => {
+  // Segment sous le playhead
+  const currentSegment = (() => {
     for (let i = 0; i < segments.length; i++) {
       const off = segmentOffsets[i]
       if (!off) continue
       if (state.playheadTime >= off.timelineStart && state.playheadTime <= off.timelineEnd) {
-        return segments[i].cropX
+        return segments[i]
       }
     }
-    return segments[0]?.cropX ?? 0.5
+    return segments[0]
   })()
+
+  const playheadCropX = currentSegment?.cropX ?? 0.5
+  const zoomLevel = currentSegment?.zoomLevel ?? 1
+  const splitScreen = currentSegment?.splitScreen
 
   // Calculer la position du crop box 9:16 en mode cadrage
   const cropBoxRect = useMemo(() => {
@@ -313,13 +318,28 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
             src={videoUrl}
             className={cn(
               'h-full w-full rounded-lg',
-              mode === 'crop' ? 'object-contain' : 'object-cover'
+              mode === 'crop' ? 'object-contain' : 'object-cover',
+              splitScreen?.enabled && mode === 'preview' ? 'invisible' : ''
             )}
-            style={mode === 'preview' ? { objectPosition: `${playheadCropX * 100}% center` } : undefined}
+            style={mode === 'preview' && !splitScreen?.enabled ? {
+              objectPosition: `${playheadCropX * 100}% center`,
+              ...(zoomLevel !== 1 ? {
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: `${playheadCropX * 100}% center`,
+              } : {}),
+            } : undefined}
             playsInline
             preload="auto"
           />
           {mode === 'crop' && <CropOverlay videoRef={videoRef} />}
+          {splitScreen?.enabled && mode === 'preview' && (
+            <SplitScreenPreview
+              videoRef={videoRef}
+              cropX={playheadCropX}
+              splitScreen={splitScreen}
+              containerDims={containerDims}
+            />
+          )}
 
           {/* Overlay sous-titres — positionné dans le crop box en mode cadrage */}
           {subtitleStyle.enabled && displayText && (

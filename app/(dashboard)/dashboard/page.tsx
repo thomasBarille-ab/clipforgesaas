@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Upload,
@@ -20,6 +20,7 @@ import { getPlanLimits } from '@/lib/plans'
 import { EmptyState, Badge } from '@/components/ui'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { OnboardingOverlay } from '@/components/OnboardingOverlay'
+import { useBatchSignedUrls } from '@/hooks/useBatchSignedUrls'
 import type { Video, ClipWithVideo, PlanType } from '@/types/database'
 
 interface Stats {
@@ -113,6 +114,23 @@ export default function DashboardPage() {
   const ratio = clipsPerMonth > 0 ? monthlyClipsUsed / clipsPerMonth : 0
   const isWarning = ratio > 0.8
   const isFull = clipsPerMonth > 0 && monthlyClipsUsed >= clipsPerMonth
+
+  // Batch-fetch all thumbnail URLs in a single call
+  const thumbnailPaths = useMemo(() => {
+    const paths: string[] = []
+    for (const video of videos) {
+      if (video.status === 'ready') {
+        paths.push(`${video.user_id}/thumbnails/${video.id}.jpg`)
+      }
+    }
+    for (const clip of clips) {
+      if (clip.thumbnail_path) {
+        paths.push(clip.thumbnail_path)
+      }
+    }
+    return paths
+  }, [videos, clips])
+  const signedUrlMap = useBatchSignedUrls(thumbnailPaths)
 
   return (
     <>
@@ -377,7 +395,7 @@ export default function DashboardPage() {
                         <CircleAlert className="h-8 w-8 text-red-400" />
                       </div>
                     ) : (
-                      <VideoThumbnail storagePath={`${video.user_id}/thumbnails/${video.id}.jpg`} className="h-full w-full" />
+                      <VideoThumbnail storagePath={`${video.user_id}/thumbnails/${video.id}.jpg`} signedUrl={signedUrlMap[`${video.user_id}/thumbnails/${video.id}.jpg`]} className="h-full w-full" />
                     )}
 
                     <Badge
@@ -465,7 +483,7 @@ export default function DashboardPage() {
                   >
                     <div className="relative aspect-square overflow-hidden bg-white/5">
                       {clip.thumbnail_path ? (
-                        <VideoThumbnail storagePath={clip.thumbnail_path} className="h-full w-full" />
+                        <VideoThumbnail storagePath={clip.thumbnail_path} signedUrl={signedUrlMap[clip.thumbnail_path]} className="h-full w-full" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-orange-500/10">
                           <Scissors className="h-8 w-8 text-orange-400/40" />

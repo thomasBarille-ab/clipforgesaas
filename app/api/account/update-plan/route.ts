@@ -80,6 +80,7 @@ export async function POST(request: Request) {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
+      ui_mode: 'embedded',
       line_items: [
         {
           price: PLAN_PRICE_IDS[newPlan as Exclude<PlanType, 'free'>],
@@ -90,14 +91,13 @@ export async function POST(request: Request) {
         userId: user.id,
         plan: newPlan,
       },
-      success_url: `${appUrl}/settings?success=true`,
-      cancel_url: `${appUrl}/settings?canceled=true`,
+      return_url: `${appUrl}/settings?session_id={CHECKOUT_SESSION_ID}`,
     })
 
-    return NextResponse.json({ action: 'checkout', url: session.url })
+    return NextResponse.json({ action: 'checkout', clientSecret: session.client_secret })
   }
 
-  // Case 2: Changing paid plan (upgrade/downgrade between pro/business) → Portal
+  // Case 2: Changing paid plan (upgrade/downgrade between pro/business) → API directe
   if (newPlan !== 'free' && profile.stripe_subscription_id) {
     if (!profile.stripe_customer_id) {
       return NextResponse.json(
@@ -106,15 +106,23 @@ export async function POST(request: Request) {
       )
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
-      return_url: `${appUrl}/settings`,
+    const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+    const subscriptionItemId = subscription.items.data[0].id
+
+    await stripe.subscriptions.update(profile.stripe_subscription_id, {
+      items: [{ id: subscriptionItemId, price: PLAN_PRICE_IDS[newPlan as Exclude<PlanType, 'free'>] }],
+      proration_behavior: 'create_prorations',
     })
 
-    return NextResponse.json({ action: 'portal', url: session.url })
+    await supabase
+      .from('profiles')
+      .update({ plan: newPlan })
+      .eq('id', user.id)
+
+    return NextResponse.json({ success: true, plan: newPlan })
   }
 
-  // Case 3: Downgrade to free with active subscription → Portal (to cancel)
+  // Case 3: Downgrade to free with active subscription → annulation directe
   if (newPlan === 'free' && profile.stripe_subscription_id) {
     if (!profile.stripe_customer_id) {
       return NextResponse.json(
@@ -123,12 +131,18 @@ export async function POST(request: Request) {
       )
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
-      return_url: `${appUrl}/settings`,
-    })
+    await stripe.subscriptions.cancel(profile.stripe_subscription_id)
 
-    return NextResponse.json({ action: 'portal', url: session.url })
+    await supabase
+      .from('profiles')
+      .update({
+        plan: 'free',
+        credits_remaining: 3,
+        stripe_subscription_id: null,
+      })
+      .eq('id', user.id)
+
+    return NextResponse.json({ success: true, plan: 'free' })
   }
 
   // Case 4: Downgrade to free without subscription (edge case) → direct update

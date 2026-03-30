@@ -120,12 +120,16 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         sourceStart: seg.sourceStart,
         sourceEnd: splitTime,
         cropX: seg.cropX,
+        zoomLevel: seg.zoomLevel,
+        splitScreen: seg.splitScreen ? { ...seg.splitScreen } : undefined,
       }
       const seg2: TimelineSegment = {
         id: crypto.randomUUID(),
         sourceStart: splitTime,
         sourceEnd: seg.sourceEnd,
         cropX: seg.cropX,
+        zoomLevel: seg.zoomLevel,
+        splitScreen: seg.splitScreen ? { ...seg.splitScreen } : undefined,
       }
 
       const newSegments = [...state.segments]

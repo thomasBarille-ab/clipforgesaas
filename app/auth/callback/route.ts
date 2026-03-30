@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sendWelcomeEmail } from '@/lib/email/send'
 
 export async function GET(request: NextRequest) {
@@ -41,9 +42,38 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[Auth Callback] exchangeCodeForSession error:', error.message)
     } else {
-      // Envoyer un email de bienvenue si nouvel utilisateur (créé il y a moins de 60s)
       const { data: { user } } = await supabase.auth.getUser()
-      if (user?.created_at) {
+
+      if (user) {
+        // Ensure profile exists (fallback if DB trigger didn't fire)
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .single()
+
+        if (!existingProfile) {
+          const adminClient = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          )
+          const { error: profileErr } = await adminClient
+            .from('profiles')
+            .insert({
+              id: user.id,
+              email: user.email ?? '',
+              full_name: user.user_metadata?.full_name ?? '',
+              avatar_url: user.user_metadata?.avatar_url ?? '',
+            })
+
+          if (profileErr) {
+            console.error('[Auth Callback] Failed to create profile:', profileErr.message)
+          } else {
+            console.log('[Auth Callback] Profile created for user:', user.id)
+          }
+        }
+
+        // Envoyer un email de bienvenue si nouvel utilisateur (créé il y a moins de 60s)
         const createdAt = new Date(user.created_at).getTime()
         const isNewUser = Date.now() - createdAt < 60_000
         if (isNewUser) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Film,
@@ -25,6 +25,7 @@ import { EmptyState, Button, Input, Textarea, Badge, ConfirmModal, useToast } fr
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { useClipDownload } from '@/hooks/useClipDownload'
+import { useBatchSignedUrls } from '@/hooks/useBatchSignedUrls'
 import type { ClipWithVideo } from '@/types/database'
 
 export default function ClipsPage() {
@@ -151,6 +152,14 @@ export default function ClipsPage() {
 
   const clipToDelete = clips.find((c) => c.id === confirmDeleteId)
 
+  // Batch-fetch all thumbnail signed URLs
+  const thumbnailPaths = useMemo(() => {
+    return clips
+      .filter((c) => c.thumbnail_path)
+      .map((c) => c.thumbnail_path!)
+  }, [clips])
+  const signedUrlMap = useBatchSignedUrls(thumbnailPaths)
+
   return (
     <>
       <style jsx>{`
@@ -252,7 +261,7 @@ export default function ClipsPage() {
                     className="relative flex aspect-[9/16] max-h-64 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-orange-900/40 to-amber-900/40"
                   >
                     {clip.thumbnail_path ? (
-                      <VideoThumbnail storagePath={clip.thumbnail_path} className="h-full w-full" />
+                      <VideoThumbnail storagePath={clip.thumbnail_path} signedUrl={signedUrlMap[clip.thumbnail_path]} className="h-full w-full" />
                     ) : (
                       <Film className="h-16 w-16 text-white/20" />
                     )}

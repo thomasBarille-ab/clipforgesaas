@@ -26,6 +26,8 @@ export function CropOverlay({ videoRef }: CropOverlayProps) {
   })()
   const currentSegment = state.segments.find((s) => s.id === currentSegmentId) ?? state.segments[0]
   const cropX = currentSegment?.cropX ?? 0.5
+  const splitScreen = currentSegment?.splitScreen
+  const isSplitScreenEnabled = splitScreen?.enabled ?? false
 
   // Calculer les dimensions quand la vidéo charge
   useEffect(() => {
@@ -126,6 +128,47 @@ export function CropOverlay({ videoRef }: CropOverlayProps) {
     [updateCropX]
   )
 
+  const draggingZoom = useRef(false)
+
+  const handleZoomMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      draggingZoom.current = true
+
+      const startX = e.clientX
+      const startY = e.clientY
+      const startCropX = splitScreen?.cropX ?? 0.5
+      const startCropY = splitScreen?.cropY ?? 0.3
+
+      const handleMove = (ev: MouseEvent) => {
+        if (!draggingZoom.current || !layout) return
+        const dx = ev.clientX - startX
+        const dy = ev.clientY - startY
+        const newCropX = Math.max(0, Math.min(1, startCropX + dx / layout.cropBoxW))
+        const newCropY = Math.max(0, Math.min(1, startCropY + dy / layout.cropBoxH))
+        const segId = currentSegmentId ?? state.segments[0]?.id
+        if (segId && splitScreen) {
+          dispatch({
+            type: 'UPDATE_SEGMENT',
+            id: segId,
+            updates: { splitScreen: { ...splitScreen, cropX: newCropX, cropY: newCropY } },
+          })
+        }
+      }
+
+      const handleUp = () => {
+        draggingZoom.current = false
+        window.removeEventListener('mousemove', handleMove)
+        window.removeEventListener('mouseup', handleUp)
+      }
+
+      window.addEventListener('mousemove', handleMove)
+      window.addEventListener('mouseup', handleUp)
+    },
+    [layout, splitScreen, currentSegmentId, state.segments, dispatch]
+  )
+
   // Return conditionnel APRÈS tous les hooks
   if (!layout) {
     return <div ref={containerRef} className="absolute inset-0" />
@@ -173,6 +216,28 @@ export function CropOverlay({ videoRef }: CropOverlayProps) {
         <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded bg-orange-500/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
           9:16
         </div>
+
+        {/* Zoom rectangle for split-screen */}
+        {isSplitScreenEnabled && splitScreen && (() => {
+          const zoomSize = splitScreen.cropSize
+          const zoomW = cropBoxW * zoomSize
+          const zoomH = zoomW * (16 / 9)
+          const maxZoomX = cropBoxW - zoomW
+          const maxZoomY = cropBoxH - zoomH
+          const zoomX = splitScreen.cropX * maxZoomX
+          const zoomY = splitScreen.cropY * maxZoomY
+          return (
+            <div
+              className="absolute border-2 border-purple-500 bg-purple-500/10 cursor-move shadow-lg shadow-purple-500/20"
+              style={{ left: zoomX, top: zoomY, width: zoomW, height: zoomH }}
+              onMouseDown={handleZoomMouseDown}
+            >
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded bg-purple-500/80 px-1.5 py-0.5 text-[8px] font-bold text-white whitespace-nowrap">
+                ZOOM
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

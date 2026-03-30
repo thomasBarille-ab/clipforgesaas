@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
-import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2, AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Scissors, Trash2, Undo2, Redo2, Play, Pause, RotateCcw, Sparkles } from 'lucide-react'
+import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2, AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Scissors, Trash2, Undo2, Redo2, Play, Pause, RotateCcw, Sparkles, ZoomIn, SplitSquareVertical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { trimAndConcatSegments } from '@/lib/ffmpeg'
 import { generateSrtForSegments } from '@/lib/generateSrt'
@@ -20,7 +20,7 @@ import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
 import type { SubtitleStyle } from '@/types/subtitles'
 import { getPlanLimits, canCreateClip } from '@/lib/plans'
 import type { ClipSuggestion, ClipInsert, TranscriptionSegment, PlanType } from '@/types/database'
-import type { TimelineSegment } from './types'
+import type { TimelineSegment, SplitScreenConfig } from './types'
 
 type GeneratingState = {
   step: 'creating' | 'loading-ffmpeg' | 'downloading' | 'processing' | 'uploading' | 'finalizing' | 'done'
@@ -673,6 +673,132 @@ function EditorContent({
             </div>
           </CollapsibleBlock>
 
+          {/* TODO: Zoom & Split Screen — masqués pour l'instant, à réactiver plus tard
+          <CollapsibleBlock title={t('zoom.title')} icon={ZoomIn}>
+            <div className="space-y-3">
+              {currentSegment && (
+                <>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-white/50">
+                      <span>{t('zoom.level')}</span>
+                      <span>{(currentSegment.zoomLevel ?? 1).toFixed(1)}x</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.3}
+                      max={3}
+                      step={0.1}
+                      value={currentSegment.zoomLevel ?? 1}
+                      onChange={(e) =>
+                        dispatch({
+                          type: 'UPDATE_SEGMENT',
+                          id: currentSegment.id,
+                          updates: { zoomLevel: Number(e.target.value) },
+                        })
+                      }
+                      disabled={generating !== null || currentSegment.splitScreen?.enabled}
+                      className="w-full accent-purple-500"
+                    />
+                  </div>
+                  {(currentSegment.zoomLevel ?? 1) !== 1 && (
+                    <button
+                      onClick={() =>
+                        dispatch({
+                          type: 'UPDATE_SEGMENT',
+                          id: currentSegment.id,
+                          updates: { zoomLevel: 1 },
+                        })
+                      }
+                      disabled={generating !== null}
+                      className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      {t('zoom.reset')}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </CollapsibleBlock>
+
+          <CollapsibleBlock title={t('splitScreen.title')} icon={SplitSquareVertical}>
+            <div className="space-y-3">
+              {currentSegment && (() => {
+                const ss = currentSegment.splitScreen
+                const isEnabled = ss?.enabled ?? false
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const newSS: SplitScreenConfig = isEnabled
+                            ? { enabled: false, cropX: ss?.cropX ?? 0.5, cropY: ss?.cropY ?? 0.3, cropSize: ss?.cropSize ?? 0.4 }
+                            : { enabled: true, cropX: ss?.cropX ?? 0.5, cropY: ss?.cropY ?? 0.3, cropSize: ss?.cropSize ?? 0.4 }
+                          dispatch({
+                            type: 'UPDATE_SEGMENT',
+                            id: currentSegment.id,
+                            updates: { splitScreen: newSS, zoomLevel: 1 },
+                          })
+                        }}
+                        disabled={generating !== null}
+                        className={cn(
+                          'px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                          isEnabled
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white/10 text-white/50 hover:bg-white/15'
+                        )}
+                      >
+                        {isEnabled ? t('splitScreen.on') : t('splitScreen.off')}
+                      </button>
+                    </div>
+
+                    {isEnabled && (
+                      <>
+                        <p className="text-xs text-white/40">{t('splitScreen.hint')}</p>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-white/50">
+                            <span>{t('splitScreen.zoomSize')}</span>
+                            <span>{Math.round((ss?.cropSize ?? 0.4) * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.15}
+                            max={0.8}
+                            step={0.05}
+                            value={ss?.cropSize ?? 0.4}
+                            onChange={(e) =>
+                              dispatch({
+                                type: 'UPDATE_SEGMENT',
+                                id: currentSegment.id,
+                                updates: {
+                                  splitScreen: { ...ss!, cropSize: Number(e.target.value) },
+                                },
+                              })
+                            }
+                            disabled={generating !== null}
+                            className="w-full accent-purple-500"
+                          />
+                        </div>
+
+                        <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+                          <div className="mx-auto w-16 overflow-hidden rounded border border-white/20" style={{ aspectRatio: '9/16' }}>
+                            <div className="h-1/2 bg-blue-500/30 flex items-center justify-center">
+                              <span className="text-[7px] text-white/60">{t('splitScreen.topOriginal')}</span>
+                            </div>
+                            <div className="h-1/2 bg-purple-500/30 flex items-center justify-center">
+                              <span className="text-[7px] text-white/60">{t('splitScreen.bottomZoom')}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
+            </div>
+          </CollapsibleBlock>
+          */}
+
           {/* Info temps */}
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <div className="flex flex-wrap items-center gap-3 text-sm text-white/50">
@@ -766,6 +892,7 @@ export function VideoEditor(props: VideoEditorProps) {
         sourceStart: props.suggestion.start,
         sourceEnd: props.suggestion.end,
         cropX: 0.5,
+        zoomLevel: 1,
       },
     ],
     [props.suggestion.start, props.suggestion.end]

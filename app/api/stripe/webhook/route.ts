@@ -6,6 +6,7 @@ import {
   sendSubscriptionChangedEmail,
   sendSubscriptionCanceledEmail,
   sendInvoicePaidEmail,
+  sendPaymentFailedEmail,
 } from '@/lib/email/send'
 import type Stripe from 'stripe'
 
@@ -55,6 +56,20 @@ export async function POST(request: Request) {
 
   const supabase = getAdminClient()
 
+  // ── Idempotency: skip already-processed events ──
+  const { error: insertErr } = await supabase
+    .from('stripe_events')
+    .insert({ event_id: event.id, event_type: event.type })
+
+  if (insertErr) {
+    // Duplicate key = already processed → return 200 immediately
+    if (insertErr.code === '23505') {
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+    // Other DB error → log but continue (don't block webhook processing)
+    console.error('Webhook: stripe_events insert error:', insertErr)
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -71,21 +86,26 @@ export async function POST(request: Request) {
           ? session.subscription
           : session.subscription?.id ?? null
 
+        const customerId = typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id ?? null
+
         const { error: updateErr } = await supabase
           .from('profiles')
           .update({
             plan,
             stripe_subscription_id: subscriptionId,
+            stripe_customer_id: customerId,
             credits_remaining: null,
           })
           .eq('id', userId)
 
         if (updateErr) {
           console.error('Webhook: failed to update profile for checkout', updateErr)
-          break
+          return NextResponse.json({ error: 'Erreur mise à jour profil' }, { status: 500 })
         }
 
-        // Email de confirmation d'abonnement
+        // Email de confirmation (non-bloquant)
         const { data: profile } = await supabase
           .from('profiles')
           .select('email')
@@ -114,22 +134,46 @@ export async function POST(request: Request) {
           break
         }
 
-        // Detect plan change from price
-        const priceId = subscription.items.data[0]?.price?.id
-        if (priceId) {
-          const newPlan = getPlanFromPriceId(priceId)
-          if (newPlan && newPlan !== profile.plan) {
+        // Handle subscription status changes (past_due, unpaid, canceled)
+        const status = subscription.status
+        if (status === 'past_due' || status === 'unpaid') {
+          console.warn(`Webhook: subscription ${subscription.id} is ${status} for user ${profile.id}`)
+          // Don't downgrade yet — Stripe will retry. But if unpaid after retries, handle it.
+          if (status === 'unpaid') {
             await supabase
               .from('profiles')
-              .update({
-                plan: newPlan,
-                credits_remaining: null,
-              })
+              .update({ plan: 'free', stripe_subscription_id: null, credits_remaining: 3 })
               .eq('id', profile.id)
 
-            // Email de changement de plan
             if (profile.email) {
-              await sendSubscriptionChangedEmail(profile.email, profile.plan, newPlan)
+              await sendSubscriptionCanceledEmail(profile.email)
+            }
+          }
+          break
+        }
+
+        // Detect plan change from price (only if subscription is active)
+        if (status === 'active') {
+          const priceId = subscription.items.data[0]?.price?.id
+          if (priceId) {
+            const newPlan = getPlanFromPriceId(priceId)
+            if (newPlan && newPlan !== profile.plan) {
+              const { error: updateErr } = await supabase
+                .from('profiles')
+                .update({
+                  plan: newPlan,
+                  credits_remaining: null,
+                })
+                .eq('id', profile.id)
+
+              if (updateErr) {
+                console.error('Webhook: failed to update plan', updateErr)
+                return NextResponse.json({ error: 'Erreur mise à jour plan' }, { status: 500 })
+              }
+
+              if (profile.email) {
+                await sendSubscriptionChangedEmail(profile.email, profile.plan, newPlan)
+              }
             }
           }
         }
@@ -152,7 +196,7 @@ export async function POST(request: Request) {
           break
         }
 
-        await supabase
+        const { error: updateErr } = await supabase
           .from('profiles')
           .update({
             plan: 'free',
@@ -161,7 +205,11 @@ export async function POST(request: Request) {
           })
           .eq('id', profile.id)
 
-        // Email d'annulation
+        if (updateErr) {
+          console.error('Webhook: failed to downgrade profile', updateErr)
+          return NextResponse.json({ error: 'Erreur downgrade profil' }, { status: 500 })
+        }
+
         if (profile.email) {
           await sendSubscriptionCanceledEmail(profile.email)
         }
@@ -193,12 +241,40 @@ export async function POST(request: Request) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-        console.error('Payment failed for invoice:', invoice.id, 'customer:', invoice.customer)
+        const customerId = invoice.customer as string
+
+        console.error('Payment failed for invoice:', invoice.id, 'customer:', customerId)
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .eq('stripe_customer_id', customerId)
+          .single()
+
+        if (!profile?.email) break
+
+        // Create a billing portal session for the user to update payment
+        try {
+          const portalSession = await stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.creaclip.com'}/settings`,
+          })
+          await sendPaymentFailedEmail(profile.email, portalSession.url)
+        } catch (portalErr) {
+          console.error('Webhook: failed to create portal session for payment_failed email', portalErr)
+          // Fallback: send email with settings URL
+          await sendPaymentFailedEmail(
+            profile.email,
+            `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.creaclip.com'}/settings`
+          )
+        }
+
         break
       }
     }
   } catch (err) {
     console.error('Webhook handler error for event', event.type, ':', err instanceof Error ? err.message : err)
+    // Return 500 only for unexpected errors — Stripe will retry
     return NextResponse.json({ error: 'Erreur de traitement du webhook' }, { status: 500 })
   }
 

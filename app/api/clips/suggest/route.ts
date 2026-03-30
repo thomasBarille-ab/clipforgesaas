@@ -229,7 +229,7 @@ export async function POST(request: Request) {
 
   try {
     // 4. Appeler Claude
-    const persona = await fetchPersonaForUser(supabase, user.id)
+    const persona = await fetchPersonaForUser(supabase, user.id, plan)
     const prompt = buildPrompt(fullText, segments, persona, filters)
 
     const message = await anthropic.messages.create({

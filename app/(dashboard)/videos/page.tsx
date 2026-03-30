@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Upload,
@@ -27,6 +27,7 @@ import { EmptyState, Badge, ConfirmModal, useToast } from '@/components/ui'
 import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { useClipDownload } from '@/hooks/useClipDownload'
+import { useBatchSignedUrls } from '@/hooks/useBatchSignedUrls'
 import type { VideoWithClips, Clip } from '@/types/database'
 
 export default function VideosPage() {
@@ -194,6 +195,14 @@ export default function VideosPage() {
 
   const videoToDelete = videos.find((v) => v.id === confirmDeleteId)
 
+  // Batch-fetch all thumbnail signed URLs
+  const thumbnailPaths = useMemo(() => {
+    return videos
+      .filter((v) => v.status === 'ready')
+      .map((v) => `${v.user_id}/thumbnails/${v.id}.jpg`)
+  }, [videos])
+  const signedUrlMap = useBatchSignedUrls(thumbnailPaths)
+
   return (
     <>
       <style jsx>{`
@@ -301,7 +310,7 @@ export default function VideosPage() {
                           <CircleAlert className="h-6 w-6 text-red-400" />
                         </div>
                       ) : (
-                        <VideoThumbnail storagePath={`${video.user_id}/thumbnails/${video.id}.jpg`} className="h-full w-full rounded-xl" />
+                        <VideoThumbnail storagePath={`${video.user_id}/thumbnails/${video.id}.jpg`} signedUrl={signedUrlMap[`${video.user_id}/thumbnails/${video.id}.jpg`]} className="h-full w-full rounded-xl" />
                       )}
                     </div>
 

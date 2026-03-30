@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { AlertBanner, Button, Input, GoogleAuthButton, useToast } from '@/components/ui'
+import { StripeCheckoutModal } from '@/components/StripeCheckoutModal'
 import type { Profile, PlanType, CreatorPersona } from '@/types/database'
 
 const PLAN_CONFIG: Record<PlanType, { labelKey: string; color: string; icon: React.ElementType }> = {
@@ -64,24 +65,34 @@ const PLANS_DETAILS: {
   },
 ]
 
-// Composant séparé pour gérer les search params (nécessite Suspense)
-function StripeRedirectHandler({ onSuccess, onCanceled }: { onSuccess: () => void; onCanceled: () => void }) {
+// Composant séparé pour gérer le retour Stripe (nécessite Suspense)
+function StripeRedirectHandler({ onSuccess, onFailed }: { onSuccess: () => void; onFailed: () => void }) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const stripeHandled = useRef(false)
 
   useEffect(() => {
     if (stripeHandled.current) return
-    const success = searchParams.get('success')
-    const canceled = searchParams.get('canceled')
+    const sessionId = searchParams.get('session_id')
+    if (!sessionId) return
 
-    if (success === 'true') {
-      stripeHandled.current = true
-      onSuccess()
-    } else if (canceled === 'true') {
-      stripeHandled.current = true
-      onCanceled()
-    }
-  }, [searchParams, onSuccess, onCanceled])
+    stripeHandled.current = true
+
+    fetch(`/api/stripe/checkout/status?session_id=${sessionId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status === 'complete') {
+          onSuccess()
+        } else {
+          onFailed()
+        }
+        router.replace('/settings')
+      })
+      .catch(() => {
+        onFailed()
+        router.replace('/settings')
+      })
+  }, [searchParams, onSuccess, onFailed, router])
 
   return null
 }
@@ -102,6 +113,7 @@ function SettingsPageContent() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [switchingPlan, setSwitchingPlan] = useState<PlanType | null>(null)
+  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null)
   const [persona, setPersona] = useState<CreatorPersona | null>(null)
   const [refreshingPersona, setRefreshingPersona] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -158,14 +170,12 @@ function SettingsPageContent() {
   // Callbacks pour le handler Stripe
   const handleStripeSuccess = useCallback(() => {
     toast.success(t('settings.subscription.paymentSuccess'))
-    router.replace('/settings')
     loadProfile()
-  }, [t, router, loadProfile, toast])
+  }, [t, loadProfile, toast])
 
-  const handleStripeCanceled = useCallback(() => {
+  const handleStripeFailed = useCallback(() => {
     toast.error(t('settings.subscription.paymentCanceled'))
-    router.replace('/settings')
-  }, [t, router, toast])
+  }, [t, toast])
 
   async function handleSaveName() {
     if (!profile || saving) return
@@ -258,7 +268,11 @@ function SettingsPageContent() {
         return
       }
 
-      // Redirect to Stripe Checkout or Portal
+      // Open embedded checkout modal or redirect to Stripe portal
+      if (data.clientSecret) {
+        setCheckoutSecret(data.clientSecret)
+        return
+      }
       if (data.url) {
         window.location.href = data.url
         return
@@ -425,8 +439,15 @@ function SettingsPageContent() {
       <div className="mx-auto max-w-5xl space-y-8">
         {/* Handler pour les redirections Stripe (avec Suspense car utilise useSearchParams) */}
         <Suspense fallback={null}>
-          <StripeRedirectHandler onSuccess={handleStripeSuccess} onCanceled={handleStripeCanceled} />
+          <StripeRedirectHandler onSuccess={handleStripeSuccess} onFailed={handleStripeFailed} />
         </Suspense>
+
+        {checkoutSecret && (
+          <StripeCheckoutModal
+            clientSecret={checkoutSecret}
+            onClose={() => setCheckoutSecret(null)}
+          />
+        )}
 
         {/* ═══ Hero Header ═══ */}
         <div className="animate-fade-in-up-1">

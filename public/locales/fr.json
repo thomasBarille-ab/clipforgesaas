@@ -697,6 +697,12 @@
     "bottomZoom": "Bas : zoom sur la zone sélectionnée"
   },
 
+  "zoom": {
+    "title": "Zoom",
+    "level": "Niveau de zoom",
+    "reset": "Réinitialiser"
+  },
+
   "plans": {
     "monthlyClips": "Clips ce mois-ci",
     "unlimited": "Illimité",
