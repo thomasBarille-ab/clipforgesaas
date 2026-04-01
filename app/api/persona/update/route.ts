@@ -13,8 +13,8 @@ interface ClipRow {
   hashtags: string[]
   virality_score: number | null
   suggestion_data: SuggestionData
-  source_start: number | null
-  source_end: number | null
+  start_time_seconds: number
+  end_time_seconds: number
 }
 
 export async function POST() {
@@ -42,7 +42,7 @@ export async function POST() {
   // Fetch les 50 derniers clips ready avec suggestion_data
   const { data: clips, error: clipsError } = await supabase
     .from('clips')
-    .select('title, description, hashtags, virality_score, suggestion_data, source_start, source_end')
+    .select('title, description, hashtags, virality_score, suggestion_data, start_time_seconds, end_time_seconds')
     .eq('user_id', user.id)
     .eq('status', 'ready')
     .not('suggestion_data', 'is', null)
@@ -107,9 +107,7 @@ export async function POST() {
       allHashtags[tag] = (allHashtags[tag] || 0) + 1
     }
 
-    if (clip.source_start !== null && clip.source_end !== null) {
-      durations.push(clip.source_end - clip.source_start)
-    }
+    durations.push(clip.end_time_seconds - clip.start_time_seconds)
 
     if (sampleTitles.length < 8) {
       sampleTitles.push(clip.title)

@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { stripe, PLAN_PRICE_IDS } from '@/lib/stripe'
 import type { PlanType } from '@/types/database'
+
+// Service role client pour modifier les colonnes protégées par RLS (plan, credits, stripe_*)
+function getAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 const VALID_PLANS: PlanType[] = ['free', 'pro', 'business']
 
@@ -48,6 +57,27 @@ export async function POST(request: Request) {
     )
   }
 
+  const newPlan = body.plan
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+  try {
+  // Case 0: Revert pending cancellation (user clicks on their current plan)
+  if (profile.plan === body.plan && profile.stripe_subscription_id) {
+    const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+
+    if (subscription.cancel_at_period_end) {
+      await stripe.subscriptions.update(profile.stripe_subscription_id, {
+        cancel_at_period_end: false,
+      })
+      return NextResponse.json({ success: true, cancelReverted: true })
+    }
+
+    return NextResponse.json(
+      { error: 'Vous êtes déjà sur ce plan' },
+      { status: 400 }
+    )
+  }
+
   if (profile.plan === body.plan) {
     return NextResponse.json(
       { error: 'Vous êtes déjà sur ce plan' },
@@ -55,13 +85,8 @@ export async function POST(request: Request) {
     )
   }
 
-  const newPlan = body.plan
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-  try {
   // Case 1: Upgrading to a paid plan without existing subscription → Checkout
   if (newPlan !== 'free' && !profile.stripe_subscription_id) {
-    // Create Stripe customer if needed
     let customerId = profile.stripe_customer_id
 
     if (!customerId) {
@@ -71,7 +96,8 @@ export async function POST(request: Request) {
       })
       customerId = customer.id
 
-      await supabase
+      const admin = getAdminClient()
+      await admin
         .from('profiles')
         .update({ stripe_customer_id: customerId })
         .eq('id', user.id)
@@ -97,7 +123,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ action: 'checkout', clientSecret: session.client_secret })
   }
 
-  // Case 2: Changing paid plan (upgrade/downgrade between pro/business) → API directe
+  // Case 2: Changing paid plan (pro ↔ business) → Checkout modal for confirmation
   if (newPlan !== 'free' && profile.stripe_subscription_id) {
     if (!profile.stripe_customer_id) {
       return NextResponse.json(
@@ -106,23 +132,28 @@ export async function POST(request: Request) {
       )
     }
 
-    const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
-    const subscriptionItemId = subscription.items.data[0].id
-
-    await stripe.subscriptions.update(profile.stripe_subscription_id, {
-      items: [{ id: subscriptionItemId, price: PLAN_PRICE_IDS[newPlan as Exclude<PlanType, 'free'>] }],
-      proration_behavior: 'create_prorations',
+    const session = await stripe.checkout.sessions.create({
+      customer: profile.stripe_customer_id,
+      mode: 'subscription',
+      ui_mode: 'embedded',
+      line_items: [
+        {
+          price: PLAN_PRICE_IDS[newPlan as Exclude<PlanType, 'free'>],
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId: user.id,
+        plan: newPlan,
+        previousSubscriptionId: profile.stripe_subscription_id,
+      },
+      return_url: `${appUrl}/settings?session_id={CHECKOUT_SESSION_ID}`,
     })
 
-    await supabase
-      .from('profiles')
-      .update({ plan: newPlan })
-      .eq('id', user.id)
-
-    return NextResponse.json({ success: true, plan: newPlan })
+    return NextResponse.json({ action: 'checkout', clientSecret: session.client_secret })
   }
 
-  // Case 3: Downgrade to free with active subscription → annulation directe
+  // Case 3: Downgrade to free with active subscription → cancel at period end
   if (newPlan === 'free' && profile.stripe_subscription_id) {
     if (!profile.stripe_customer_id) {
       return NextResponse.json(
@@ -131,26 +162,33 @@ export async function POST(request: Request) {
       )
     }
 
-    await stripe.subscriptions.cancel(profile.stripe_subscription_id)
+    const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+    const item = subscription.items.data[0]
 
-    await supabase
-      .from('profiles')
-      .update({
-        plan: 'free',
-        credits_remaining: 3,
-        stripe_subscription_id: null,
-      })
-      .eq('id', user.id)
+    if (subscription.cancel_at_period_end) {
+      return NextResponse.json(
+        { error: 'Votre abonnement est déjà programmé pour être annulé' },
+        { status: 400 }
+      )
+    }
 
-    return NextResponse.json({ success: true, plan: 'free' })
+    await stripe.subscriptions.update(profile.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    })
+
+    return NextResponse.json({
+      success: true,
+      cancelAtPeriodEnd: true,
+      currentPeriodEnd: new Date(item.current_period_end * 1000).toISOString(),
+    })
   }
 
-  // Case 4: Downgrade to free without subscription (edge case) → direct update
-  const { error: updateError } = await supabase
+  // Case 4: Downgrade to free without subscription (edge case)
+  const admin = getAdminClient()
+  const { error: updateError } = await admin
     .from('profiles')
     .update({
       plan: 'free',
-      credits_remaining: 3,
     })
     .eq('id', user.id)
 

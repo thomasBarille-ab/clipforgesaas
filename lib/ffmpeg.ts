@@ -221,6 +221,17 @@ function terminateFFmpeg(): void {
   }
 }
 
+export interface BrandingOverlayOptions {
+  enabled: boolean
+  text: string
+  logoImageData: Uint8Array | null
+  position: import('@/types/database').BrandingPosition
+  showLogo: boolean
+  showText: boolean
+  textColor: string
+  textOpacity: number
+}
+
 export interface TrimResult {
   videoBlob: Blob
   thumbnailBlob: Blob
@@ -241,6 +252,7 @@ export interface TrimOptions {
   zoomLevel?: number
   splitScreen?: { enabled: boolean; cropX: number; cropY: number; cropSize: number }
   watermark?: boolean
+  branding?: BrandingOverlayOptions
   onProgress?: (progress: number) => void
 }
 
@@ -435,6 +447,135 @@ async function renderWatermarkPng(
 }
 
 /**
+ * Rend un PNG transparent plein écran (1080x1920) avec le branding personnalisé
+ * (logo + texte) positionné selon les préférences Business.
+ */
+async function renderBrandingPng(
+  options: BrandingOverlayOptions,
+  width: number = 1080,
+  height: number = 1920
+): Promise<Uint8Array> {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+
+  ctx.clearRect(0, 0, width, height)
+
+  const padding = 60
+  const { position, textColor, textOpacity } = options
+
+  // Calculate anchor point based on position
+  let anchorX: number
+  let anchorY: number
+  let textAlign: CanvasTextAlign = 'left'
+
+  switch (position) {
+    case 'top-left':
+      anchorX = padding
+      anchorY = padding
+      textAlign = 'left'
+      break
+    case 'top-right':
+      anchorX = width - padding
+      anchorY = padding
+      textAlign = 'right'
+      break
+    case 'center':
+      anchorX = width / 2
+      anchorY = height / 2
+      textAlign = 'center'
+      break
+    case 'bottom-left':
+      anchorX = padding
+      anchorY = height - padding
+      textAlign = 'left'
+      break
+    case 'bottom-right':
+    default:
+      anchorX = width - padding
+      anchorY = height - padding
+      textAlign = 'right'
+      break
+  }
+
+  // Load and draw logo
+  let logoHeight = 0
+  if (options.showLogo && options.logoImageData) {
+    try {
+      const logoBlob = new Blob([options.logoImageData.buffer as ArrayBuffer], { type: 'image/png' })
+      const logoUrl = URL.createObjectURL(logoBlob)
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new window.Image()
+        i.onload = () => resolve(i)
+        i.onerror = reject
+        i.src = logoUrl
+      })
+      URL.revokeObjectURL(logoUrl)
+
+      // Scale logo to max 200x100
+      const maxW = 200
+      const maxH = 100
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1)
+      const drawW = img.width * scale
+      const drawH = img.height * scale
+      logoHeight = drawH
+
+      let logoX: number
+      let logoY: number
+
+      if (position === 'center') {
+        logoX = anchorX - drawW / 2
+        logoY = anchorY - drawH - 10
+      } else if (textAlign === 'right') {
+        logoX = anchorX - drawW
+        logoY = position.startsWith('top') ? anchorY : anchorY - drawH - (options.showText ? 40 : 0)
+      } else {
+        logoX = anchorX
+        logoY = position.startsWith('top') ? anchorY : anchorY - drawH - (options.showText ? 40 : 0)
+      }
+
+      ctx.globalAlpha = textOpacity
+      ctx.drawImage(img, logoX, logoY, drawW, drawH)
+      ctx.globalAlpha = 1.0
+    } catch {
+      // Skip logo on error
+    }
+  }
+
+  // Draw text
+  if (options.showText && options.text) {
+    const fontSize = 32
+    ctx.font = `bold ${fontSize}px 'Arial', sans-serif`
+    ctx.textAlign = textAlign
+    ctx.textBaseline = 'middle'
+
+    ctx.globalAlpha = textOpacity
+    ctx.fillStyle = textColor
+
+    let textY: number
+    if (position === 'center') {
+      textY = anchorY + (logoHeight > 0 ? 10 : 0)
+    } else if (position.startsWith('top')) {
+      textY = anchorY + (logoHeight > 0 ? logoHeight + 15 : fontSize / 2)
+    } else {
+      textY = anchorY - fontSize / 2
+    }
+
+    ctx.fillText(options.text, anchorX, textY)
+    ctx.globalAlpha = 1.0
+  }
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (b) resolve(b)
+      else reject(new Error('Canvas toBlob a retourné null (branding)'))
+    }, 'image/png')
+  })
+  return new Uint8Array(await blob.arrayBuffer())
+}
+
+/**
  * Génère une miniature JPEG à partir d'un Blob vidéo via Canvas API.
  * Utilise le décodeur vidéo natif du navigateur (pas de WASM).
  */
@@ -545,6 +686,7 @@ export interface ConcatOptions {
   srtContent?: string | null
   subtitleStyle?: import('@/types/subtitles').SubtitleStyle
   watermark?: boolean
+  branding?: BrandingOverlayOptions
   onProgress?: (progress: number) => void
 }
 
@@ -558,6 +700,7 @@ export async function trimAndConcatSegments({
   srtContent,
   subtitleStyle,
   watermark,
+  branding,
   onProgress,
 }: ConcatOptions): Promise<TrimResult> {
   // Cas simple : 1 segment → réutiliser trimAndCropVideo
@@ -573,6 +716,7 @@ export async function trimAndConcatSegments({
       zoomLevel: seg.zoomLevel,
       splitScreen: seg.splitScreen,
       watermark,
+      branding,
       onProgress,
     })
   }
@@ -613,11 +757,14 @@ export async function trimAndConcatSegments({
       }
     }
 
-    // Watermark PNG (free plan)
+    // Overlay PNG: watermark (free) OR branding (business) OR none (pro)
+    const hasOverlay = watermark || (branding?.enabled && !watermark)
     if (watermark) {
       const wmPng = await renderWatermarkPng()
-      await ffmpeg.writeFile('watermark.png', wmPng)
-
+      await ffmpeg.writeFile('overlay.png', wmPng)
+    } else if (branding?.enabled) {
+      const brandPng = await renderBrandingPng(branding)
+      await ffmpeg.writeFile('overlay.png', brandPng)
     }
 
     const args: string[] = []
@@ -628,10 +775,10 @@ export async function trimAndConcatSegments({
       args.push('-i', `sub_${i}.png`)
     }
 
-    // Watermark is the last input
-    const wmInputIdx = watermark ? 1 + subtitleEntries.length : -1
-    if (watermark) {
-      args.push('-i', 'watermark.png')
+    // Overlay is the last input
+    const overlayInputIdx = hasOverlay ? 1 + subtitleEntries.length : -1
+    if (hasOverlay) {
+      args.push('-i', 'overlay.png')
     }
 
     // filter_complex : chaque segment a trim+setpts+crop+scale, puis concat
@@ -714,9 +861,9 @@ export async function trimAndConcatSegments({
       lastVideoLabel = 'subout'
     }
 
-    // Watermark overlay (après sous-titres, visible toute la durée)
-    if (watermark) {
-      fc += `;[${wmInputIdx}:v]format=rgba[wm];[${lastVideoLabel}][wm]overlay=0:0[vout]`
+    // Overlay (watermark ou branding, après sous-titres, visible toute la durée)
+    if (hasOverlay) {
+      fc += `;[${overlayInputIdx}:v]format=rgba[ovl];[${lastVideoLabel}][ovl]overlay=0:0[vout]`
     } else {
       fc += `;[${lastVideoLabel}]null[vout]`
     }
@@ -746,8 +893,8 @@ export async function trimAndConcatSegments({
     for (let i = 0; i < subtitleEntries.length; i++) {
       try { await ffmpeg.deleteFile(`sub_${i}.png`) } catch { /* ignore */ }
     }
-    if (watermark) {
-      try { await ffmpeg.deleteFile('watermark.png') } catch { /* ignore */ }
+    if (hasOverlay) {
+      try { await ffmpeg.deleteFile('overlay.png') } catch { /* ignore */ }
     }
 
 
@@ -789,6 +936,7 @@ export async function trimAndCropVideo({
   zoomLevel,
   splitScreen,
   watermark,
+  branding,
   onProgress,
 }: TrimOptions): Promise<TrimResult> {
 
@@ -831,11 +979,14 @@ export async function trimAndCropVideo({
 
     }
 
-    // Watermark PNG (free plan)
+    // Overlay PNG: watermark (free) OR branding (business) OR none (pro)
+    const hasOverlay = watermark || (branding?.enabled && !watermark)
     if (watermark) {
       const wmPng = await renderWatermarkPng()
-      await ffmpeg.writeFile('watermark.png', wmPng)
-
+      await ffmpeg.writeFile('overlay.png', wmPng)
+    } else if (branding?.enabled) {
+      const brandPng = await renderBrandingPng(branding)
+      await ffmpeg.writeFile('overlay.png', brandPng)
     }
 
     // Construire les arguments FFmpeg
@@ -851,10 +1002,10 @@ export async function trimAndCropVideo({
       args.push('-i', `sub_${i}.png`)
     }
 
-    // Watermark is the last input
-    const wmInputIdx = watermark ? 1 + subtitleEntries.length : -1
-    if (watermark) {
-      args.push('-i', 'watermark.png')
+    // Overlay is the last input
+    const overlayInputIdx = hasOverlay ? 1 + subtitleEntries.length : -1
+    if (hasOverlay) {
+      args.push('-i', 'overlay.png')
     }
 
     // filter_complex : trim relatif (timestamps commencent à ~0 grâce au -ss input)
@@ -926,9 +1077,9 @@ export async function trimAndCropVideo({
       lastVideoLabel = 'subout'
     }
 
-    // Watermark overlay (après sous-titres, visible toute la durée)
-    if (watermark) {
-      fc += `;[${wmInputIdx}:v]format=rgba[wm];[${lastVideoLabel}][wm]overlay=0:0[vout]`
+    // Overlay (watermark ou branding, après sous-titres, visible toute la durée)
+    if (hasOverlay) {
+      fc += `;[${overlayInputIdx}:v]format=rgba[ovl];[${lastVideoLabel}][ovl]overlay=0:0[vout]`
     } else {
       fc += `;[${lastVideoLabel}]null[vout]`
     }
@@ -958,8 +1109,8 @@ export async function trimAndCropVideo({
     for (let i = 0; i < subtitleEntries.length; i++) {
       try { await ffmpeg.deleteFile(`sub_${i}.png`) } catch { /* ignore */ }
     }
-    if (watermark) {
-      try { await ffmpeg.deleteFile('watermark.png') } catch { /* ignore */ }
+    if (hasOverlay) {
+      try { await ffmpeg.deleteFile('overlay.png') } catch { /* ignore */ }
     }
 
     // Lire l'output

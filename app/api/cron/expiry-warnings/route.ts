@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendExpiryWarningEmail } from '@/lib/email/send'
+import { createNotification, isEmailEnabledForType } from '@/lib/notifications'
 
 // ═══════════════════════════════════════════════════════════════
 // CRON: Avertissement d'expiration (24h avant suppression)
@@ -82,6 +83,20 @@ export async function GET(request: Request) {
     let emailsSent = 0
 
     for (const [userId, items] of userItems) {
+      const totalCount = items.videos.length + items.clips.length
+
+      // Créer la notification in-app (toujours)
+      await createNotification(
+        userId,
+        'expiry_warning',
+        'Fichiers expirant bientôt',
+        `${totalCount} fichier${totalCount > 1 ? 's' : ''} expire${totalCount > 1 ? 'nt' : ''} dans les prochaines 24h.`
+      )
+
+      // Vérifier les préférences email
+      const emailEnabled = await isEmailEnabledForType(userId, 'expiry_warning')
+      if (!emailEnabled) continue
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('email')

@@ -8,6 +8,7 @@ import {
   sendInvoicePaidEmail,
   sendPaymentFailedEmail,
 } from '@/lib/email/send'
+import { createNotification } from '@/lib/notifications'
 import type Stripe from 'stripe'
 
 export const runtime = 'nodejs'
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
         const session = event.data.object as Stripe.Checkout.Session
         const userId = session.metadata?.userId
         const plan = session.metadata?.plan
+        const previousSubscriptionId = session.metadata?.previousSubscriptionId
 
         if (!userId || !plan) {
           console.error('Webhook: missing metadata on checkout session', session.id)
@@ -96,7 +98,6 @@ export async function POST(request: Request) {
             plan,
             stripe_subscription_id: subscriptionId,
             stripe_customer_id: customerId,
-            credits_remaining: null,
           })
           .eq('id', userId)
 
@@ -105,15 +106,40 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Erreur mise à jour profil' }, { status: 500 })
         }
 
+        // Cancel previous subscription if this was a plan switch (pro ↔ business)
+        if (previousSubscriptionId) {
+          try {
+            await stripe.subscriptions.cancel(previousSubscriptionId)
+          } catch (cancelErr) {
+            console.error('Webhook: failed to cancel previous subscription', previousSubscriptionId, cancelErr)
+          }
+        }
+
         // Email de confirmation (non-bloquant)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('email')
+          .select('email, plan')
           .eq('id', userId)
           .single()
 
         if (profile?.email) {
-          await sendSubscriptionStartedEmail(profile.email, plan)
+          if (previousSubscriptionId) {
+            await sendSubscriptionChangedEmail(profile.email, '', plan)
+            await createNotification(
+              userId,
+              'subscription_changed',
+              'Plan modifié',
+              `Votre plan a été changé en ${plan === 'business' ? 'Business' : 'Pro'}.`
+            )
+          } else {
+            await sendSubscriptionStartedEmail(profile.email, plan)
+            await createNotification(
+              userId,
+              'subscription_started',
+              'Abonnement activé',
+              `Votre abonnement ${plan === 'business' ? 'Business' : 'Pro'} est maintenant actif.`
+            )
+          }
         }
 
         break
@@ -142,12 +168,18 @@ export async function POST(request: Request) {
           if (status === 'unpaid') {
             await supabase
               .from('profiles')
-              .update({ plan: 'free', stripe_subscription_id: null, credits_remaining: 3 })
+              .update({ plan: 'free', stripe_subscription_id: null })
               .eq('id', profile.id)
 
             if (profile.email) {
               await sendSubscriptionCanceledEmail(profile.email)
             }
+            await createNotification(
+              profile.id,
+              'subscription_canceled',
+              'Abonnement annulé',
+              'Votre abonnement a été annulé suite à un défaut de paiement.'
+            )
           }
           break
         }
@@ -162,7 +194,6 @@ export async function POST(request: Request) {
                 .from('profiles')
                 .update({
                   plan: newPlan,
-                  credits_remaining: null,
                 })
                 .eq('id', profile.id)
 
@@ -174,6 +205,12 @@ export async function POST(request: Request) {
               if (profile.email) {
                 await sendSubscriptionChangedEmail(profile.email, profile.plan, newPlan)
               }
+              await createNotification(
+                profile.id,
+                'subscription_changed',
+                'Plan modifié',
+                `Votre plan a été changé en ${newPlan === 'business' ? 'Business' : 'Pro'}.`
+              )
             }
           }
         }
@@ -201,7 +238,6 @@ export async function POST(request: Request) {
           .update({
             plan: 'free',
             stripe_subscription_id: null,
-            credits_remaining: 3,
           })
           .eq('id', profile.id)
 
@@ -213,6 +249,12 @@ export async function POST(request: Request) {
         if (profile.email) {
           await sendSubscriptionCanceledEmail(profile.email)
         }
+        await createNotification(
+          profile.id,
+          'subscription_canceled',
+          'Abonnement annulé',
+          'Votre abonnement a été annulé. Votre plan est repassé en Gratuit.'
+        )
 
         break
       }
@@ -235,6 +277,12 @@ export async function POST(request: Request) {
         const invoiceUrl = invoice.hosted_invoice_url || ''
 
         await sendInvoicePaidEmail(profile.email, amount, invoiceUrl, profile.plan)
+        await createNotification(
+          profile.id,
+          'invoice_paid',
+          'Paiement reçu',
+          `Votre paiement de ${amount} a été traité avec succès.`
+        )
 
         break
       }
@@ -268,6 +316,12 @@ export async function POST(request: Request) {
             `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.creaclip.com'}/settings`
           )
         }
+        await createNotification(
+          profile.id,
+          'payment_failed',
+          'Échec de paiement',
+          'Votre dernier paiement a échoué. Veuillez mettre à jour votre moyen de paiement.'
+        )
 
         break
       }

@@ -26,6 +26,7 @@ import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { useClipDownload } from '@/hooks/useClipDownload'
 import { useBatchSignedUrls } from '@/hooks/useBatchSignedUrls'
+import { DashboardHeader } from '@/components/DashboardHeader'
 import type { ClipWithVideo } from '@/types/database'
 
 export default function ClipsPage() {
@@ -192,11 +193,14 @@ export default function ClipsPage() {
               </p>
             )}
           </div>
-          {clips.length > 1 && (
-            <Button variant="secondary" icon={DownloadCloud} onClick={downloadAll}>
-              {t('clips.downloadAll')}
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {clips.length > 1 && (
+              <Button variant="secondary" icon={DownloadCloud} onClick={downloadAll}>
+                {t('clips.downloadAll')}
+              </Button>
+            )}
+            <DashboardHeader />
+          </div>
         </div>
 
         {/* Loading skeletons */}

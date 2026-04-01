@@ -19,7 +19,8 @@ import { EditorPreview } from './preview/EditorPreview'
 import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
 import type { SubtitleStyle } from '@/types/subtitles'
 import { getPlanLimits, canCreateClip } from '@/lib/plans'
-import type { ClipSuggestion, ClipInsert, TranscriptionSegment, PlanType } from '@/types/database'
+import type { ClipSuggestion, ClipInsert, TranscriptionSegment, PlanType, BrandingConfig } from '@/types/database'
+import type { BrandingOverlayOptions } from '@/lib/ffmpeg'
 import type { TimelineSegment, SplitScreenConfig } from './types'
 
 type GeneratingState = {
@@ -43,6 +44,8 @@ interface VideoEditorProps {
   segments: TranscriptionSegment[]
   videoId: string
   userPlan?: PlanType
+  brandingConfig?: BrandingConfig | null
+  brandingLogoUrl?: string | null
   onClose: () => void
   onGenerated: () => void
 }
@@ -166,6 +169,8 @@ function EditorContent({
   segments,
   videoId,
   userPlan = 'pro',
+  brandingConfig,
+  brandingLogoUrl,
   onClose,
   onGenerated,
 }: VideoEditorProps) {
@@ -405,12 +410,38 @@ function EditorContent({
 
       setGenerating({ step: 'downloading', progress: 10 })
 
+      // Build branding overlay options if Business user with branding enabled
+      let brandingOptions: BrandingOverlayOptions | undefined
+      if (brandingConfig?.enabled && !getPlanLimits(userPlan).watermark) {
+        let logoImageData: Uint8Array | null = null
+        if (brandingConfig.showLogo && brandingLogoUrl) {
+          try {
+            const logoRes = await fetch(brandingLogoUrl)
+            const logoBuf = await logoRes.arrayBuffer()
+            logoImageData = new Uint8Array(logoBuf)
+          } catch {
+            // Skip logo on fetch error
+          }
+        }
+        brandingOptions = {
+          enabled: true,
+          text: brandingConfig.text,
+          logoImageData,
+          position: brandingConfig.position,
+          showLogo: brandingConfig.showLogo,
+          showText: brandingConfig.showText,
+          textColor: brandingConfig.textColor,
+          textOpacity: brandingConfig.textOpacity,
+        }
+      }
+
       const { videoBlob, thumbnailBlob } = await trimAndConcatSegments({
         videoUrl,
         segments: state.segments,
         srtContent,
         subtitleStyle: subtitleStyle.enabled ? subtitleStyle : undefined,
         watermark: getPlanLimits(userPlan).watermark,
+        branding: brandingOptions,
         onProgress: (p) => {
           // p est 0-100 de FFmpeg ; on mappe vers la plage 10-70 du progrès global
           const clamped = Math.max(0, Math.min(100, p))
@@ -468,8 +499,8 @@ function EditorContent({
       setGenerating({ step: 'done', progress: 100 })
       toast.success(t('editor.toastSuccess'))
 
-      // Fire-and-forget : mise à jour du persona créateur (plan Business)
-      fetch('/api/persona/update', { method: 'POST' }).catch(() => {})
+      // // Fire-and-forget : mise à jour du persona créateur (plan Business)
+      // fetch('/api/persona/update', { method: 'POST' }).catch(() => {})
 
       setTimeout(() => {
         onGenerated()
@@ -491,7 +522,8 @@ function EditorContent({
     }
   }, [
     generating, state.segments, segmentOffsets, videoUrl, videoId, suggestion,
-    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router, toast, userPlan
+    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router, toast, userPlan,
+    brandingConfig, brandingLogoUrl
   ])
 
   const isGenerating = generating !== null && generating.step !== 'done'
@@ -838,6 +870,8 @@ function EditorContent({
             subtitleStyle={subtitleStyle}
             transcriptionSegments={segments}
             showWatermark={getPlanLimits(userPlan).watermark}
+            brandingConfig={brandingConfig}
+            brandingLogoUrl={brandingLogoUrl}
           />
         </div>
 

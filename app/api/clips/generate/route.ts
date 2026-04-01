@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { canCreateClip } from '@/lib/plans'
+import { createNotification } from '@/lib/notifications'
 import type { PlanType } from '@/types/database'
 
 export async function POST(request: Request) {
@@ -87,6 +88,20 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
+
+  // Fetch clip title for notification
+  const { data: updatedClip } = await supabase
+    .from('clips')
+    .select('title')
+    .eq('id', clipId)
+    .single()
+
+  await createNotification(
+    user.id,
+    'clip_ready',
+    'Clip prêt',
+    `Votre clip "${updatedClip?.title ?? 'Sans titre'}" est prêt.`
+  )
 
   return NextResponse.json({
     success: true,

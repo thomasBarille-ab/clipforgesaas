@@ -22,8 +22,8 @@ const PLAN_PRICES: Record<string, string> = {
 }
 
 const PLAN_CLIPS: Record<string, string> = {
-  pro: '50 clips/mois',
-  business: '200 clips/mois',
+  pro: '40 clips/mois',
+  business: '150 clips/mois',
   free: '3 clips/mois',
 }
 

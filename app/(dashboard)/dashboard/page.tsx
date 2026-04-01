@@ -21,6 +21,7 @@ import { EmptyState, Badge } from '@/components/ui'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { OnboardingOverlay } from '@/components/OnboardingOverlay'
 import { useBatchSignedUrls } from '@/hooks/useBatchSignedUrls'
+import { DashboardHeader } from '@/components/DashboardHeader'
 import type { Video, ClipWithVideo, PlanType } from '@/types/database'
 
 interface Stats {
@@ -54,7 +55,7 @@ export default function DashboardPage() {
     const now = new Date()
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-    const [videosRes, clipsRes, jobsRes, profileRes, monthlyClipsRes] = await Promise.all([
+    const [videosRes, clipsRes, readyClipsCountRes, jobsRes, profileRes, monthlyClipsRes] = await Promise.all([
       supabase
         .from('videos')
         .select('*')
@@ -68,6 +69,11 @@ export default function DashboardPage() {
         .eq('status', 'ready')
         .order('created_at', { ascending: false })
         .limit(4),
+      supabase
+        .from('clips')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('status', 'ready'),
       supabase
         .from('processing_jobs')
         .select('id', { count: 'exact', head: true })
@@ -92,7 +98,7 @@ export default function DashboardPage() {
     setClips(clipsList)
     setStats({
       totalVideos: videosList.length,
-      readyClips: clipsList.length,
+      readyClips: readyClipsCountRes.count ?? 0,
       processingJobs: jobsRes.count ?? 0,
     })
     setUserPlan((profileRes.data?.plan as PlanType) ?? 'free')
@@ -174,8 +180,7 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         {/* ═══ Hero Zone ═══ */}
         <section className="animate-fade-in-up-1">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            {/* Left: greeting + subtitle */}
+          <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-white md:text-3xl">
                 {userName
@@ -186,16 +191,7 @@ export default function DashboardPage() {
               </h1>
               <p className="mt-1 text-sm text-white/40">{t('dashboard.today')}</p>
             </div>
-
-            {/* Right: upload CTA */}
-            <Link
-              href="/upload"
-              data-onboarding="upload-btn"
-              className="animate-pulse-glow flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-orange-600/20 transition-transform hover:scale-105"
-            >
-              <Upload className="h-5 w-5" />
-              {t('dashboard.importVideo')}
-            </Link>
+            <DashboardHeader />
           </div>
 
           {/* Stats pills + Quota bar */}

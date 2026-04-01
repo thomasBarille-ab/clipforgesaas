@@ -106,7 +106,7 @@ const jsonLd = {
         priceCurrency: 'EUR',
         billingDuration: 'P1M',
       },
-      description: '50 clips par mois, sans watermark, toutes les features',
+      description: '40 clips par mois, sans watermark, toutes les features',
     },
     {
       '@type': 'Offer',
@@ -119,7 +119,7 @@ const jsonLd = {
         priceCurrency: 'EUR',
         billingDuration: 'P1M',
       },
-      description: '200 clips par mois, persona individuel, tout Pro inclus',
+      description: '150 clips par mois, tout Pro inclus',
     },
   ],
   featureList: [

@@ -5,20 +5,23 @@ import { useTranslation } from 'react-i18next'
 import { useEditor } from '../EditorProvider'
 import { CropOverlay } from './CropOverlay'
 import { SplitScreenPreview } from './SplitScreenPreview'
+import { BrandingOverlayPreview } from './BrandingOverlayPreview'
 
 import { FONT_SIZE_MAP } from '@/types/subtitles'
 import { cn } from '@/lib/utils'
 import type { SubtitleStyle } from '@/types/subtitles'
-import type { TranscriptionSegment } from '@/types/database'
+import type { TranscriptionSegment, BrandingConfig } from '@/types/database'
 
 interface EditorPreviewProps {
   videoUrl: string
   subtitleStyle: SubtitleStyle
   transcriptionSegments: TranscriptionSegment[]
   showWatermark?: boolean
+  brandingConfig?: BrandingConfig | null
+  brandingLogoUrl?: string | null
 }
 
-export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, showWatermark }: EditorPreviewProps) {
+export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, showWatermark, brandingConfig, brandingLogoUrl }: EditorPreviewProps) {
   const { t } = useTranslation()
   const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
   const { segments, playing } = state
@@ -384,6 +387,20 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
                   Made with CreaClip
                 </span>
               </div>
+            ) : null
+          )}
+
+          {/* Branding overlay (business plan, only when no watermark) */}
+          {brandingConfig?.enabled && !showWatermark && (
+            mode === 'crop' && cropBoxRect ? (
+              <div
+                className="absolute pointer-events-none z-10 overflow-hidden"
+                style={{ left: cropBoxRect.left, top: cropBoxRect.top, width: cropBoxRect.width, height: cropBoxRect.height }}
+              >
+                <BrandingOverlayPreview config={brandingConfig} logoUrl={brandingLogoUrl ?? null} scale={scale} />
+              </div>
+            ) : mode === 'preview' ? (
+              <BrandingOverlayPreview config={brandingConfig} logoUrl={brandingLogoUrl ?? null} scale={scale} />
             ) : null
           )}
         </div>

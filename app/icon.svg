@@ -6,5 +6,11 @@
     </linearGradient>
   </defs>
   <rect width="32" height="32" rx="8" fill="url(#g)"/>
-  <text x="16" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="16" fill="white" letter-spacing="-1">CC</text>
+  <!-- "CC" as vector paths (bold, ~16px, centered) -->
+  <g fill="white" transform="translate(4.5, 9)">
+    <!-- First C -->
+    <path d="M10.5 3.2C9.6 1.8 8.2 1 6.5 1 3.7 1 1.5 3.5 1.5 7s2.2 6 5 6c1.7 0 3.1-.8 4-2.2l-2-1.3c-.5.8-1.1 1.2-2 1.2-1.5 0-2.6-1.5-2.6-3.7S5 3.3 6.5 3.3c.9 0 1.5.4 2 1.2l2-1.3z"/>
+    <!-- Second C -->
+    <path d="M22 3.2C21.1 1.8 19.7 1 18 1c-2.8 0-5 2.5-5 6s2.2 6 5 6c1.7 0 3.1-.8 4-2.2l-2-1.3c-.5.8-1.1 1.2-2 1.2-1.5 0-2.6-1.5-2.6-3.7s1.1-3.7 2.6-3.7c.9 0 1.5.4 2 1.2l2-1.3z"/>
+  </g>
 </svg>

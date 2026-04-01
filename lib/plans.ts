@@ -7,12 +7,13 @@ interface PlanFeatures {
   searchByPrompt: boolean
   persona: boolean
   clipFilters: boolean
+  customBranding: boolean
 }
 
 export const PLAN_FEATURES: Record<PlanType, PlanFeatures> = {
-  free:     { clipsPerMonth: 3,   watermark: true,  searchByPrompt: false, persona: false, clipFilters: false },
-  pro:      { clipsPerMonth: 50,  watermark: false, searchByPrompt: true,  persona: false, clipFilters: true  },
-  business: { clipsPerMonth: 200, watermark: false, searchByPrompt: true,  persona: true,  clipFilters: true  },
+  free:     { clipsPerMonth: 3,   watermark: true,  searchByPrompt: false, persona: false, clipFilters: false, customBranding: false },
+  pro:      { clipsPerMonth: 40,  watermark: false, searchByPrompt: true,  persona: false, clipFilters: true,  customBranding: false },
+  business: { clipsPerMonth: 150, watermark: false, searchByPrompt: true,  persona: false, clipFilters: true,  customBranding: true  },
 }
 
 export type PlanFeature = keyof PlanFeatures

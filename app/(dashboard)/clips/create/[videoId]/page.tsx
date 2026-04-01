@@ -22,7 +22,8 @@ import { hasFeatureAccess } from '@/lib/plans'
 import { AlertBanner, Button, Input, Badge } from '@/components/ui'
 import { SuggestionCard } from '@/components/SuggestionCard'
 import { VideoEditor } from '@/components/editor/VideoEditor'
-import type { Video, TranscriptionSegment, ClipSuggestion, PlanType } from '@/types/database'
+import { DashboardHeader } from '@/components/DashboardHeader'
+import type { Video, TranscriptionSegment, ClipSuggestion, PlanType, BrandingConfig } from '@/types/database'
 
 export default function CreateClipsPage() {
   const { t } = useTranslation()
@@ -39,6 +40,8 @@ export default function CreateClipsPage() {
 
   // Plan utilisateur — re-fetch au focus pour capter les changements depuis les settings
   const [userPlan, setUserPlan] = useState<PlanType>('free')
+  const [brandingConfig, setBrandingConfig] = useState<BrandingConfig | null>(null)
+  const [brandingLogoUrl, setBrandingLogoUrl] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchPlan() {
@@ -52,7 +55,29 @@ export default function CreateClipsPage() {
         .eq('id', session.user.id)
         .single()
 
-      if (data?.plan) setUserPlan(data.plan as PlanType)
+      if (data?.plan) {
+        setUserPlan(data.plan as PlanType)
+
+        // Fetch branding config for business plan
+        if (data.plan === 'business') {
+          try {
+            const brandingRes = await fetch('/api/account/branding')
+            if (brandingRes.ok) {
+              const brandingData = await brandingRes.json()
+              setBrandingConfig(brandingData.brandingConfig ?? null)
+
+              if (brandingData.brandingConfig?.logoPath) {
+                const { data: logoUrlData } = await supabase.storage
+                  .from('videos')
+                  .createSignedUrl(brandingData.brandingConfig.logoPath, 3600)
+                setBrandingLogoUrl(logoUrlData?.signedUrl ?? null)
+              }
+            }
+          } catch {
+            // non-blocking
+          }
+        }
+      }
     }
 
     fetchPlan()
@@ -234,6 +259,8 @@ export default function CreateClipsPage() {
         segments={segments}
         videoId={videoId}
         userPlan={userPlan}
+        brandingConfig={brandingConfig}
+        brandingLogoUrl={brandingLogoUrl}
         onClose={closeCustomizer}
         onGenerated={() => {
           setCreatedIndices((prev) => new Set(prev).add(index))
@@ -249,9 +276,12 @@ export default function CreateClipsPage() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white md:text-4xl">
-          {t('createClips.title')}
-        </h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-3xl font-bold text-white md:text-4xl">
+            {t('createClips.title')}
+          </h1>
+          <DashboardHeader />
+        </div>
 
         {video && (
           <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-white/50">

@@ -260,14 +260,14 @@
         "name": "Pro",
         "price": "29",
         "description": "Para creadores serios",
-        "features": ["50 clips / mes", "Sin marca de agua", "Todas las funcionalidades", "Vista previa en vivo"],
+        "features": ["40 clips / mes", "Sin marca de agua", "Todas las funcionalidades", "Vista previa en vivo"],
         "cta": "Pasar a Pro"
       },
       "business": {
         "name": "Business",
         "price": "49",
         "description": "Para creadores ambiciosos",
-        "features": ["Todo Pro +", "200 clips / mes", "Persona individual", "Y mucho más"],
+        "features": ["Todo Pro +", "150 clips / mes", "Branding personalizado", "Búsqueda por prompt IA"],
         "cta": "Pasar a Business"
       }
     },
@@ -559,8 +559,8 @@
       "proDesc": "Para creadores serios",
       "businessDesc": "Para creadores ambiciosos",
       "freeFeatures": ["3 clips / mes", "Vista previa en vivo", "Exportación multiformato", "Marca de agua CreaClip"],
-      "proFeatures": ["50 clips / mes", "Sin marca de agua", "Todas las funcionalidades", "Búsqueda por prompt IA"],
-      "businessFeatures": ["Todo Pro +", "200 clips / mes", "Persona individual", "Búsqueda por prompt IA"],
+      "proFeatures": ["40 clips / mes", "Sin marca de agua", "Todas las funcionalidades", "Búsqueda por prompt IA"],
+      "businessFeatures": ["Todo Pro +", "150 clips / mes", "Branding personalizado", "Búsqueda por prompt IA"],
       "popular": "Popular",
       "upgrade": "Pasar a {{name}}",
       "downgrade": "Volver a {{name}}",
@@ -571,11 +571,19 @@
       "creditsRemaining": "{{count}} crédito restante",
       "creditsRemaining_plural": "{{count}} créditos restantes",
       "unlimitedClips": "Clips ilimitados",
-      "proClipsQuota": "50 clips / mes",
-      "businessClipsQuota": "200 clips / mes",
+      "proClipsQuota": "40 clips / mes",
+      "businessClipsQuota": "150 clips / mes",
       "paymentSuccess": "Pago exitoso! Su suscripción está activa.",
       "paymentCanceled": "Pago cancelado. Su plan no ha cambiado.",
-      "manageSubscription": "Gestionar suscripción"
+      "manageSubscription": "Gestionar suscripción",
+      "subscribedSince": "Suscrito desde el",
+      "nextPayment": "Próximo pago el",
+      "cancelScheduled": "Su plan cambiará a Gratuito el {{date}}",
+      "keepPlan": "Mantener mi plan",
+      "cancelReverted": "La cancelación de su plan ha sido revertida.",
+      "downgradeScheduled": "Su plan cambiará a Gratuito el {{date}}. Conserva todas las funciones hasta entonces.",
+      "cancellingAtEnd": "Cancelación al final del período",
+      "alreadyCancelling": "Su suscripción ya está programada para ser cancelada"
     },
     "persona": {
       "title": "Persona IA",
@@ -589,6 +597,33 @@
       "updatedAt": "Actualizado el",
       "noPersona": "Ningún persona generado",
       "noPersonaDesc": "Genere al menos 3 clips para que la IA analice su estilo de creación."
+    },
+    "branding": {
+      "title": "Branding personalizado",
+      "subtitle": "Añade tu logo y texto a todos tus clips",
+      "enabled": "Activar branding",
+      "logo": "Logo",
+      "logoHint": "PNG o JPG, 2 MB máx",
+      "logoUpload": "Haga clic o arrastre su logo aquí",
+      "logoRemove": "Eliminar logo",
+      "text": "Texto",
+      "textPlaceholder": "@tu_usuario",
+      "textHint": "100 caracteres máx",
+      "position": "Posición",
+      "positionCenter": "Centro",
+      "positionBottomRight": "Abajo derecha",
+      "positionBottomLeft": "Abajo izquierda",
+      "positionTopRight": "Arriba derecha",
+      "positionTopLeft": "Arriba izquierda",
+      "display": "Visualización",
+      "showLogo": "Mostrar logo",
+      "showText": "Mostrar texto",
+      "textColor": "Color del texto",
+      "textOpacity": "Opacidad del texto",
+      "preview": "Vista previa",
+      "saved": "¡Branding guardado!",
+      "saveError": "Error al guardar el branding",
+      "logoUploadError": "Error al subir el logo"
     },
     "account": {
       "title": "Cuenta",
@@ -711,6 +746,24 @@
     "watermarkNotice": "Plan Free — Se añadirá una marca de agua CreaClip. Pase a Pro para eliminarla.",
     "limitReached": "Límite alcanzado: {{used}}/{{limit}} clips este mes. Actualice para más clips.",
     "clipQuota": "{{used}}/{{limit}} clips este mes"
+  },
+
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo leído",
+    "empty": "Sin notificaciones",
+    "emptyDesc": "Sus notificaciones aparecerán aquí",
+    "emailPreferences": "Notificaciones por email",
+    "emailPreferencesDesc": "Elija qué tipos de notificaciones desea recibir por email.",
+    "types": {
+      "clip_ready": "Clip listo",
+      "subscription_started": "Suscripción activada",
+      "subscription_changed": "Plan modificado",
+      "subscription_canceled": "Suscripción cancelada",
+      "invoice_paid": "Pago recibido",
+      "payment_failed": "Fallo de pago",
+      "expiry_warning": "Expiración de archivos"
+    }
   },
 
   "cropTimeline": {

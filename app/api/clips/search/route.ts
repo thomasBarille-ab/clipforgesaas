@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { fetchPersonaForUser } from '@/lib/persona'
+// import { fetchPersonaForUser } from '@/lib/persona'
 import { hasFeatureAccess } from '@/lib/plans'
 import type { TranscriptionSegment, PlanType } from '@/types/database'
 
@@ -29,18 +29,18 @@ function buildSearchPrompt(
   userPrompt: string,
   fullText: string,
   segments: TranscriptionSegment[],
-  persona: string | null,
+  _persona: string | null,
   minDuration: number,
   maxDuration: number
 ): string {
   const segmentsJson = JSON.stringify(segments, null, 2)
 
-  const personaBlock = persona
-    ? `\nPROFIL DU CRÉATEUR (adapte tes suggestions à son style) :\n${persona}\n\nTiens compte de ce profil pour privilégier ses thèmes, adapter les durées, formuler les titres dans son style, choisir des hashtags cohérents.\n`
-    : ''
+  // const personaBlock = persona
+  //   ? `\nPROFIL DU CRÉATEUR (adapte tes suggestions à son style) :\n${persona}\n\nTiens compte de ce profil pour privilégier ses thèmes, adapter les durées, formuler les titres dans son style, choisir des hashtags cohérents.\n`
+  //   : ''
 
   return `Tu es un expert en création de contenu viral pour TikTok/Reels/Shorts.
-${personaBlock}
+
 Voici la transcription complète d'une vidéo :
 ${fullText}
 
@@ -201,12 +201,12 @@ export async function POST(request: Request) {
     const maxDuration = canUseFilters && typeof body.maxDuration === 'number' && body.maxDuration >= 30
       ? Math.max(body.maxDuration, minDuration) : 180
 
-    const persona = await fetchPersonaForUser(supabase, user.id, plan)
+    // const persona = await fetchPersonaForUser(supabase, user.id, plan)
     const prompt = buildSearchPrompt(
       body.prompt.trim(),
       transcription.full_text,
       transcription.segments as TranscriptionSegment[],
-      persona,
+      null,
       minDuration,
       maxDuration
     )

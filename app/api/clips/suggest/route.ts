@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { fetchPersonaForUser } from '@/lib/persona'
+// import { fetchPersonaForUser } from '@/lib/persona'
 import { hasFeatureAccess } from '@/lib/plans'
 import type { TranscriptionSegment, PlanType } from '@/types/database'
 
@@ -33,15 +33,15 @@ interface ClipFilters {
   clipCount: number
 }
 
-function buildPrompt(transcription: string, segments: TranscriptionSegment[], persona: string | null, filters: ClipFilters): string {
+function buildPrompt(transcription: string, segments: TranscriptionSegment[], _persona: string | null, filters: ClipFilters): string {
   const segmentsJson = JSON.stringify(segments, null, 2)
 
-  const personaBlock = persona
-    ? `\nPROFIL DU CRÉATEUR (adapte tes suggestions à son style) :\n${persona}\n\nTiens compte de ce profil pour privilégier ses thèmes, adapter les durées, formuler les titres dans son style, choisir des hashtags cohérents.\n`
-    : ''
+  // const personaBlock = persona
+  //   ? `\nPROFIL DU CRÉATEUR (adapte tes suggestions à son style) :\n${persona}\n\nTiens compte de ce profil pour privilégier ses thèmes, adapter les durées, formuler les titres dans son style, choisir des hashtags cohérents.\n`
+  //   : ''
 
   return `Tu es un expert en création de contenu viral pour TikTok/Reels/Shorts.
-${personaBlock}
+
 Voici la transcription complète d'une vidéo :
 ${transcription}
 
@@ -229,8 +229,8 @@ export async function POST(request: Request) {
 
   try {
     // 4. Appeler Claude
-    const persona = await fetchPersonaForUser(supabase, user.id, plan)
-    const prompt = buildPrompt(fullText, segments, persona, filters)
+    // const persona = await fetchPersonaForUser(supabase, user.id, plan)
+    const prompt = buildPrompt(fullText, segments, null, filters)
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',

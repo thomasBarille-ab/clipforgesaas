@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { stripe, PLAN_PRICE_IDS } from '@/lib/stripe'
 import type { PlanType } from '@/types/database'
+
+function getAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 interface CheckoutBody {
   plan: 'pro' | 'business'
@@ -55,7 +63,8 @@ export async function POST(request: Request) {
     })
     customerId = customer.id
 
-    await supabase
+    const admin = getAdminClient()
+    await admin
       .from('profiles')
       .update({ stripe_customer_id: customerId })
       .eq('id', user.id)

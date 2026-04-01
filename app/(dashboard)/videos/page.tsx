@@ -28,6 +28,7 @@ import { ClipPreviewModal } from '@/components/ClipPreviewModal'
 import { VideoThumbnail } from '@/components/VideoThumbnail'
 import { useClipDownload } from '@/hooks/useClipDownload'
 import { useBatchSignedUrls } from '@/hooks/useBatchSignedUrls'
+import { DashboardHeader } from '@/components/DashboardHeader'
 import type { VideoWithClips, Clip } from '@/types/database'
 
 export default function VideosPage() {
@@ -240,13 +241,16 @@ export default function VideosPage() {
               </p>
             )}
           </div>
-          <Link
-            href="/upload"
-            className="animate-pulse-glow flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-orange-600/20 transition-transform hover:scale-105"
-          >
-            <Upload className="h-5 w-5" />
-            {t('videos.importVideo')}
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/upload"
+              className="animate-pulse-glow flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-orange-600/20 transition-transform hover:scale-105"
+            >
+              <Upload className="h-5 w-5" />
+              {t('videos.importVideo')}
+            </Link>
+            <DashboardHeader />
+          </div>
         </div>
 
         {/* Loading skeletons */}
