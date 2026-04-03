@@ -9,6 +9,12 @@ function getAdminClient() {
 }
 
 const DEFAULT_EMAIL_PREFERENCES: NotificationEmailPreferences = {
+  clip_ready: true,
+  subscription_started: true,
+  subscription_changed: true,
+  subscription_canceled: true,
+  invoice_paid: true,
+  payment_failed: true,
   expiry_warning: true,
 }
 

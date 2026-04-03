@@ -10,12 +10,14 @@ import {
   Settings,
   LogOut,
   Loader2,
+  MessageCircle,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { ContactModal } from '@/components/ContactModal'
 
 const NAV_ITEMS = [
   { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
@@ -28,6 +30,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [signingOut, setSigningOut] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
   const { t } = useTranslation()
 
   async function handleSignOut() {
@@ -100,6 +103,13 @@ export function Sidebar() {
             )}
             {t('nav.signOut')}
           </button>
+          <button
+            onClick={() => setContactOpen(true)}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/45 transition-all hover:bg-white/5 hover:text-white/80"
+          >
+            <MessageCircle className="h-[18px] w-[18px]" />
+            {t('nav.contact', 'Contact')}
+          </button>
           <LanguageSwitcher />
         </div>
       </aside>
@@ -145,6 +155,8 @@ export function Sidebar() {
           {t('nav.settings')}
         </Link>
       </nav>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </>
   )
 }

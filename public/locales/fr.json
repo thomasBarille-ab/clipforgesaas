@@ -34,6 +34,7 @@
     "howItWorks": "Comment ça marche",
     "pricing": "Tarifs",
     "faq": "FAQ",
+    "contact": "Contact",
     "login": "Connexion",
     "freeTrial": "Essai gratuit",
     "dashboard": "Dashboard",
@@ -537,6 +538,7 @@
   "settings": {
     "title": "Paramètres",
     "subtitle": "Gérez votre compte et vos préférences",
+    "contact": "Nous contacter",
     "profile": {
       "title": "Profil",
       "noName": "Aucun nom",
@@ -777,5 +779,16 @@
     "horizontalPosition": "Position horizontale",
     "segmentStart": "Début du segment (secondes)",
     "addCutPoint": "Ajouter un point de coupe"
+  },
+
+  "contact": {
+    "title": "Nous contacter",
+    "subtitle": "Une question ou un retour ? N'hésitez pas à nous écrire.",
+    "email": "Votre email",
+    "message": "Message",
+    "messagePlaceholder": "Comment pouvons-nous vous aider ?",
+    "send": "Envoyer",
+    "sent": "Message envoyé !",
+    "sentDesc": "Nous vous répondrons dès que possible."
   }
 }

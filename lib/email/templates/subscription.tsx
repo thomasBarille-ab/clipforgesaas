@@ -12,22 +12,22 @@ import {
 const PLAN_LABELS: Record<string, string> = {
   pro: 'Pro',
   business: 'Business',
-  free: 'Gratuit',
+  free: 'Free',
 }
 
 const PLAN_PRICES: Record<string, string> = {
-  pro: '29€/mois',
-  business: '49€/mois',
-  free: '0€',
+  pro: '$29/mo',
+  business: '$49/mo',
+  free: '$0',
 }
 
 const PLAN_CLIPS: Record<string, string> = {
-  pro: '40 clips/mois',
-  business: '150 clips/mois',
-  free: '3 clips/mois',
+  pro: '40 clips/month',
+  business: '150 clips/month',
+  free: '3 clips/month',
 }
 
-// Email de bienvenue sur un plan payant
+// Subscription started email
 interface SubscriptionStartedProps {
   plan: string
 }
@@ -39,24 +39,24 @@ export function SubscriptionStartedEmail({ plan }: SubscriptionStartedProps) {
   return (
     <Html>
       <Head />
-      <Preview>Votre abonnement {label} est activé !</Preview>
+      <Preview>Your {label} subscription is now active!</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Abonnement {label} activé ! 🚀</Heading>
+            <Heading style={heading}>{label} Plan Activated!</Heading>
             <Text style={paragraph}>
-              Merci pour votre confiance ! Votre abonnement <strong>{label}</strong> ({price}) est maintenant actif.
+              Thank you for your trust! Your <strong>{label}</strong> subscription ({price}) is now active.
             </Text>
             <Text style={paragraph}>
-              Vous avez désormais accès à toutes les fonctionnalités de votre plan :
+              You now have access to all the features of your plan:
             </Text>
             <Text style={list}>
-              • {PLAN_CLIPS[plan] || '50 clips/mois'}{'\n'}
-              • Sans filigrane{'\n'}
-              • Recherche par prompt IA
-              {plan === 'business' ? '\n• Persona créateur personnalisée' : ''}
+              {PLAN_CLIPS[plan] || '50 clips/month'}{'\n'}
+              No watermark{'\n'}
+              AI-powered prompt search
+              {plan === 'business' ? '\nCustom creator persona' : ''}
             </Text>
-            <Text style={footer}>L'équipe CreaClip</Text>
+            <Text style={footer}>The CreaClip Team</Text>
           </Section>
         </Container>
       </Body>
@@ -64,7 +64,7 @@ export function SubscriptionStartedEmail({ plan }: SubscriptionStartedProps) {
   )
 }
 
-// Email de changement de plan
+// Plan changed email
 interface SubscriptionChangedProps {
   oldPlan: string
   newPlan: string
@@ -78,18 +78,18 @@ export function SubscriptionChangedEmail({ oldPlan, newPlan }: SubscriptionChang
   return (
     <Html>
       <Head />
-      <Preview>Votre plan a été modifié : {newLabel}</Preview>
+      <Preview>Your plan has been changed to {newLabel}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Plan modifié ✅</Heading>
+            <Heading style={heading}>Plan Changed</Heading>
             <Text style={paragraph}>
-              Votre abonnement est passé de <strong>{oldLabel}</strong> à <strong>{newLabel}</strong> ({newPrice}).
+              Your subscription has been changed from <strong>{oldLabel}</strong> to <strong>{newLabel}</strong> ({newPrice}).
             </Text>
             <Text style={paragraph}>
-              Les changements sont effectifs immédiatement.
+              The changes are effective immediately.
             </Text>
-            <Text style={footer}>L'équipe CreaClip</Text>
+            <Text style={footer}>The CreaClip Team</Text>
           </Section>
         </Container>
       </Body>
@@ -97,26 +97,26 @@ export function SubscriptionChangedEmail({ oldPlan, newPlan }: SubscriptionChang
   )
 }
 
-// Email d'annulation
+// Subscription canceled email
 export function SubscriptionCanceledEmail() {
   return (
     <Html>
       <Head />
-      <Preview>Votre abonnement a été annulé</Preview>
+      <Preview>Your subscription has been canceled</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Abonnement annulé</Heading>
+            <Heading style={heading}>Subscription Canceled</Heading>
             <Text style={paragraph}>
-              Votre abonnement CreaClip a été annulé. Vous êtes repassé sur le plan <strong>Gratuit</strong>.
+              Your CreaClip subscription has been canceled. You have been switched back to the <strong>Free</strong> plan.
             </Text>
             <Text style={paragraph}>
-              Vous conservez l'accès à 3 clips par mois. Vos clips existants restent disponibles.
+              You still have access to 3 clips per month. Your existing clips remain available.
             </Text>
             <Text style={paragraph}>
-              Vous pouvez vous réabonner à tout moment depuis les paramètres de votre compte.
+              You can resubscribe at any time from your account settings.
             </Text>
-            <Text style={footer}>L'équipe CreaClip</Text>
+            <Text style={footer}>The CreaClip Team</Text>
           </Section>
         </Container>
       </Body>
@@ -124,7 +124,7 @@ export function SubscriptionCanceledEmail() {
   )
 }
 
-// Email de facture
+// Invoice paid email
 interface InvoicePaidProps {
   amount: string
   invoiceUrl: string
@@ -137,18 +137,18 @@ export function InvoicePaidEmail({ amount, invoiceUrl, plan }: InvoicePaidProps)
   return (
     <Html>
       <Head />
-      <Preview>Facture CreaClip - {amount}</Preview>
+      <Preview>CreaClip Invoice - {amount}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Paiement reçu 💳</Heading>
+            <Heading style={heading}>Payment Received</Heading>
             <Text style={paragraph}>
-              Nous avons bien reçu votre paiement de <strong>{amount}</strong> pour le plan <strong>{label}</strong>.
+              We have received your payment of <strong>{amount}</strong> for the <strong>{label}</strong> plan.
             </Text>
             <Text style={paragraph}>
-              <a href={invoiceUrl} style={link}>Voir la facture</a>
+              <a href={invoiceUrl} style={link}>View invoice</a>
             </Text>
-            <Text style={footer}>L'équipe CreaClip</Text>
+            <Text style={footer}>The CreaClip Team</Text>
           </Section>
         </Container>
       </Body>
@@ -156,7 +156,7 @@ export function InvoicePaidEmail({ amount, invoiceUrl, plan }: InvoicePaidProps)
   )
 }
 
-// Email d'échec de paiement
+// Payment failed email
 interface PaymentFailedProps {
   portalUrl: string
 }
@@ -165,24 +165,24 @@ export function PaymentFailedEmail({ portalUrl }: PaymentFailedProps) {
   return (
     <Html>
       <Head />
-      <Preview>Problème avec votre paiement CreaClip</Preview>
+      <Preview>Issue with your CreaClip payment</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Paiement échoué ⚠️</Heading>
+            <Heading style={heading}>Payment Failed</Heading>
             <Text style={paragraph}>
-              Votre dernier paiement CreaClip n'a pas pu être traité. Votre abonnement risque d'être suspendu si le problème persiste.
+              Your latest CreaClip payment could not be processed. Your subscription may be suspended if the issue persists.
             </Text>
             <Text style={paragraph}>
-              Veuillez mettre à jour votre moyen de paiement pour continuer à profiter de votre abonnement :
+              Please update your payment method to continue enjoying your subscription:
             </Text>
             <Text style={paragraph}>
-              <a href={portalUrl} style={link}>Mettre à jour mon paiement</a>
+              <a href={portalUrl} style={link}>Update my payment method</a>
             </Text>
             <Text style={paragraph}>
-              Si vous avez des questions, contactez-nous à support@creaclip.io.
+              If you have any questions, contact us at contact@creaclip.io.
             </Text>
-            <Text style={footer}>L'équipe CreaClip</Text>
+            <Text style={footer}>The CreaClip Team</Text>
           </Section>
         </Container>
       </Body>

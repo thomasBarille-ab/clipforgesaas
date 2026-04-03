@@ -19,28 +19,28 @@ export function ClipReadyEmail({ clipTitle, clipUrl }: ClipReadyEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Votre clip "{clipTitle}" est prêt à être téléchargé !</Preview>
+      <Preview>Your clip "{clipTitle}" is ready to download!</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Votre clip est prêt ! 🎉</Heading>
+            <Heading style={heading}>Your clip is ready!</Heading>
 
             <Text style={paragraph}>
-              Bonne nouvelle ! Votre clip <strong>"{clipTitle}"</strong> a été généré
-              avec succès et est maintenant disponible.
+              Great news! Your clip <strong>"{clipTitle}"</strong> has been successfully
+              generated and is now available.
             </Text>
 
             <Text style={paragraph}>
-              Vous pouvez le télécharger, le partager sur vos réseaux sociaux,
-              ou continuer à l'éditer.
+              You can download it, share it on your social media,
+              or continue editing it.
             </Text>
 
             <Button style={button} href={clipUrl}>
-              Voir mon clip
+              View my clip
             </Button>
 
             <Text style={footer}>
-              L'équipe CreaClip
+              The CreaClip Team
             </Text>
           </Section>
         </Container>

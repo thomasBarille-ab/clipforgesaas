@@ -128,16 +128,16 @@ export async function POST(request: Request) {
             await createNotification(
               userId,
               'subscription_changed',
-              'Plan modifié',
-              `Votre plan a été changé en ${plan === 'business' ? 'Business' : 'Pro'}.`
+              'Plan changed',
+              `Your plan has been changed to ${plan === 'business' ? 'Business' : 'Pro'}.`
             )
           } else {
             await sendSubscriptionStartedEmail(profile.email, plan)
             await createNotification(
               userId,
               'subscription_started',
-              'Abonnement activé',
-              `Votre abonnement ${plan === 'business' ? 'Business' : 'Pro'} est maintenant actif.`
+              'Subscription activated',
+              `Your ${plan === 'business' ? 'Business' : 'Pro'} subscription is now active.`
             )
           }
         }
@@ -177,8 +177,8 @@ export async function POST(request: Request) {
             await createNotification(
               profile.id,
               'subscription_canceled',
-              'Abonnement annulé',
-              'Votre abonnement a été annulé suite à un défaut de paiement.'
+              'Subscription canceled',
+              'Your subscription has been canceled due to a payment failure.'
             )
           }
           break
@@ -208,8 +208,8 @@ export async function POST(request: Request) {
               await createNotification(
                 profile.id,
                 'subscription_changed',
-                'Plan modifié',
-                `Votre plan a été changé en ${newPlan === 'business' ? 'Business' : 'Pro'}.`
+                'Plan changed',
+                `Your plan has been changed to ${newPlan === 'business' ? 'Business' : 'Pro'}.`
               )
             }
           }
@@ -252,8 +252,8 @@ export async function POST(request: Request) {
         await createNotification(
           profile.id,
           'subscription_canceled',
-          'Abonnement annulé',
-          'Votre abonnement a été annulé. Votre plan est repassé en Gratuit.'
+          'Subscription canceled',
+          'Your subscription has been canceled. Your plan has been switched back to Free.'
         )
 
         break
@@ -280,8 +280,8 @@ export async function POST(request: Request) {
         await createNotification(
           profile.id,
           'invoice_paid',
-          'Paiement reçu',
-          `Votre paiement de ${amount} a été traité avec succès.`
+          'Payment received',
+          `Your payment of ${amount} has been processed successfully.`
         )
 
         break
@@ -319,8 +319,8 @@ export async function POST(request: Request) {
         await createNotification(
           profile.id,
           'payment_failed',
-          'Échec de paiement',
-          'Votre dernier paiement a échoué. Veuillez mettre à jour votre moyen de paiement.'
+          'Payment failed',
+          'Your latest payment has failed. Please update your payment method.'
         )
 
         break

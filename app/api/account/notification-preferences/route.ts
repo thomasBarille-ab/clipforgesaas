@@ -40,7 +40,15 @@ export async function GET() {
 
   return NextResponse.json({
     preferences: (profile.notification_email_preferences as NotificationEmailPreferences | null)
-      ?? { expiry_warning: true },
+      ?? {
+        clip_ready: true,
+        subscription_started: true,
+        subscription_changed: true,
+        subscription_canceled: true,
+        invoice_paid: true,
+        payment_failed: true,
+        expiry_warning: true,
+      },
   })
 }
 

@@ -39,7 +39,15 @@ const NOTIFICATION_TYPES: {
 
 export function NotificationPreferences({ open, onClose }: Props) {
   const { t } = useTranslation()
-  const [preferences, setPreferences] = useState<Prefs>({ expiry_warning: true })
+  const [preferences, setPreferences] = useState<Prefs>({
+    clip_ready: true,
+    subscription_started: true,
+    subscription_changed: true,
+    subscription_canceled: true,
+    invoice_paid: true,
+    payment_failed: true,
+    expiry_warning: true,
+  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 

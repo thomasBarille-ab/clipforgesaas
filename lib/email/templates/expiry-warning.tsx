@@ -27,24 +27,24 @@ export function ExpiryWarningEmail({ videos, clips, appUrl }: ExpiryWarningEmail
     <Html>
       <Head />
       <Preview>
-        {`${totalCount} fichier${totalCount > 1 ? 's' : ''} expire${totalCount > 1 ? 'nt' : ''} demain`}
+        {`${totalCount} file${totalCount > 1 ? 's' : ''} expiring tomorrow`}
       </Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Vos fichiers expirent demain</Heading>
+            <Heading style={heading}>Your files are expiring tomorrow</Heading>
             <Text style={paragraph}>
-              Les fichiers suivants seront automatiquement supprimés dans les prochaines <strong>24 heures</strong>.
-              Pensez à télécharger ceux que vous souhaitez conserver.
+              The following files will be automatically deleted within the next <strong>24 hours</strong>.
+              Make sure to download the ones you want to keep.
             </Text>
 
             {videos.length > 0 && (
               <>
                 <Text style={sectionTitle}>
-                  Vidéos ({videos.length})
+                  Videos ({videos.length})
                 </Text>
                 <Text style={list}>
-                  {videos.map((v) => `• ${v.title}`).join('\n')}
+                  {videos.map((v) => `${v.title}`).join('\n')}
                 </Text>
               </>
             )}
@@ -55,22 +55,22 @@ export function ExpiryWarningEmail({ videos, clips, appUrl }: ExpiryWarningEmail
                   Clips ({clips.length})
                 </Text>
                 <Text style={list}>
-                  {clips.map((c) => `• ${c.title}`).join('\n')}
+                  {clips.map((c) => `${c.title}`).join('\n')}
                 </Text>
               </>
             )}
 
             <Section style={ctaContainer}>
               <Link href={`${appUrl}/videos`} style={ctaButton}>
-                Télécharger mes fichiers
+                Download my files
               </Link>
             </Section>
 
             <Text style={hint}>
-              Les vidéos et clips sont disponibles 7 jours après leur création. Passé ce délai, ils sont automatiquement supprimés.
+              Videos and clips are available for 7 days after creation. After that, they are automatically deleted.
             </Text>
 
-            <Text style={footer}>L'équipe CreaClip</Text>
+            <Text style={footer}>The CreaClip Team</Text>
           </Section>
         </Container>
       </Body>

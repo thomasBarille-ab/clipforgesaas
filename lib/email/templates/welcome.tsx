@@ -20,35 +20,35 @@ export function WelcomeEmail({ userName }: WelcomeEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Bienvenue sur CreaClip - Créez des clips viraux en quelques clics</Preview>
+      <Preview>Welcome to CreaClip - Create viral clips in a few clicks</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={heading}>Bienvenue {userName} ! 🎬</Heading>
+            <Heading style={heading}>Welcome {userName}!</Heading>
 
             <Text style={paragraph}>
-              Merci de rejoindre <strong>CreaClip</strong>, la plateforme qui transforme
-              vos vidéos longues en clips courts optimisés pour les réseaux sociaux.
+              Thanks for joining <strong>CreaClip</strong>, the platform that turns
+              your long videos into short clips optimized for social media.
             </Text>
 
             <Text style={paragraph}>
-              Pour commencer, uploadez votre première vidéo et laissez notre IA vous
-              suggérer les meilleurs moments à clipper.
+              To get started, upload your first video and let our AI suggest
+              the best moments to clip.
             </Text>
 
             <Button style={button} href={`${appUrl}/upload`}>
-              Créer mon premier clip
+              Create my first clip
             </Button>
 
             <Text style={paragraph}>
-              Besoin d'aide ? Répondez à cet email ou contactez-nous à{' '}
-              <a href="mailto:support@creaclip.io" style={link}>
-                support@creaclip.io
+              Need help? Reply to this email or contact us at{' '}
+              <a href="mailto:contact@creaclip.io" style={link}>
+                contact@creaclip.io
               </a>
             </Text>
 
             <Text style={footer}>
-              L'équipe CreaClip
+              The CreaClip Team
             </Text>
           </Section>
         </Container>

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { canCreateClip } from '@/lib/plans'
-import { createNotification } from '@/lib/notifications'
+import { createNotification, isEmailEnabledForType } from '@/lib/notifications'
+import { sendClipReadyEmail } from '@/lib/email/send'
 import type { PlanType } from '@/types/database'
 
 export async function POST(request: Request) {
@@ -96,12 +97,21 @@ export async function POST(request: Request) {
     .eq('id', clipId)
     .single()
 
+  const clipTitle = updatedClip?.title ?? 'Untitled'
+
   await createNotification(
     user.id,
     'clip_ready',
-    'Clip prêt',
-    `Votre clip "${updatedClip?.title ?? 'Sans titre'}" est prêt.`
+    'Clip ready',
+    `Your clip "${clipTitle}" is ready.`
   )
+
+  // Send email if user has clip_ready emails enabled
+  const emailEnabled = await isEmailEnabledForType(user.id, 'clip_ready')
+  if (emailEnabled && user.email) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.creaclip.com'
+    sendClipReadyEmail(user.email, clipTitle, `${appUrl}/clips`).catch(console.error)
+  }
 
   return NextResponse.json({
     success: true,

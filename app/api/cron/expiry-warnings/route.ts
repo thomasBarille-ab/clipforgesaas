@@ -89,8 +89,8 @@ export async function GET(request: Request) {
       await createNotification(
         userId,
         'expiry_warning',
-        'Fichiers expirant bientôt',
-        `${totalCount} fichier${totalCount > 1 ? 's' : ''} expire${totalCount > 1 ? 'nt' : ''} dans les prochaines 24h.`
+        'Files expiring soon',
+        `${totalCount} file${totalCount > 1 ? 's' : ''} expiring in the next 24 hours.`
       )
 
       // Vérifier les préférences email

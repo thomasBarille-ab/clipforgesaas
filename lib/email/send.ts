@@ -15,7 +15,7 @@ export async function sendWelcomeEmail(to: string, userName: string): Promise<bo
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: 'Bienvenue sur CreaClip ! 🎬',
+      subject: 'Welcome to CreaClip!',
       react: WelcomeEmail({ userName }),
     })
     if (error) {
@@ -34,7 +34,7 @@ export async function sendClipReadyEmail(to: string, clipTitle: string, clipUrl:
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Votre clip "${clipTitle}" est prêt ! 🎉`,
+      subject: `Your clip "${clipTitle}" is ready!`,
       react: ClipReadyEmail({ clipTitle, clipUrl }),
     })
     if (error) {
@@ -53,7 +53,7 @@ export async function sendSubscriptionStartedEmail(to: string, plan: string): Pr
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Abonnement ${plan === 'business' ? 'Business' : 'Pro'} activé ! 🚀`,
+      subject: `${plan === 'business' ? 'Business' : 'Pro'} Plan Activated!`,
       react: SubscriptionStartedEmail({ plan }),
     })
     if (error) {
@@ -72,7 +72,7 @@ export async function sendSubscriptionChangedEmail(to: string, oldPlan: string, 
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Plan modifié : ${newPlan === 'business' ? 'Business' : 'Pro'} ✅`,
+      subject: `Plan changed to ${newPlan === 'business' ? 'Business' : 'Pro'}`,
       react: SubscriptionChangedEmail({ oldPlan, newPlan }),
     })
     if (error) {
@@ -91,7 +91,7 @@ export async function sendSubscriptionCanceledEmail(to: string): Promise<boolean
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: 'Votre abonnement a été annulé',
+      subject: 'Your subscription has been canceled',
       react: SubscriptionCanceledEmail(),
     })
     if (error) {
@@ -110,7 +110,7 @@ export async function sendInvoicePaidEmail(to: string, amount: string, invoiceUr
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Facture CreaClip - ${amount} 💳`,
+      subject: `CreaClip Invoice - ${amount}`,
       react: InvoicePaidEmail({ amount, invoiceUrl, plan }),
     })
     if (error) {
@@ -129,7 +129,7 @@ export async function sendPaymentFailedEmail(to: string, portalUrl: string): Pro
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: 'Problème avec votre paiement CreaClip ⚠️',
+      subject: 'Issue with your CreaClip payment',
       react: PaymentFailedEmail({ portalUrl }),
     })
     if (error) {
@@ -158,7 +158,7 @@ export async function sendExpiryWarningEmail(
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `${totalCount} fichier${totalCount > 1 ? 's' : ''} expire${totalCount > 1 ? 'nt' : ''} demain`,
+      subject: `${totalCount} file${totalCount > 1 ? 's' : ''} expiring tomorrow`,
       react: ExpiryWarningEmail({ videos, clips, appUrl }),
     })
     if (error) {
