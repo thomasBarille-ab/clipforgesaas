@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { WaitlistForm } from './WaitlistForm'
+import { ArrowRight } from 'lucide-react'
 
 export function FinalCTA() {
   const { t } = useTranslation()
@@ -12,8 +13,20 @@ export function FinalCTA() {
         <h2 className="mb-6 text-5xl font-bold text-white md:text-6xl">
           {t('landing.finalCta.title')}
         </h2>
-        <div className="mt-12 flex justify-center">
-          <WaitlistForm />
+        <div className="mt-12 flex flex-wrap justify-center gap-4">
+          <Link
+            href="/signup"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-orange-500/25 transition-transform hover:scale-105"
+          >
+            {t('landing.hero.getStarted')}
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+          <Link
+            href="/login"
+            className="rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-lg font-medium text-white transition-colors hover:bg-white/10"
+          >
+            {t('nav.signIn')}
+          </Link>
         </div>
 
         <div className="mt-12 flex flex-wrap justify-center gap-8 text-slate-400">

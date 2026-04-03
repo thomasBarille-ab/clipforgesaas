@@ -13,12 +13,15 @@ import {
   CaseSensitive,
   CaseUpper,
   RectangleHorizontal,
-  Power,
   Save,
   X,
   BookmarkCheck,
   ChevronDown,
   Captions,
+  Bold,
+  Italic,
+  Sun,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/Toast'
@@ -27,6 +30,7 @@ import {
   FONT_SIZE_MAP,
   TEXT_COLOR_PRESETS,
   STROKE_COLOR_PRESETS,
+  BG_COLOR_PRESETS,
   loadPresets,
   savePreset,
   deletePreset,
@@ -38,14 +42,34 @@ interface SubtitleEditorProps {
   onChange: (style: SubtitleStyle) => void
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
+function AccordionSection({
+  title,
+  icon: Icon,
+  defaultOpen = true,
+  children,
+}: {
+  title: string
+  icon: React.ElementType
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center gap-2 text-sm font-medium text-white/70">
-        <Icon className="h-4 w-4" />
-        {title}
-      </div>
-      {children}
+    <div className="border-b border-white/5 last:border-b-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-2 py-3 text-left"
+      >
+        <Icon className="h-3.5 w-3.5 text-white/40" />
+        <span className="text-xs font-semibold text-white/70 uppercase tracking-wider">{title}</span>
+        <ChevronDown
+          className={cn(
+            'ml-auto h-3.5 w-3.5 text-white/30 transition-transform',
+            open && 'rotate-180'
+          )}
+        />
+      </button>
+      {open && <div className="pb-3 space-y-2.5">{children}</div>}
     </div>
   )
 }
@@ -65,7 +89,7 @@ function ColorSwatch({
       onClick={onClick}
       className={cn(
         'h-8 w-8 rounded-lg border-2 transition-all',
-        selected ? 'border-purple-400 scale-110' : 'border-white/20 hover:border-white/40'
+        selected ? 'border-orange-400 scale-110' : 'border-white/20 hover:border-white/40'
       )}
       style={{ backgroundColor: isTransparent ? undefined : color }}
     >
@@ -125,7 +149,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
           onClick={(e) => { e.stopPropagation(); update('enabled', !style.enabled) }}
           className={cn(
             'ml-auto mr-2 cursor-pointer rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors',
-            style.enabled ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'
+            style.enabled ? 'bg-orange-500/30 text-orange-200' : 'bg-white/10 text-white/40'
           )}
         >
           {style.enabled ? 'ON' : 'OFF'}
@@ -139,18 +163,14 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
       </button>
 
       {open && (
-      <div className="space-y-6 px-5 pb-5">
-      {/* Presets */}
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium text-white/70">
-            <BookmarkCheck className="h-4 w-4" />
-            {t('subtitles.presets')}
-          </div>
+      <div className="px-5 pb-5">
+      {/* 1. Presets */}
+      <AccordionSection title={t('subtitles.presets')} icon={BookmarkCheck} defaultOpen={true}>
+        <div className="flex items-center justify-end">
           {!saving && (
             <button
               onClick={() => setSaving(true)}
-              className="flex items-center gap-1 text-xs text-purple-400 transition-colors hover:text-purple-300"
+              className="flex items-center gap-1 text-xs text-orange-400 transition-colors hover:text-orange-300"
             >
               <Save className="h-3 w-3" />
               {t('subtitles.savePreset')}
@@ -168,12 +188,12 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
               onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
               placeholder={t('subtitles.presetNamePlaceholder')}
               autoFocus
-              className="flex-1 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none"
+              className="flex-1 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:border-orange-500 focus:outline-none"
             />
             <button
               onClick={handleSavePreset}
               disabled={!presetName.trim()}
-              className="rounded-lg bg-purple-500/20 px-3 py-1.5 text-sm font-medium text-purple-300 transition-colors hover:bg-purple-500/30 disabled:opacity-40"
+              className="rounded-lg bg-orange-500/20 px-3 py-1.5 text-sm font-medium text-orange-300 transition-colors hover:bg-orange-500/30 disabled:opacity-40"
             >
               OK
             </button>
@@ -192,7 +212,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
             {presets.map((preset) => (
               <div
                 key={preset.id}
-                className="group flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 transition-all hover:border-purple-500/30"
+                className="group flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 transition-all hover:border-orange-500/30"
               >
                 <button
                   onClick={() => handleApplyPreset(preset)}
@@ -216,21 +236,21 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
         ) : (
           <p className="text-xs text-white/30">{t('subtitles.noPresets')}</p>
         )}
-      </div>
+      </AccordionSection>
 
       {style.enabled && (
         <>
-          {/* Police */}
-          <Section title={t('subtitles.font')} icon={Type}>
-            <div className="grid grid-cols-2 gap-2">
+          {/* 2. Police */}
+          <AccordionSection title={t('subtitles.font')} icon={Type} defaultOpen={true}>
+            <div className="grid grid-cols-3 gap-1.5">
               {FONT_OPTIONS.map((font) => (
                 <button
                   key={font.value}
                   onClick={() => update('fontFamily', font.value)}
                   className={cn(
-                    'rounded-lg border px-3 py-2 text-sm transition-all',
+                    'rounded-lg border px-2 py-1.5 text-xs transition-all truncate',
                     style.fontFamily === font.value
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white'
                   )}
                   style={{ fontFamily: `'${font.value}', sans-serif` }}
@@ -239,82 +259,239 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                 </button>
               ))}
             </div>
-          </Section>
+          </AccordionSection>
 
-          {/* Taille */}
-          <Section title={t('subtitles.size')} icon={ALargeSmall}>
+          {/* 3. Style (Taille + Bold/Italic + Casse) */}
+          <AccordionSection title={t('subtitles.style')} icon={ALargeSmall} defaultOpen={true}>
+            {/* Taille */}
+            <div className="space-y-1.5">
+              <span className="text-xs text-white/40">{t('subtitles.size')}</span>
+              <div className="flex gap-2">
+                {(Object.keys(FONT_SIZE_MAP) as SubtitleStyle['fontSize'][]).map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => update('fontSize', size)}
+                    className={cn(
+                      'flex-1 rounded-lg border py-2 text-sm font-medium transition-all',
+                      style.fontSize === size
+                        ? 'border-orange-500 bg-orange-500/20 text-white'
+                        : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
+                    )}
+                  >
+                    {FONT_SIZE_MAP[size].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bold / Italic toggles */}
             <div className="flex gap-2">
-              {(Object.keys(FONT_SIZE_MAP) as SubtitleStyle['fontSize'][]).map((size) => (
-                <button
-                  key={size}
-                  onClick={() => update('fontSize', size)}
-                  className={cn(
-                    'flex-1 rounded-lg border py-2 text-sm font-medium transition-all',
-                    style.fontSize === size
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
-                  )}
-                >
-                  {FONT_SIZE_MAP[size].label}
-                </button>
-              ))}
+              <button
+                onClick={() => update('fontWeight', style.fontWeight === 'bold' ? 'normal' : 'bold')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-sm transition-all',
+                  style.fontWeight === 'bold'
+                    ? 'border-orange-500 bg-orange-500/20 text-white'
+                    : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
+                )}
+              >
+                <Bold className="h-3.5 w-3.5" />
+                {t('subtitles.bold')}
+              </button>
+              <button
+                onClick={() => update('fontStyle', style.fontStyle === 'italic' ? 'normal' : 'italic')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-sm transition-all',
+                  style.fontStyle === 'italic'
+                    ? 'border-orange-500 bg-orange-500/20 text-white'
+                    : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
+                )}
+              >
+                <Italic className="h-3.5 w-3.5" />
+                {t('subtitles.italic')}
+              </button>
             </div>
-          </Section>
 
-          {/* Couleur du texte */}
-          <Section title={t('subtitles.textColor')} icon={Palette}>
-            <div className="flex flex-wrap gap-2">
-              {TEXT_COLOR_PRESETS.map((color) => (
-                <ColorSwatch
-                  key={color}
-                  color={color}
-                  selected={style.textColor === color}
-                  onClick={() => update('textColor', color)}
-                />
-              ))}
-              <label className="relative">
+            {/* Casse */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => update('textTransform', 'none')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-sm transition-all',
+                  style.textTransform === 'none'
+                    ? 'border-orange-500 bg-orange-500/20 text-white'
+                    : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
+                )}
+              >
+                <CaseSensitive className="h-3.5 w-3.5" />
+                Aa
+              </button>
+              <button
+                onClick={() => update('textTransform', 'uppercase')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-sm transition-all',
+                  style.textTransform === 'uppercase'
+                    ? 'border-orange-500 bg-orange-500/20 text-white'
+                    : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
+                )}
+              >
+                <CaseUpper className="h-3.5 w-3.5" />
+                AA
+              </button>
+            </div>
+          </AccordionSection>
+
+          {/* 4. Couleurs (Texte + Contour) */}
+          <AccordionSection title={t('subtitles.colors')} icon={Palette} defaultOpen={true}>
+            {/* Couleur du texte */}
+            <div className="space-y-1.5">
+              <span className="text-xs text-white/40">{t('subtitles.textColor')}</span>
+              <div className="flex flex-wrap gap-2">
+                {TEXT_COLOR_PRESETS.map((color) => (
+                  <ColorSwatch
+                    key={color}
+                    color={color}
+                    selected={style.textColor === color}
+                    onClick={() => update('textColor', color)}
+                  />
+                ))}
+                <label className="relative">
+                  <input
+                    type="color"
+                    value={style.textColor}
+                    onChange={(e) => update('textColor', e.target.value)}
+                    className="absolute inset-0 h-8 w-8 cursor-pointer opacity-0"
+                  />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-dashed border-white/20 text-xs text-white/40 hover:border-white/40">
+                    +
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Contour */}
+            <div className="space-y-1.5">
+              <span className="text-xs text-white/40">{t('subtitles.stroke')}</span>
+              <div className="flex flex-wrap gap-2">
+                {STROKE_COLOR_PRESETS.map((color) => (
+                  <ColorSwatch
+                    key={color}
+                    color={color}
+                    selected={style.strokeColor === color}
+                    onClick={() => update('strokeColor', color)}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-white/40">{t('subtitles.strokeWidth')}</span>
                 <input
-                  type="color"
-                  value={style.textColor}
-                  onChange={(e) => update('textColor', e.target.value)}
-                  className="absolute inset-0 h-8 w-8 cursor-pointer opacity-0"
+                  type="range"
+                  min={0}
+                  max={8}
+                  step={1}
+                  value={style.strokeWidth}
+                  onChange={(e) => update('strokeWidth', Number(e.target.value))}
+                  className="flex-1 accent-orange-500"
                 />
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-dashed border-white/20 text-xs text-white/40 hover:border-white/40">
-                  +
-                </div>
-              </label>
+                <span className="w-6 text-right text-xs text-white/50">{style.strokeWidth}</span>
+              </div>
             </div>
-          </Section>
+          </AccordionSection>
 
-          {/* Contour */}
-          <Section title={t('subtitles.stroke')} icon={PaintBucket}>
-            <div className="flex flex-wrap gap-2">
-              {STROKE_COLOR_PRESETS.map((color) => (
-                <ColorSwatch
-                  key={color}
-                  color={color}
-                  selected={style.strokeColor === color}
-                  onClick={() => update('strokeColor', color)}
-                />
-              ))}
-            </div>
+          {/* 5. Ombre */}
+          <AccordionSection title={t('subtitles.shadow')} icon={Sun} defaultOpen={false}>
+            {/* Toggle ON/OFF */}
             <div className="flex items-center gap-3">
-              <span className="text-xs text-white/40">{t('subtitles.strokeWidth')}</span>
-              <input
-                type="range"
-                min={0}
-                max={8}
-                step={1}
-                value={style.strokeWidth}
-                onChange={(e) => update('strokeWidth', Number(e.target.value))}
-                className="flex-1 accent-purple-500"
-              />
-              <span className="w-6 text-right text-xs text-white/50">{style.strokeWidth}</span>
+              <button
+                onClick={() => update('shadow', !style.shadow)}
+                className={cn(
+                  'relative h-6 w-11 rounded-full transition-colors',
+                  style.shadow ? 'bg-orange-500' : 'bg-white/20'
+                )}
+              >
+                <span
+                  className={cn(
+                    'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+                    style.shadow && 'translate-x-5'
+                  )}
+                />
+              </button>
+              <span className="text-xs text-white/50">{style.shadow ? 'ON' : 'OFF'}</span>
             </div>
-          </Section>
 
-          {/* Position */}
-          <Section title={t('subtitles.position')} icon={AlignVerticalJustifyCenter}>
+            {style.shadow && (
+              <>
+                {/* Couleur */}
+                <div className="space-y-1.5">
+                  <span className="text-xs text-white/40">{t('subtitles.shadowColor')}</span>
+                  <div className="flex items-center gap-2">
+                    <label className="relative">
+                      <input
+                        type="color"
+                        value={style.shadowColor}
+                        onChange={(e) => update('shadowColor', e.target.value)}
+                        className="absolute inset-0 h-8 w-8 cursor-pointer opacity-0"
+                      />
+                      <div
+                        className="h-8 w-8 rounded-lg border-2 border-white/20 hover:border-white/40"
+                        style={{ backgroundColor: style.shadowColor }}
+                      />
+                    </label>
+                    <span className="text-xs text-white/40">{style.shadowColor}</span>
+                  </div>
+                </div>
+
+                {/* Blur */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-white/40">{t('subtitles.shadowBlur')}</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={20}
+                    step={1}
+                    value={style.shadowBlur}
+                    onChange={(e) => update('shadowBlur', Number(e.target.value))}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="w-6 text-right text-xs text-white/50">{style.shadowBlur}</span>
+                </div>
+
+                {/* Offset X */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-white/40">{t('subtitles.shadowOffset')} X</span>
+                  <input
+                    type="range"
+                    min={-10}
+                    max={10}
+                    step={1}
+                    value={style.shadowOffsetX}
+                    onChange={(e) => update('shadowOffsetX', Number(e.target.value))}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="w-6 text-right text-xs text-white/50">{style.shadowOffsetX}</span>
+                </div>
+
+                {/* Offset Y */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-white/40">{t('subtitles.shadowOffset')} Y</span>
+                  <input
+                    type="range"
+                    min={-10}
+                    max={10}
+                    step={1}
+                    value={style.shadowOffsetY}
+                    onChange={(e) => update('shadowOffsetY', Number(e.target.value))}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="w-6 text-right text-xs text-white/50">{style.shadowOffsetY}</span>
+                </div>
+              </>
+            )}
+          </AccordionSection>
+
+          {/* 6. Position & Fond */}
+          <AccordionSection title={t('subtitles.positionAndBg')} icon={MapPin} defaultOpen={true}>
+            {/* Position */}
             <div className="flex gap-2">
               {([
                 { value: 'top', labelKey: 'subtitles.positionTop', icon: AlignVerticalJustifyStart },
@@ -327,7 +504,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-sm transition-all',
                     style.position === value
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -336,57 +513,17 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                 </button>
               ))}
             </div>
-          </Section>
-
-          {/* Style texte */}
-          <div className="flex gap-3">
-            {/* Casse */}
-            <div className="flex-1 space-y-2.5">
-              <div className="flex items-center gap-2 text-sm font-medium text-white/70">
-                <CaseSensitive className="h-4 w-4" />
-                {t('subtitles.case')}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => update('textTransform', 'none')}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-sm transition-all',
-                    style.textTransform === 'none'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
-                  )}
-                >
-                  <CaseSensitive className="h-3.5 w-3.5" />
-                  Aa
-                </button>
-                <button
-                  onClick={() => update('textTransform', 'uppercase')}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-1 rounded-lg border py-2 text-sm transition-all',
-                    style.textTransform === 'uppercase'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
-                  )}
-                >
-                  <CaseUpper className="h-3.5 w-3.5" />
-                  AA
-                </button>
-              </div>
-            </div>
 
             {/* Fond */}
-            <div className="flex-1 space-y-2.5">
-              <div className="flex items-center gap-2 text-sm font-medium text-white/70">
-                <RectangleHorizontal className="h-4 w-4" />
-                {t('subtitles.background')}
-              </div>
+            <div className="space-y-1.5">
+              <span className="text-xs text-white/40">{t('subtitles.background')}</span>
               <div className="flex gap-2">
                 <button
                   onClick={() => update('background', 'none')}
                   className={cn(
                     'flex-1 rounded-lg border py-2 text-sm transition-all',
                     style.background === 'none'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -397,7 +534,7 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                   className={cn(
                     'flex-1 rounded-lg border py-2 text-sm transition-all',
                     style.background === 'box'
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      ? 'border-orange-500 bg-orange-500/20 text-white'
                       : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
                   )}
                 >
@@ -405,7 +542,24 @@ export function SubtitleEditor({ style, onChange }: SubtitleEditorProps) {
                 </button>
               </div>
             </div>
-          </div>
+
+            {/* Couleur du fond (visible uniquement si box) */}
+            {style.background === 'box' && (
+              <div className="space-y-1.5">
+                <span className="text-xs text-white/40">{t('subtitles.bgColor')}</span>
+                <div className="flex flex-wrap gap-2">
+                  {BG_COLOR_PRESETS.map((color) => (
+                    <ColorSwatch
+                      key={color}
+                      color={color}
+                      selected={style.backgroundColor === color}
+                      onClick={() => update('backgroundColor', color)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </AccordionSection>
         </>
       )}
     </div>

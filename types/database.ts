@@ -2,23 +2,61 @@
 // Enums (matching Supabase enums)
 // ============================================================
 export type PlanType = 'free' | 'pro' | 'business'
+export type NotificationType =
+  | 'clip_ready'
+  | 'subscription_started'
+  | 'subscription_changed'
+  | 'subscription_canceled'
+  | 'invoice_paid'
+  | 'payment_failed'
+  | 'expiry_warning'
 export type VideoStatus = 'uploaded' | 'processing' | 'ready' | 'failed'
 export type ClipStatus = 'pending' | 'generating' | 'ready' | 'failed'
 export type JobType = 'transcription' | 'clip_generation' | 'subtitle_burn'
 export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
 // ============================================================
+// Branding (Business plan)
+// ============================================================
+export type BrandingPosition = 'center' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+
+export interface BrandingConfig {
+  enabled: boolean
+  text: string
+  logoPath: string | null
+  position: BrandingPosition
+  showLogo: boolean
+  showText: boolean
+  textColor: string
+  textOpacity: number
+}
+
+// ============================================================
 // Tables
 // ============================================================
+export type NotificationEmailPreferences = Partial<Record<NotificationType, boolean>>
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  message: string
+  metadata: Record<string, unknown>
+  read: boolean
+  created_at: string
+}
+
 export interface Profile {
   id: string
   email: string
   full_name: string | null
   avatar_url: string | null
   plan: PlanType
-  credits_remaining: number
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
+  branding_config: BrandingConfig | null
+  notification_email_preferences: NotificationEmailPreferences | null
   created_at: string
   updated_at: string
 }

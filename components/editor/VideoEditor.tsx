@@ -3,12 +3,12 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
-import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2 } from 'lucide-react'
+import { Pencil, AlignLeft, Hash, Clock, TrendingUp, Crop, Check, Loader2, AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Scissors, Trash2, Undo2, Redo2, Play, Pause, RotateCcw, Sparkles, ZoomIn, SplitSquareVertical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { trimAndConcatSegments } from '@/lib/ffmpeg'
 import { generateSrtForSegments } from '@/lib/generateSrt'
-import { formatTime } from '@/lib/utils'
-import { Input, Textarea, AlertBanner, ProgressBar, useToast } from '@/components/ui'
+import { formatTime, cn } from '@/lib/utils'
+import { Input, Textarea, AlertBanner, ProgressBar, ConfirmModal, useToast } from '@/components/ui'
 import { CollapsibleBlock } from '@/components/CollapsibleBlock'
 import { SubtitleEditor } from '@/components/SubtitleEditor'
 import { EditorProvider, useEditor } from './EditorProvider'
@@ -19,8 +19,9 @@ import { EditorPreview } from './preview/EditorPreview'
 import { DEFAULT_SUBTITLE_STYLE } from '@/types/subtitles'
 import type { SubtitleStyle } from '@/types/subtitles'
 import { getPlanLimits, canCreateClip } from '@/lib/plans'
-import type { ClipSuggestion, ClipInsert, TranscriptionSegment, PlanType } from '@/types/database'
-import type { TimelineSegment } from './types'
+import type { ClipSuggestion, ClipInsert, TranscriptionSegment, PlanType, BrandingConfig } from '@/types/database'
+import type { BrandingOverlayOptions } from '@/lib/ffmpeg'
+import type { TimelineSegment, SplitScreenConfig } from './types'
 
 type GeneratingState = {
   step: 'creating' | 'loading-ffmpeg' | 'downloading' | 'processing' | 'uploading' | 'finalizing' | 'done'
@@ -43,8 +44,123 @@ interface VideoEditorProps {
   segments: TranscriptionSegment[]
   videoId: string
   userPlan?: PlanType
+  brandingConfig?: BrandingConfig | null
+  brandingLogoUrl?: string | null
   onClose: () => void
   onGenerated: () => void
+}
+
+function TimelineActions({ generating }: { generating: boolean }) {
+  const { t } = useTranslation()
+  const { state, dispatch, segmentOffsets, totalDuration, canUndo, canRedo } = useEditor()
+  const { segments, selectedSegmentId, playheadTime, playing } = state
+
+  const canSplit = (() => {
+    for (let i = 0; i < segments.length; i++) {
+      const off = segmentOffsets[i]
+      if (playheadTime > off.timelineStart && playheadTime < off.timelineEnd) {
+        const seg = segments[i]
+        const splitSourceTime = seg.sourceStart + (playheadTime - off.timelineStart)
+        return splitSourceTime - seg.sourceStart >= 1 && seg.sourceEnd - splitSourceTime >= 1
+      }
+    }
+    return false
+  })()
+
+  const canDelete = selectedSegmentId !== null && segments.length > 1
+
+  return (
+    <div className="flex flex-shrink-0 items-center justify-between border-b border-white/10 px-4 py-2">
+      {/* Gauche : actions d'édition */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => dispatch({ type: 'UNDO' })}
+          disabled={!canUndo || generating}
+          title={`${t('editor.toolbar.undo')} (Ctrl+Z)`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all',
+            canUndo && !generating
+              ? 'bg-white/10 text-white hover:bg-white/15'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Undo2 className="h-4 w-4" />
+        </button>
+
+        <button
+          onClick={() => dispatch({ type: 'REDO' })}
+          disabled={!canRedo || generating}
+          title={`${t('editor.toolbar.redo')} (Ctrl+Y)`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all',
+            canRedo && !generating
+              ? 'bg-white/10 text-white hover:bg-white/15'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Redo2 className="h-4 w-4" />
+        </button>
+
+        <div className="mx-1 h-5 w-px bg-white/10" />
+
+        <button
+          onClick={() => dispatch({ type: 'SPLIT_AT_PLAYHEAD' })}
+          disabled={!canSplit || generating}
+          title={`${t('editor.toolbar.split')} (S)`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            canSplit && !generating
+              ? 'bg-white/10 text-white hover:bg-white/15'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Scissors className="h-4 w-4" />
+          {t('editor.toolbar.split')}
+        </button>
+
+        <button
+          onClick={() => selectedSegmentId && dispatch({ type: 'DELETE_SEGMENT', id: selectedSegmentId })}
+          disabled={!canDelete || generating}
+          title={`${t('editor.toolbar.delete')} (Suppr)`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            canDelete && !generating
+              ? 'bg-white/10 text-red-400 hover:bg-red-500/20'
+              : 'bg-white/5 text-white/30 cursor-not-allowed',
+          )}
+        >
+          <Trash2 className="h-4 w-4" />
+          {t('editor.toolbar.delete')}
+        </button>
+      </div>
+
+      {/* Droite : playback + timecode */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            dispatch({ type: 'SET_PLAYHEAD', time: 0 })
+            dispatch({ type: 'SET_PLAYING', playing: false })
+          }}
+          title={t('editor.toolbar.undo') ? 'Retour au début' : 'Reset'}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
+
+        <button
+          onClick={() => dispatch({ type: 'SET_PLAYING', playing: !playing })}
+          title={`${playing ? 'Pause' : 'Lecture'} (Espace)`}
+          className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-white transition-all hover:bg-white/20"
+        >
+          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+        </button>
+
+        <span className="ml-1 text-xs text-white/50 tabular-nums">
+          {formatTime(playheadTime)} / {formatTime(totalDuration)}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function EditorContent({
@@ -53,6 +169,8 @@ function EditorContent({
   segments,
   videoId,
   userPlan = 'pro',
+  brandingConfig,
+  brandingLogoUrl,
   onClose,
   onGenerated,
 }: VideoEditorProps) {
@@ -67,6 +185,7 @@ function EditorContent({
   const [clipHashtags, setClipHashtags] = useState(suggestion.hashtags.join(', '))
   const [generating, setGenerating] = useState<GeneratingState | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showConfirmGenerate, setShowConfirmGenerate] = useState(false)
 
   // Panneaux redimensionnables
   const [leftWidth, setLeftWidth] = useState(400)
@@ -151,6 +270,19 @@ function EditorContent({
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
 
+      // Undo: Ctrl+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        dispatch({ type: 'UNDO' })
+        return
+      }
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        dispatch({ type: 'REDO' })
+        return
+      }
+
       switch (e.code) {
         case 'Space':
           e.preventDefault()
@@ -169,6 +301,10 @@ function EditorContent({
             type: 'SET_PLAYHEAD',
             time: Math.min(totalDuration, state.playheadTime + (e.shiftKey ? 5 : 1)),
           })
+          break
+        case 'KeyS':
+          e.preventDefault()
+          dispatch({ type: 'SPLIT_AT_PLAYHEAD' })
           break
         case 'Delete':
         case 'Backspace':
@@ -274,12 +410,38 @@ function EditorContent({
 
       setGenerating({ step: 'downloading', progress: 10 })
 
+      // Build branding overlay options if Business user with branding enabled
+      let brandingOptions: BrandingOverlayOptions | undefined
+      if (brandingConfig?.enabled && !getPlanLimits(userPlan).watermark) {
+        let logoImageData: Uint8Array | null = null
+        if (brandingConfig.showLogo && brandingLogoUrl) {
+          try {
+            const logoRes = await fetch(brandingLogoUrl)
+            const logoBuf = await logoRes.arrayBuffer()
+            logoImageData = new Uint8Array(logoBuf)
+          } catch {
+            // Skip logo on fetch error
+          }
+        }
+        brandingOptions = {
+          enabled: true,
+          text: brandingConfig.text,
+          logoImageData,
+          position: brandingConfig.position,
+          showLogo: brandingConfig.showLogo,
+          showText: brandingConfig.showText,
+          textColor: brandingConfig.textColor,
+          textOpacity: brandingConfig.textOpacity,
+        }
+      }
+
       const { videoBlob, thumbnailBlob } = await trimAndConcatSegments({
         videoUrl,
         segments: state.segments,
         srtContent,
         subtitleStyle: subtitleStyle.enabled ? subtitleStyle : undefined,
         watermark: getPlanLimits(userPlan).watermark,
+        branding: brandingOptions,
         onProgress: (p) => {
           // p est 0-100 de FFmpeg ; on mappe vers la plage 10-70 du progrès global
           const clamped = Math.max(0, Math.min(100, p))
@@ -337,8 +499,8 @@ function EditorContent({
       setGenerating({ step: 'done', progress: 100 })
       toast.success(t('editor.toastSuccess'))
 
-      // Fire-and-forget : mise à jour du persona créateur (plan Business)
-      fetch('/api/persona/update', { method: 'POST' }).catch(() => {})
+      // // Fire-and-forget : mise à jour du persona créateur (plan Business)
+      // fetch('/api/persona/update', { method: 'POST' }).catch(() => {})
 
       setTimeout(() => {
         onGenerated()
@@ -360,7 +522,8 @@ function EditorContent({
     }
   }, [
     generating, state.segments, segmentOffsets, videoUrl, videoId, suggestion,
-    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router, toast, userPlan
+    clipTitle, clipDescription, clipHashtags, subtitleStyle, segments, onGenerated, router, toast, userPlan,
+    brandingConfig, brandingLogoUrl
   ])
 
   const isGenerating = generating !== null && generating.step !== 'done'
@@ -371,7 +534,7 @@ function EditorContent({
       {/* Toolbar */}
       <EditorToolbar
         onClose={onClose}
-        onGenerate={handleGenerate}
+        onGenerate={() => setShowConfirmGenerate(true)}
         generating={isGenerating}
         generatingDone={isDone}
         generatingLabel={generating ? t(STEP_LABEL_KEYS[generating.step]) : null}
@@ -387,19 +550,47 @@ function EditorContent({
         </div>
       )}
 
-      {/* Barre de progression */}
+      {/* Modal de confirmation avant génération */}
+      <ConfirmModal
+        open={showConfirmGenerate}
+        onClose={() => setShowConfirmGenerate(false)}
+        onConfirm={() => {
+          setShowConfirmGenerate(false)
+          handleGenerate()
+        }}
+        title={t('editor.confirmGenerate')}
+        description={t('editor.confirmGenerateDesc', {
+          duration: formatTime(totalDuration),
+          segments: state.segments.length,
+        }) + ' ' + (subtitleStyle.enabled ? t('editor.confirmGenerateSubtitles') : t('editor.confirmGenerateNoSubtitles')) + '.'}
+        confirmLabel={t('editor.toolbar.generate')}
+        confirmVariant="primary"
+        icon={Sparkles}
+      />
+
+      {/* Modal de progression */}
       {generating && (
-        <div className="flex-shrink-0 px-4 py-2 bg-slate-900/50">
-          <ProgressBar
-            progress={generating.progress}
-            label={t(STEP_LABEL_KEYS[generating.step])}
-            sublabel={`${generating.progress}%`}
-            icon={
-              isDone
-                ? <Check className="h-4 w-4" />
-                : <Loader2 className="h-4 w-4 animate-spin" />
-            }
-          />
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-4 flex flex-col items-center gap-3 text-center">
+              {isDone ? (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
+                  <Check className="h-6 w-6 text-green-400" />
+                </div>
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/20">
+                  <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+                </div>
+              )}
+              <h3 className="text-lg font-semibold text-white">
+                {t(STEP_LABEL_KEYS[generating.step])}
+              </h3>
+            </div>
+            <ProgressBar
+              progress={generating.progress}
+              sublabel={`${generating.progress}%`}
+            />
+          </div>
         </div>
       )}
 
@@ -454,33 +645,191 @@ function EditorContent({
                 {t('editor.crop.hint')}
               </p>
               {currentSegment && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-white/50">
-                    <span>{t('editor.crop.horizontalPosition')}</span>
-                    <span>{Math.round(currentSegment.cropX * 100)}%</span>
+                <div className="space-y-3">
+                  {/* Quick position buttons */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { value: 0, label: t('editor.crop.left'), icon: AlignHorizontalJustifyStart },
+                      { value: 0.5, label: t('editor.crop.center'), icon: AlignHorizontalJustifyCenter },
+                      { value: 1, label: t('editor.crop.right'), icon: AlignHorizontalJustifyEnd },
+                    ] as const).map(({ value, label, icon: Icon }) => (
+                      <button
+                        key={value}
+                        onClick={() =>
+                          dispatch({
+                            type: 'UPDATE_SEGMENT',
+                            id: currentSegment.id,
+                            updates: { cropX: value },
+                          })
+                        }
+                        disabled={generating !== null}
+                        className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-medium transition-all ${
+                          currentSegment.cropX === value
+                            ? 'border-orange-500 bg-orange-500/20 text-orange-400'
+                            : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </button>
+                    ))}
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={currentSegment.cropX}
-                    onChange={(e) => {
-                      if (currentSegment) {
-                        dispatch({
-                          type: 'UPDATE_SEGMENT',
-                          id: currentSegment.id,
-                          updates: { cropX: Number(e.target.value) },
-                        })
-                      }
-                    }}
-                    disabled={generating !== null}
-                    className="w-full accent-purple-500"
-                  />
+
+                  {/* Fine-tune slider */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-white/50">
+                      <span>{t('editor.crop.horizontalPosition')}</span>
+                      <span>{Math.round(currentSegment.cropX * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={currentSegment.cropX}
+                      onChange={(e) => {
+                        if (currentSegment) {
+                          dispatch({
+                            type: 'UPDATE_SEGMENT',
+                            id: currentSegment.id,
+                            updates: { cropX: Number(e.target.value) },
+                          })
+                        }
+                      }}
+                      disabled={generating !== null}
+                      className="w-full accent-orange-500"
+                    />
+                  </div>
                 </div>
               )}
             </div>
           </CollapsibleBlock>
+
+          {/* TODO: Zoom & Split Screen — masqués pour l'instant, à réactiver plus tard
+          <CollapsibleBlock title={t('zoom.title')} icon={ZoomIn}>
+            <div className="space-y-3">
+              {currentSegment && (
+                <>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-white/50">
+                      <span>{t('zoom.level')}</span>
+                      <span>{(currentSegment.zoomLevel ?? 1).toFixed(1)}x</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.3}
+                      max={3}
+                      step={0.1}
+                      value={currentSegment.zoomLevel ?? 1}
+                      onChange={(e) =>
+                        dispatch({
+                          type: 'UPDATE_SEGMENT',
+                          id: currentSegment.id,
+                          updates: { zoomLevel: Number(e.target.value) },
+                        })
+                      }
+                      disabled={generating !== null || currentSegment.splitScreen?.enabled}
+                      className="w-full accent-purple-500"
+                    />
+                  </div>
+                  {(currentSegment.zoomLevel ?? 1) !== 1 && (
+                    <button
+                      onClick={() =>
+                        dispatch({
+                          type: 'UPDATE_SEGMENT',
+                          id: currentSegment.id,
+                          updates: { zoomLevel: 1 },
+                        })
+                      }
+                      disabled={generating !== null}
+                      className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      {t('zoom.reset')}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </CollapsibleBlock>
+
+          <CollapsibleBlock title={t('splitScreen.title')} icon={SplitSquareVertical}>
+            <div className="space-y-3">
+              {currentSegment && (() => {
+                const ss = currentSegment.splitScreen
+                const isEnabled = ss?.enabled ?? false
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const newSS: SplitScreenConfig = isEnabled
+                            ? { enabled: false, cropX: ss?.cropX ?? 0.5, cropY: ss?.cropY ?? 0.3, cropSize: ss?.cropSize ?? 0.4 }
+                            : { enabled: true, cropX: ss?.cropX ?? 0.5, cropY: ss?.cropY ?? 0.3, cropSize: ss?.cropSize ?? 0.4 }
+                          dispatch({
+                            type: 'UPDATE_SEGMENT',
+                            id: currentSegment.id,
+                            updates: { splitScreen: newSS, zoomLevel: 1 },
+                          })
+                        }}
+                        disabled={generating !== null}
+                        className={cn(
+                          'px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                          isEnabled
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white/10 text-white/50 hover:bg-white/15'
+                        )}
+                      >
+                        {isEnabled ? t('splitScreen.on') : t('splitScreen.off')}
+                      </button>
+                    </div>
+
+                    {isEnabled && (
+                      <>
+                        <p className="text-xs text-white/40">{t('splitScreen.hint')}</p>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-white/50">
+                            <span>{t('splitScreen.zoomSize')}</span>
+                            <span>{Math.round((ss?.cropSize ?? 0.4) * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.15}
+                            max={0.8}
+                            step={0.05}
+                            value={ss?.cropSize ?? 0.4}
+                            onChange={(e) =>
+                              dispatch({
+                                type: 'UPDATE_SEGMENT',
+                                id: currentSegment.id,
+                                updates: {
+                                  splitScreen: { ...ss!, cropSize: Number(e.target.value) },
+                                },
+                              })
+                            }
+                            disabled={generating !== null}
+                            className="w-full accent-purple-500"
+                          />
+                        </div>
+
+                        <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+                          <div className="mx-auto w-16 overflow-hidden rounded border border-white/20" style={{ aspectRatio: '9/16' }}>
+                            <div className="h-1/2 bg-blue-500/30 flex items-center justify-center">
+                              <span className="text-[7px] text-white/60">{t('splitScreen.topOriginal')}</span>
+                            </div>
+                            <div className="h-1/2 bg-purple-500/30 flex items-center justify-center">
+                              <span className="text-[7px] text-white/60">{t('splitScreen.bottomZoom')}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
+            </div>
+          </CollapsibleBlock>
+          */}
 
           {/* Info temps */}
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -490,7 +839,10 @@ function EditorContent({
                 {formatTime(suggestion.start)} → {formatTime(suggestion.end)}
               </span>
               {suggestion.score > 0 && (
-                <span className="flex items-center gap-1 font-bold text-purple-400">
+                <span
+                  className="flex items-center gap-1 font-bold text-orange-400 cursor-help"
+                  title={t('common.viralityScoreTooltip')}
+                >
                   <TrendingUp className="h-3.5 w-3.5" />
                   {suggestion.score.toFixed(1)}
                 </span>
@@ -501,9 +853,15 @@ function EditorContent({
 
         {/* Séparateur gauche */}
         <div
-          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+          className="flex-shrink-0 w-2 cursor-col-resize bg-white/5 hover:bg-orange-500/30 active:bg-orange-500/50 transition-colors flex items-center justify-center group/resize"
           onMouseDown={(e) => handleResizeStart('left', e)}
-        />
+        >
+          <div className="flex flex-col gap-1 opacity-0 group-hover/resize:opacity-100 transition-opacity">
+            <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+            <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+            <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+          </div>
+        </div>
 
         {/* Centre : Preview */}
         <div data-onboarding-editor="editor-preview" className="overflow-hidden p-4 h-full flex-1 min-w-0">
@@ -512,14 +870,22 @@ function EditorContent({
             subtitleStyle={subtitleStyle}
             transcriptionSegments={segments}
             showWatermark={getPlanLimits(userPlan).watermark}
+            brandingConfig={brandingConfig}
+            brandingLogoUrl={brandingLogoUrl}
           />
         </div>
 
         {/* Séparateur droite */}
         <div
-          className="flex-shrink-0 w-1.5 cursor-col-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+          className="flex-shrink-0 w-2 cursor-col-resize bg-white/5 hover:bg-orange-500/30 active:bg-orange-500/50 transition-colors flex items-center justify-center group/resize"
           onMouseDown={(e) => handleResizeStart('right', e)}
-        />
+        >
+          <div className="flex flex-col gap-1 opacity-0 group-hover/resize:opacity-100 transition-opacity">
+            <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+            <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+            <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+          </div>
+        </div>
 
         {/* Panneau droite : Sous-titres */}
         <div data-onboarding-editor="editor-subtitles" className="overflow-y-auto flex-shrink-0 p-4" style={{ width: rightWidth }}>
@@ -529,13 +895,22 @@ function EditorContent({
 
       {/* Séparateur timeline */}
       <div
-        className="flex-shrink-0 h-1.5 cursor-row-resize bg-white/5 hover:bg-purple-500/30 active:bg-purple-500/50 transition-colors"
+        className="flex-shrink-0 h-2 cursor-row-resize bg-white/5 hover:bg-orange-500/30 active:bg-orange-500/50 transition-colors flex items-center justify-center group/resize"
         onMouseDown={handleTimelineResizeStart}
-      />
+      >
+        <div className="flex gap-1 opacity-0 group-hover/resize:opacity-100 transition-opacity">
+          <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+          <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+          <div className="w-0.5 h-0.5 rounded-full bg-white/40" />
+        </div>
+      </div>
 
-      {/* Timeline */}
-      <div data-onboarding-editor="editor-timeline" className="flex-shrink-0" style={{ height: timelineHeight }}>
-        <Timeline videoUrl={videoUrl} />
+      {/* Timeline + actions */}
+      <div data-onboarding-editor="editor-timeline" className="flex flex-shrink-0 flex-col border-t border-white/10 bg-slate-900/50 mb-4" style={{ height: timelineHeight }}>
+        <TimelineActions generating={generating !== null} />
+        <div className="flex-1 min-h-0">
+          <Timeline videoUrl={videoUrl} />
+        </div>
       </div>
 
       <EditorOnboardingOverlay />
@@ -551,6 +926,7 @@ export function VideoEditor(props: VideoEditorProps) {
         sourceStart: props.suggestion.start,
         sourceEnd: props.suggestion.end,
         cropX: 0.5,
+        zoomLevel: 1,
       },
     ],
     [props.suggestion.start, props.suggestion.end]

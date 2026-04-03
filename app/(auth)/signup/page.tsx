@@ -144,7 +144,7 @@ export default function SignupPage() {
 
           <p className="text-center text-sm text-white/50">
             {t('auth.signup.hasAccount')}{' '}
-            <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">
+            <Link href="/login" className="text-orange-400 hover:text-orange-300 transition-colors">
               {t('auth.signup.signIn')}
             </Link>
           </p>

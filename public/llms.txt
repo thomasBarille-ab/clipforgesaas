@@ -26,8 +26,8 @@ CreaClip helps content creators turn long videos (podcasts, interviews, vlogs, s
 ## Pricing
 
 - **Free**: 3 clips/month, watermark, live preview, multi-format export
-- **Pro** ($24/month): 50 clips/month, no watermark, all features, live preview
-- **Business** ($49/month): Everything in Pro + 200 clips/month, individual persona
+- **Pro** (€29/month): 50 clips/month, no watermark, all features, live preview
+- **Business** (€49/month): Everything in Pro + 200 clips/month, individual persona
 
 ## Use Cases
 

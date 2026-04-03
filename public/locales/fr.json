@@ -25,7 +25,8 @@
     "genericError": "Une erreur est survenue. Veuillez réessayer.",
     "irreversible": "Cette action est irréversible.",
     "copiedToClipboard": "Copié dans le presse-papiers !",
-    "cannotCopy": "Impossible de copier"
+    "cannotCopy": "Impossible de copier",
+    "viralityScoreTooltip": "Score de viralité estimé par l'IA (sur 10), basé sur le rythme, les émotions et le potentiel d'engagement du passage."
   },
 
   "nav": {
@@ -33,6 +34,7 @@
     "howItWorks": "Comment ça marche",
     "pricing": "Tarifs",
     "faq": "FAQ",
+    "contact": "Contact",
     "login": "Connexion",
     "freeTrial": "Essai gratuit",
     "dashboard": "Dashboard",
@@ -40,7 +42,9 @@
     "clips": "Clips",
     "upload": "Importer",
     "settings": "Paramètres",
-    "signOut": "Déconnexion"
+    "signOut": "Déconnexion",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire"
   },
 
   "auth": {
@@ -125,7 +129,8 @@
       "socialProofText": "créateurs sur la waitlist",
       "socialProofRating": "4.9/5",
       "videoSource": "Vidéo source",
-      "clip": "Clip {{num}}"
+      "clip": "Clip {{num}}",
+      "getStarted": "Commencer gratuitement"
     },
     "logoBar": {
       "label": "Compatible avec vos plateformes"
@@ -256,14 +261,14 @@
         "name": "Pro",
         "price": "29",
         "description": "Pour les créateurs sérieux",
-        "features": ["50 clips / mois", "Sans watermark", "Toutes les features", "Preview live"],
+        "features": ["40 clips / mois", "Sans watermark", "Toutes les features", "Preview live"],
         "cta": "Passer Pro"
       },
       "business": {
         "name": "Business",
         "price": "49",
         "description": "Pour les créateurs ambitieux",
-        "features": ["Tout Pro +", "200 clips / mois", "Persona individuel", "Et bien plus encore"],
+        "features": ["Tout Pro +", "150 clips / mois", "Branding personnalisé", "Recherche par prompt IA"],
         "cta": "Passer Business"
       }
     },
@@ -329,7 +334,10 @@
     "noVideosDesc": "Commencez par importer votre première vidéo",
     "noClips": "Aucun clip généré",
     "noClipsDesc": "Vos clips apparaîtront ici une fois générés",
-    "import": "Importer"
+    "import": "Importer",
+    "greeting": "Bon retour, {{name}}",
+    "greetingNoName": "Bon retour",
+    "today": "Voici votre aperçu du jour."
   },
 
   "videos": {
@@ -352,7 +360,12 @@
     "transcriptionStarted": "Transcription lancée !",
     "deleteError": "Erreur lors de la suppression",
     "deleteClipError": "Erreur lors de la suppression du clip",
-    "transcriptionError": "Erreur lors de la transcription"
+    "transcriptionError": "Erreur lors de la transcription",
+    "retry": "Réessayer",
+    "expiresIn": "Expire dans {{days}} jour(s)",
+    "expiresTomorrow": "Expire demain",
+    "expiresToday": "Expire aujourd'hui",
+    "retentionNotice": "Les vidéos sont disponibles 7 jours après l'upload"
   },
 
   "clips": {
@@ -373,7 +386,11 @@
     "title_label": "Titre",
     "description_label": "Description",
     "hashtags": "Hashtags",
-    "hashtagsHint": "Séparés par des virgules"
+    "hashtagsHint": "Séparés par des virgules",
+    "expiresIn": "Expire dans {{days}} jour(s)",
+    "expiresTomorrow": "Expire demain",
+    "expiresToday": "Expire aujourd'hui",
+    "retentionNotice": "Les clips sont disponibles 7 jours après leur génération"
   },
 
   "upload": {
@@ -383,6 +400,9 @@
     "dropzoneActive": "Déposez votre vidéo ici",
     "browseFiles": "ou cliquez pour parcourir",
     "formats": "MP4, MOV, AVI — 500 Mo maximum",
+    "stepSelect": "Sélection",
+    "stepUpload": "Import",
+    "stepProcessing": "Traitement",
     "importButton": "Importer la vidéo",
     "uploading": "Envoi en cours... {{progress}}%",
     "saving": "Enregistrement...",
@@ -395,7 +415,8 @@
     "errorInvalidFile": "Fichier invalide",
     "errorNotLoggedIn": "Vous devez être connecté pour importer une vidéo",
     "errorSaving": "Erreur lors de l'enregistrement de la vidéo",
-    "errorUnexpected": "Une erreur inattendue est survenue"
+    "errorUnexpected": "Une erreur inattendue est survenue",
+    "retentionNotice": "Les vidéos et clips sont disponibles 7 jours après l'upload. Pensez à télécharger vos clips avant leur expiration."
   },
 
   "createClips": {
@@ -413,7 +434,13 @@
     "noSuggestionsDesc": "Vérifiez que la transcription de la vidéo est terminée",
     "searchBadge": "Recherche",
     "created": "Créé",
-    "create": "Créer"
+    "create": "Créer",
+    "filters": "Filtres de suggestions",
+    "filtersProOnly": "Passez au plan Pro pour personnaliser les filtres de durée et le nombre de clips.",
+    "minDuration": "Durée minimum (sec)",
+    "maxDuration": "Durée maximum (sec)",
+    "clipCount": "Nombre de clips",
+    "regenerate": "Régénérer"
   },
 
   "editor": {
@@ -421,11 +448,14 @@
       "customizeClip": "Personnaliser le clip",
       "split": "Diviser",
       "delete": "Supprimer",
+      "undo": "Annuler",
+      "redo": "Rétablir",
       "generate": "Générer le clip",
       "clipCreated": "Clip créé !",
       "generating": "Génération...",
       "segmentInfo": "{{count}} segment — {{duration}}",
-      "segmentInfo_plural": "{{count}} segments — {{duration}}"
+      "segmentInfo_plural": "{{count}} segments — {{duration}}",
+      "totalDuration": "Durée totale"
     },
     "steps": {
       "creating": "Création du clip...",
@@ -449,7 +479,10 @@
     "crop": {
       "title": "Cadrage",
       "hint": "Ajustez le cadrage 9:16 en cliquant sur la preview ou en déplaçant le slider.",
-      "horizontalPosition": "Position horizontale"
+      "horizontalPosition": "Position horizontale",
+      "left": "Gauche",
+      "center": "Centre",
+      "right": "Droite"
     },
     "preview": {
       "crop": "Cadrage",
@@ -462,7 +495,11 @@
       "finalizeError": "Erreur lors de la finalisation du clip",
       "generateError": "Erreur lors de la génération du clip"
     },
-    "toastSuccess": "Clip créé avec succès !"
+    "toastSuccess": "Clip créé avec succès !",
+    "confirmGenerate": "Générer le clip ?",
+    "confirmGenerateDesc": "Vous allez générer un clip de {{duration}} avec {{segments}} segment(s).",
+    "confirmGenerateSubtitles": "Sous-titres activés",
+    "confirmGenerateNoSubtitles": "Sans sous-titres"
   },
 
   "subtitles": {
@@ -485,12 +522,23 @@
     "case": "Casse",
     "background": "Fond",
     "backgroundNone": "Non",
-    "backgroundBox": "Box"
+    "backgroundBox": "Box",
+    "style": "Style",
+    "bold": "Gras",
+    "italic": "Italique",
+    "shadow": "Ombre",
+    "shadowColor": "Couleur",
+    "shadowBlur": "Flou",
+    "shadowOffset": "Décalage",
+    "colors": "Couleurs",
+    "positionAndBg": "Position & Fond",
+    "bgColor": "Couleur du fond"
   },
 
   "settings": {
     "title": "Paramètres",
     "subtitle": "Gérez votre compte et vos préférences",
+    "contact": "Nous contacter",
     "profile": {
       "title": "Profil",
       "noName": "Aucun nom",
@@ -511,10 +559,10 @@
       "planBusiness": "Business",
       "freeDesc": "Pour découvrir CreaClip",
       "proDesc": "Pour les créateurs sérieux",
-      "businessDesc": "Pour les équipes",
-      "freeFeatures": ["10 clips / mois", "Toutes les features", "Preview live", "Export multi-format"],
-      "proFeatures": ["Clips illimités", "Sans watermark", "Tous styles de sous-titres", "Support prioritaire"],
-      "businessFeatures": ["Tout Pro +", "IA personnalisée (Persona)", "API access", "Account manager dédié"],
+      "businessDesc": "Pour les créateurs ambitieux",
+      "freeFeatures": ["3 clips / mois", "Preview live", "Export multi-format", "Watermark CreaClip"],
+      "proFeatures": ["40 clips / mois", "Sans watermark", "Toutes les features", "Recherche par prompt IA"],
+      "businessFeatures": ["Tout Pro +", "150 clips / mois", "Branding personnalisé", "Recherche par prompt IA"],
       "popular": "Populaire",
       "upgrade": "Passer en {{name}}",
       "downgrade": "Revenir en {{name}}",
@@ -525,9 +573,19 @@
       "creditsRemaining": "{{count}} crédit restant",
       "creditsRemaining_plural": "{{count}} crédits restants",
       "unlimitedClips": "Clips illimités",
+      "proClipsQuota": "40 clips / mois",
+      "businessClipsQuota": "150 clips / mois",
       "paymentSuccess": "Paiement réussi ! Votre abonnement est actif.",
       "paymentCanceled": "Paiement annulé. Votre plan n'a pas changé.",
-      "manageSubscription": "Gérer l'abonnement"
+      "manageSubscription": "Gérer l'abonnement",
+      "subscribedSince": "Abonné depuis le",
+      "nextPayment": "Prochain paiement le",
+      "cancelScheduled": "Votre plan passera en Gratuit le {{date}}",
+      "keepPlan": "Garder mon plan",
+      "cancelReverted": "L'annulation de votre plan a été annulée.",
+      "downgradeScheduled": "Votre plan passera en Gratuit le {{date}}. Vous conservez toutes les fonctionnalités jusque-là.",
+      "cancellingAtEnd": "Annulation en fin de période",
+      "alreadyCancelling": "Votre abonnement est déjà programmé pour être annulé"
     },
     "persona": {
       "title": "Persona IA",
@@ -541,6 +599,33 @@
       "updatedAt": "Mis à jour le",
       "noPersona": "Aucun persona généré",
       "noPersonaDesc": "Générez au moins 3 clips pour que l'IA analyse votre style de création."
+    },
+    "branding": {
+      "title": "Branding personnalisé",
+      "subtitle": "Ajoutez votre logo et texte sur tous vos clips",
+      "enabled": "Activer le branding",
+      "logo": "Logo",
+      "logoHint": "PNG ou JPG, 2 Mo max",
+      "logoUpload": "Cliquez ou glissez votre logo ici",
+      "logoRemove": "Supprimer le logo",
+      "text": "Texte",
+      "textPlaceholder": "@votre_pseudo",
+      "textHint": "100 caractères max",
+      "position": "Position",
+      "positionCenter": "Centre",
+      "positionBottomRight": "Bas droite",
+      "positionBottomLeft": "Bas gauche",
+      "positionTopRight": "Haut droite",
+      "positionTopLeft": "Haut gauche",
+      "display": "Affichage",
+      "showLogo": "Afficher le logo",
+      "showText": "Afficher le texte",
+      "textColor": "Couleur du texte",
+      "textOpacity": "Opacité du texte",
+      "preview": "Aperçu",
+      "saved": "Branding sauvegardé !",
+      "saveError": "Erreur lors de la sauvegarde du branding",
+      "logoUploadError": "Erreur lors de l'upload du logo"
     },
     "account": {
       "title": "Compte",
@@ -649,14 +734,38 @@
     "bottomZoom": "Bas : zoom sur la zone sélectionnée"
   },
 
+  "zoom": {
+    "title": "Zoom",
+    "level": "Niveau de zoom",
+    "reset": "Réinitialiser"
+  },
+
   "plans": {
     "monthlyClips": "Clips ce mois-ci",
     "unlimited": "Illimité",
     "upgrade": "Passer Pro",
     "searchProOnly": "La recherche par prompt est réservée aux plans Pro et Business. Passez à un plan supérieur pour débloquer cette fonctionnalité.",
     "watermarkNotice": "Plan Free — Un watermark CreaClip sera ajouté. Passez Pro pour le retirer.",
-    "limitReached": "Limite atteinte : {{used}}/{{limit}} clips ce mois-ci. Passez Pro pour des clips illimités.",
+    "limitReached": "Limite atteinte : {{used}}/{{limit}} clips ce mois-ci. Passez au plan supérieur pour plus de clips.",
     "clipQuota": "{{used}}/{{limit}} clips ce mois-ci"
+  },
+
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout lu",
+    "empty": "Aucune notification",
+    "emptyDesc": "Vos notifications apparaîtront ici",
+    "emailPreferences": "Notifications par email",
+    "emailPreferencesDesc": "Choisissez quels types de notifications vous souhaitez recevoir par email.",
+    "types": {
+      "clip_ready": "Clip prêt",
+      "subscription_started": "Abonnement activé",
+      "subscription_changed": "Plan modifié",
+      "subscription_canceled": "Abonnement annulé",
+      "invoice_paid": "Paiement reçu",
+      "payment_failed": "Échec de paiement",
+      "expiry_warning": "Expiration de fichiers"
+    }
   },
 
   "cropTimeline": {
@@ -670,5 +779,16 @@
     "horizontalPosition": "Position horizontale",
     "segmentStart": "Début du segment (secondes)",
     "addCutPoint": "Ajouter un point de coupe"
+  },
+
+  "contact": {
+    "title": "Nous contacter",
+    "subtitle": "Une question ou un retour ? N'hésitez pas à nous écrire.",
+    "email": "Votre email",
+    "message": "Message",
+    "messagePlaceholder": "Comment pouvons-nous vous aider ?",
+    "send": "Envoyer",
+    "sent": "Message envoyé !",
+    "sentDesc": "Nous vous répondrons dès que possible."
   }
 }

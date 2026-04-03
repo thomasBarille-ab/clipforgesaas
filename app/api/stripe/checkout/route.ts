@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { stripe, PLAN_PRICE_IDS } from '@/lib/stripe'
 import type { PlanType } from '@/types/database'
+
+function getAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 interface CheckoutBody {
   plan: 'pro' | 'business'
@@ -55,7 +63,8 @@ export async function POST(request: Request) {
     })
     customerId = customer.id
 
-    await supabase
+    const admin = getAdminClient()
+    await admin
       .from('profiles')
       .update({ stripe_customer_id: customerId })
       .eq('id', user.id)
@@ -63,10 +72,11 @@ export async function POST(request: Request) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-  // Create Checkout session
+  // Create Checkout session (embedded mode)
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
+    ui_mode: 'embedded',
     line_items: [
       {
         price: PLAN_PRICE_IDS[body.plan as Exclude<PlanType, 'free'>],
@@ -77,9 +87,8 @@ export async function POST(request: Request) {
       userId: user.id,
       plan: body.plan,
     },
-    success_url: `${appUrl}/settings?success=true`,
-    cancel_url: `${appUrl}/settings?canceled=true`,
+    return_url: `${appUrl}/settings?session_id={CHECKOUT_SESSION_ID}`,
   })
 
-  return NextResponse.json({ url: session.url })
+  return NextResponse.json({ clientSecret: session.client_secret })
 }

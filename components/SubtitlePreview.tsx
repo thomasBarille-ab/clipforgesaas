@@ -118,7 +118,8 @@ export function SubtitlePreview({
   const subtitleCss: React.CSSProperties = {
     fontFamily: `'${style.fontFamily}', sans-serif`,
     fontSize: `${fontSize}px`,
-    fontWeight: 'bold',
+    fontWeight: style.fontWeight ?? 'bold',
+    fontStyle: style.fontStyle ?? 'normal',
     color: style.textColor,
     textAlign: 'center',
     lineHeight: 1.3,
@@ -127,6 +128,9 @@ export function SubtitlePreview({
     borderRadius: style.background === 'box' ? `${6 * scale}px` : undefined,
     WebkitTextStroke: style.strokeWidth > 0 ? `${strokeWidth}px ${style.strokeColor}` : undefined,
     paintOrder: 'stroke fill',
+    textShadow: style.shadow
+      ? `${(style.shadowOffsetX ?? 2) * scale}px ${(style.shadowOffsetY ?? 2) * scale}px ${(style.shadowBlur ?? 4) * scale}px ${style.shadowColor ?? '#000000'}`
+      : undefined,
   }
 
   // Position du container de sous-titres
@@ -227,7 +231,7 @@ export function SubtitlePreview({
         {/* Barre de progression */}
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-150"
+            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-150"
             style={{ width: `${Math.min(progressPercent, 100)}%` }}
           />
         </div>

@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { WaitlistForm } from './WaitlistForm'
+import { ArrowRight } from 'lucide-react'
 import { PhoneMockup } from './PhoneMockup'
 
 export function HeroSection() {
@@ -18,7 +19,7 @@ export function HeroSection() {
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 pt-28 md:pt-32">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* Left column — Copy + Waitlist */}
+          {/* Left column — Copy + CTA */}
           <div className="space-y-8">
             <h1 className="text-4xl font-black leading-tight text-white sm:text-5xl md:text-6xl">
               {t('landing.hero.headline1')}
@@ -32,8 +33,22 @@ export function HeroSection() {
               {t('landing.hero.description')}
             </p>
 
-            {/* Waitlist */}
-            <WaitlistForm />
+            {/* Auth CTA */}
+            <div className="flex flex-wrap items-center gap-4">
+              <Link
+                href="/signup"
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-orange-500/25 transition-transform hover:scale-105"
+              >
+                {t('landing.hero.getStarted')}
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-xl border border-white/20 bg-white/5 px-8 py-4 text-lg font-medium text-white transition-colors hover:bg-white/10"
+              >
+                {t('nav.signIn')}
+              </Link>
+            </div>
 
           </div>
 

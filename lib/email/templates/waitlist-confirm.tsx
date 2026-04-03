@@ -35,7 +35,7 @@ export function WaitlistConfirmEmail({ email }: WaitlistConfirmEmailProps) {
           textAlign: 'center',
           marginBottom: '16px',
         }}>
-          Vous êtes sur la liste !
+          You're on the list!
         </h1>
 
         <p style={{
@@ -45,8 +45,8 @@ export function WaitlistConfirmEmail({ email }: WaitlistConfirmEmailProps) {
           textAlign: 'center',
           marginBottom: '24px',
         }}>
-          Merci de votre intérêt pour CreaClip ! Nous vous préviendrons dès que
-          la plateforme sera disponible.
+          Thanks for your interest in CreaClip! We'll let you know as soon as
+          the platform is available.
         </p>
 
         <div style={{
@@ -58,7 +58,7 @@ export function WaitlistConfirmEmail({ email }: WaitlistConfirmEmailProps) {
           marginBottom: '24px',
         }}>
           <p style={{ color: '#c084fc', fontSize: '14px', margin: '0 0 4px 0' }}>
-            Email inscrit
+            Registered email
           </p>
           <p style={{ color: '#ffffff', fontSize: '16px', fontWeight: 'bold', margin: 0 }}>
             {email}
@@ -71,8 +71,8 @@ export function WaitlistConfirmEmail({ email }: WaitlistConfirmEmailProps) {
           lineHeight: '1.6',
           textAlign: 'center',
         }}>
-          Transformez vos vidéos longues en clips viraux grâce à l'IA.
-          Transcription automatique, suggestions intelligentes, export en un clic.
+          Turn your long videos into viral clips with AI.
+          Automatic transcription, smart suggestions, one-click export.
         </p>
 
         {/* Footer */}
@@ -83,7 +83,7 @@ export function WaitlistConfirmEmail({ email }: WaitlistConfirmEmailProps) {
           textAlign: 'center',
         }}>
           <p style={{ color: '#475569', fontSize: '12px', margin: 0 }}>
-            CreaClip &mdash; Créez des clips viraux en quelques clics
+            CreaClip &mdash; Create viral clips in a few clicks
           </p>
         </div>
       </div>

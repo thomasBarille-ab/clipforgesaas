@@ -125,7 +125,7 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
         className={cn(
           'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition-all',
           config.enabled
-            ? 'bg-purple-500/20 text-purple-300'
+            ? 'bg-orange-500/20 text-orange-300'
             : 'bg-white/5 text-white/60 hover:bg-white/10'
         )}
       >
@@ -134,7 +134,7 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
         <span
           className={cn(
             'ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold',
-            config.enabled ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'
+            config.enabled ? 'bg-orange-500/30 text-orange-200' : 'bg-white/10 text-white/40'
           )}
         >
           {config.enabled ? t('splitScreen.on') : t('splitScreen.off')}
@@ -172,8 +172,8 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
               <div
                 onMouseDown={handleMouseDown}
                 className={cn(
-                  'absolute z-10 border-2 border-purple-400',
-                  dragging ? 'cursor-grabbing' : 'cursor-grab hover:border-purple-300'
+                  'absolute z-10 border-2 border-orange-400',
+                  dragging ? 'cursor-grabbing' : 'cursor-grab hover:border-orange-300'
                 )}
                 style={{
                   left: `${config.cropX * 100}%`,
@@ -186,10 +186,10 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Move className="h-5 w-5 text-white/50" />
                 </div>
-                <div className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-sm bg-purple-400" />
-                <div className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-sm bg-purple-400" />
-                <div className="absolute -bottom-1 -left-1 h-2.5 w-2.5 rounded-sm bg-purple-400" />
-                <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-sm bg-purple-400" />
+                <div className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-sm bg-orange-400" />
+                <div className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-sm bg-orange-400" />
+                <div className="absolute -bottom-1 -left-1 h-2.5 w-2.5 rounded-sm bg-orange-400" />
+                <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-sm bg-orange-400" />
               </div>
             )}
           </div>
@@ -206,7 +206,7 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
               max={Math.round(maxCropSize * 100)}
               value={Math.round(config.cropSize * 100)}
               onChange={(e) => handleSizeChange(Number(e.target.value) / 100)}
-              className="w-full accent-purple-500"
+              className="w-full accent-orange-500"
             />
           </div>
 
@@ -215,7 +215,7 @@ export function SplitScreenEditor({ config, onChange, videoUrl, startSeconds }: 
             <div className="flex h-10 w-7 flex-col overflow-hidden rounded border border-white/20">
               <div className="flex-1 bg-white/10" />
               <div className="h-px bg-white/20" />
-              <div className="flex-1 bg-purple-500/30" />
+              <div className="flex-1 bg-orange-500/30" />
             </div>
             <div className="text-[10px] leading-relaxed text-white/40">
               <p>{t('splitScreen.topOriginal')}</p>

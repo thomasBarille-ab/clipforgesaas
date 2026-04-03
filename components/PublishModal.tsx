@@ -131,7 +131,7 @@ export function PublishModal({ clip, onClose }: Props) {
     <Modal open={!!clip} onClose={onClose} showCloseButton className="max-w-md">
       <div className="p-6">
         <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 p-2">
+          <div className="rounded-full bg-gradient-to-r from-orange-600 to-amber-600 p-2">
             <Share2 className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -150,7 +150,7 @@ export function PublishModal({ clip, onClose }: Props) {
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           rows={5}
-          className="mb-4 w-full resize-none rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none transition-colors"
+          className="mb-4 w-full resize-none rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500 focus:outline-none transition-colors"
         />
 
         {/* Actions */}
@@ -217,7 +217,7 @@ export function PublishModal({ clip, onClose }: Props) {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-white/50 transition-all hover:border-purple-500/50 hover:bg-white/10 hover:text-white"
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-white/50 transition-all hover:border-orange-500/50 hover:bg-white/10 hover:text-white"
                 >
                   <PlatformIcon platform={platform.id} className="h-6 w-6" />
                   <span className="text-[10px]">{platform.label}</span>

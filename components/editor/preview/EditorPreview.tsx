@@ -4,27 +4,30 @@ import { useRef, useEffect, useCallback, useState, useMemo, type CSSProperties }
 import { useTranslation } from 'react-i18next'
 import { useEditor } from '../EditorProvider'
 import { CropOverlay } from './CropOverlay'
-import { PreviewControls } from './PreviewControls'
+import { SplitScreenPreview } from './SplitScreenPreview'
+import { BrandingOverlayPreview } from './BrandingOverlayPreview'
+
 import { FONT_SIZE_MAP } from '@/types/subtitles'
 import { cn } from '@/lib/utils'
 import type { SubtitleStyle } from '@/types/subtitles'
-import type { TranscriptionSegment } from '@/types/database'
+import type { TranscriptionSegment, BrandingConfig } from '@/types/database'
 
 interface EditorPreviewProps {
   videoUrl: string
   subtitleStyle: SubtitleStyle
   transcriptionSegments: TranscriptionSegment[]
   showWatermark?: boolean
+  brandingConfig?: BrandingConfig | null
+  brandingLogoUrl?: string | null
 }
 
-export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, showWatermark }: EditorPreviewProps) {
+export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, showWatermark, brandingConfig, brandingLogoUrl }: EditorPreviewProps) {
   const { t } = useTranslation()
   const { state, dispatch, totalDuration, segmentOffsets } = useEditor()
   const { segments, playing } = state
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const rafRef = useRef<number>(0)
-  const seekingRef = useRef(false)
   const activeSegmentIndexRef = useRef(0)
   const previewContainerRef = useRef<HTMLDivElement>(null)
 
@@ -57,17 +60,21 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
     return () => video.removeEventListener('loadeddata', handleLoaded)
   }, [videoUrl])
 
-  // CropX du segment sous le playhead
-  const playheadCropX = (() => {
+  // Segment sous le playhead
+  const currentSegment = (() => {
     for (let i = 0; i < segments.length; i++) {
       const off = segmentOffsets[i]
       if (!off) continue
       if (state.playheadTime >= off.timelineStart && state.playheadTime <= off.timelineEnd) {
-        return segments[i].cropX
+        return segments[i]
       }
     }
-    return segments[0]?.cropX ?? 0.5
+    return segments[0]
   })()
+
+  const playheadCropX = currentSegment?.cropX ?? 0.5
+  const zoomLevel = currentSegment?.zoomLevel ?? 1
+  const splitScreen = currentSegment?.splitScreen
 
   // Calculer la position du crop box 9:16 en mode cadrage
   const cropBoxRect = useMemo(() => {
@@ -127,25 +134,22 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
   )
 
   // Synchroniser la vidéo quand le playhead change (hors lecture)
+  const playheadTimeRef = useRef(state.playheadTime)
+  playheadTimeRef.current = state.playheadTime
+  const playingRef = useRef(playing)
+  playingRef.current = playing
+
   useEffect(() => {
-    if (playing || seekingRef.current) return
+    if (playing) return
     const video = videoRef.current
     if (!video) return
 
     const pos = timelineToSourcePosition(state.playheadTime)
     if (!pos) return
 
-    if (Math.abs(video.currentTime - pos.sourceTime) > 0.1) {
-      seekingRef.current = true
-      activeSegmentIndexRef.current = pos.segmentIndex
-
-      const handleSeeked = () => {
-        seekingRef.current = false
-        video.removeEventListener('seeked', handleSeeked)
-      }
-      video.addEventListener('seeked', handleSeeked)
-      video.currentTime = pos.sourceTime
-    }
+    activeSegmentIndexRef.current = pos.segmentIndex
+    // Toujours forcer le seek — le browser skip si c'est déjà la bonne frame
+    video.currentTime = pos.sourceTime
   }, [state.playheadTime, playing, timelineToSourcePosition])
 
   // Boucle de lecture
@@ -250,10 +254,12 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
   const fontSize = Math.max(12, FONT_SIZE_MAP[subtitleStyle.fontSize].canvas * scale)
   const strokeWidth = Math.max(1, subtitleStyle.strokeWidth * scale)
 
+  const shadowScale = scale
   const subtitleCss: CSSProperties = {
     fontFamily: `'${subtitleStyle.fontFamily}', sans-serif`,
     fontSize: `${fontSize}px`,
-    fontWeight: 'bold',
+    fontWeight: subtitleStyle.fontWeight ?? 'bold',
+    fontStyle: subtitleStyle.fontStyle ?? 'normal',
     color: subtitleStyle.textColor,
     textAlign: 'center',
     lineHeight: 1.3,
@@ -262,6 +268,9 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
     borderRadius: subtitleStyle.background === 'box' ? `${6 * scale}px` : undefined,
     WebkitTextStroke: subtitleStyle.strokeWidth > 0 ? `${strokeWidth}px ${subtitleStyle.strokeColor}` : undefined,
     paintOrder: 'stroke fill',
+    textShadow: subtitleStyle.shadow
+      ? `${(subtitleStyle.shadowOffsetX ?? 2) * shadowScale}px ${(subtitleStyle.shadowOffsetY ?? 2) * shadowScale}px ${(subtitleStyle.shadowBlur ?? 4) * shadowScale}px ${subtitleStyle.shadowColor ?? '#000000'}`
+      : undefined,
   }
 
   const positionClass =
@@ -279,7 +288,7 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
           onClick={() => setMode('crop')}
           className={cn(
             'rounded-md px-3 py-1 text-xs font-medium transition-all',
-            mode === 'crop' ? 'bg-purple-500/30 text-purple-200' : 'text-white/40 hover:text-white/60'
+            mode === 'crop' ? 'bg-orange-500/30 text-orange-200' : 'text-white/40 hover:text-white/60'
           )}
         >
           {t('editor.preview.crop')}
@@ -288,7 +297,7 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
           onClick={() => setMode('preview')}
           className={cn(
             'rounded-md px-3 py-1 text-xs font-medium transition-all',
-            mode === 'preview' ? 'bg-purple-500/30 text-purple-200' : 'text-white/40 hover:text-white/60'
+            mode === 'preview' ? 'bg-orange-500/30 text-orange-200' : 'text-white/40 hover:text-white/60'
           )}
         >
           {t('editor.preview.preview')}
@@ -312,13 +321,28 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
             src={videoUrl}
             className={cn(
               'h-full w-full rounded-lg',
-              mode === 'crop' ? 'object-contain' : 'object-cover'
+              mode === 'crop' ? 'object-contain' : 'object-cover',
+              splitScreen?.enabled && mode === 'preview' ? 'invisible' : ''
             )}
-            style={mode === 'preview' ? { objectPosition: `${playheadCropX * 100}% center` } : undefined}
+            style={mode === 'preview' && !splitScreen?.enabled ? {
+              objectPosition: `${playheadCropX * 100}% center`,
+              ...(zoomLevel !== 1 ? {
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: `${playheadCropX * 100}% center`,
+              } : {}),
+            } : undefined}
             playsInline
             preload="auto"
           />
           {mode === 'crop' && <CropOverlay videoRef={videoRef} />}
+          {splitScreen?.enabled && mode === 'preview' && (
+            <SplitScreenPreview
+              videoRef={videoRef}
+              cropX={playheadCropX}
+              splitScreen={splitScreen}
+              containerDims={containerDims}
+            />
+          )}
 
           {/* Overlay sous-titres — positionné dans le crop box en mode cadrage */}
           {subtitleStyle.enabled && displayText && (
@@ -365,10 +389,23 @@ export function EditorPreview({ videoUrl, subtitleStyle, transcriptionSegments, 
               </div>
             ) : null
           )}
+
+          {/* Branding overlay (business plan, only when no watermark) */}
+          {brandingConfig?.enabled && !showWatermark && (
+            mode === 'crop' && cropBoxRect ? (
+              <div
+                className="absolute pointer-events-none z-10 overflow-hidden"
+                style={{ left: cropBoxRect.left, top: cropBoxRect.top, width: cropBoxRect.width, height: cropBoxRect.height }}
+              >
+                <BrandingOverlayPreview config={brandingConfig} logoUrl={brandingLogoUrl ?? null} scale={scale} />
+              </div>
+            ) : mode === 'preview' ? (
+              <BrandingOverlayPreview config={brandingConfig} logoUrl={brandingLogoUrl ?? null} scale={scale} />
+            ) : null
+          )}
         </div>
       </div>
 
-      <PreviewControls />
     </div>
   )
 }

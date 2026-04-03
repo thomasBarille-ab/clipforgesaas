@@ -64,17 +64,12 @@ export function TimelineSegment({ segment, timelineStart, videoUrl }: TimelineSe
       className={cn(
         'absolute top-0 h-full rounded-lg overflow-hidden cursor-pointer transition-shadow',
         isSelected
-          ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/20'
+          ? 'ring-2 ring-orange-500 shadow-lg shadow-orange-500/20'
           : 'ring-1 ring-white/20 hover:ring-white/30'
       )}
       style={{ left, width: Math.max(width, 20) }}
-      onClick={(e) => {
+      onClick={() => {
         dispatch({ type: 'SELECT_SEGMENT', id: segment.id })
-        // Aussi positionner le playhead à l'endroit cliqué dans le segment
-        const rect = e.currentTarget.getBoundingClientRect()
-        const relX = e.clientX - rect.left
-        const clickTime = timelineStart + relX / pixelsPerSecond
-        dispatch({ type: 'SET_PLAYHEAD', time: Math.max(timelineStart, Math.min(timelineStart + duration, clickTime)) })
       }}
     >
       {/* Thumbnails */}
@@ -100,7 +95,7 @@ export function TimelineSegment({ segment, timelineStart, videoUrl }: TimelineSe
       <div
         className={cn(
           'absolute left-0 top-0 h-full w-2 cursor-col-resize transition-colors',
-          isSelected ? 'bg-purple-500/60 hover:bg-purple-500/80' : 'bg-white/20 hover:bg-white/40'
+          isSelected ? 'bg-orange-500/60 hover:bg-orange-500/80' : 'bg-white/20 hover:bg-white/40'
         )}
         onMouseDown={trimStartDrag.onMouseDown}
       >
@@ -111,7 +106,7 @@ export function TimelineSegment({ segment, timelineStart, videoUrl }: TimelineSe
       <div
         className={cn(
           'absolute right-0 top-0 h-full w-2 cursor-col-resize transition-colors',
-          isSelected ? 'bg-purple-500/60 hover:bg-purple-500/80' : 'bg-white/20 hover:bg-white/40'
+          isSelected ? 'bg-orange-500/60 hover:bg-orange-500/80' : 'bg-white/20 hover:bg-white/40'
         )}
         onMouseDown={trimEndDrag.onMouseDown}
       >

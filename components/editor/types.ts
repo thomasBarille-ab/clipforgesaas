@@ -1,9 +1,19 @@
+/** Configuration du split-screen (moitié haute = vidéo, moitié basse = zoom) */
+export interface SplitScreenConfig {
+  enabled: boolean
+  cropX: number    // 0-1, position horizontale du zoom dans la frame source
+  cropY: number    // 0-1, position verticale du zoom dans la frame source
+  cropSize: number // 0.15-0.8, fraction de la largeur vidéo (plus petit = plus zoomé)
+}
+
 /** Segment contigu sur la timeline */
 export interface TimelineSegment {
   id: string
   sourceStart: number   // temps absolu début dans la vidéo source
   sourceEnd: number     // temps absolu fin dans la vidéo source
   cropX: number         // position du crop 9:16 (0=gauche, 0.5=centre, 1=droite)
+  zoomLevel: number     // 1 = normal, 1.5 = 150%, max 3
+  splitScreen?: SplitScreenConfig
 }
 
 /** Zoom de la timeline */
@@ -32,6 +42,8 @@ export interface EditorState {
   playheadTime: number        // position sur la timeline (pas le temps source)
   playing: boolean
   zoom: TimelineZoom
+  history: TimelineSegment[][]
+  historyIndex: number
 }
 
 /** Actions du reducer */
@@ -46,3 +58,5 @@ export type EditorAction =
   | { type: 'SET_ZOOM'; zoom: Partial<TimelineZoom> }
   | { type: 'TRIM_SEGMENT_START'; id: string; newSourceStart: number }
   | { type: 'TRIM_SEGMENT_END'; id: string; newSourceEnd: number }
+  | { type: 'UNDO' }
+  | { type: 'REDO' }

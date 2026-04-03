@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
         </p>
         <Link
           href="/login"
-          className="mt-6 inline-flex items-center gap-2 text-sm text-purple-400 transition-colors hover:text-purple-300"
+          className="mt-6 inline-flex items-center gap-2 text-sm text-orange-400 transition-colors hover:text-orange-300"
         >
           <ArrowLeft className="h-4 w-4" />
           {t('auth.resetPassword.backToLogin')}
@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
         </Button>
 
         <p className="text-center text-sm text-white/50">
-          <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">
+          <Link href="/login" className="text-orange-400 hover:text-orange-300 transition-colors">
             {t('auth.resetPassword.backToLogin')}
           </Link>
         </p>

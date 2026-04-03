@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { fetchPersonaForUser } from '@/lib/persona'
-import type { TranscriptionSegment } from '@/types/database'
+// import { fetchPersonaForUser } from '@/lib/persona'
+import { hasFeatureAccess } from '@/lib/plans'
+import type { TranscriptionSegment, PlanType } from '@/types/database'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -21,30 +22,51 @@ interface SuggestRequestBody {
   videoId?: string
   transcription?: string
   segments?: TranscriptionSegment[]
+  minDuration?: number
+  maxDuration?: number
+  clipCount?: number
 }
 
-function buildPrompt(transcription: string, segments: TranscriptionSegment[], persona: string | null): string {
-  const segmentsPreview = JSON.stringify(segments.slice(0, 50), null, 2)
+interface ClipFilters {
+  minDuration: number
+  maxDuration: number
+  clipCount: number
+}
 
-  const personaBlock = persona
-    ? `\nPROFIL DU CRÉATEUR (adapte tes suggestions à son style) :\n${persona}\n\nTiens compte de ce profil pour privilégier ses thèmes, adapter les durées, formuler les titres dans son style, choisir des hashtags cohérents.\n`
-    : ''
+function buildPrompt(transcription: string, segments: TranscriptionSegment[], _persona: string | null, filters: ClipFilters): string {
+  const segmentsJson = JSON.stringify(segments, null, 2)
+
+  // const personaBlock = persona
+  //   ? `\nPROFIL DU CRÉATEUR (adapte tes suggestions à son style) :\n${persona}\n\nTiens compte de ce profil pour privilégier ses thèmes, adapter les durées, formuler les titres dans son style, choisir des hashtags cohérents.\n`
+  //   : ''
 
   return `Tu es un expert en création de contenu viral pour TikTok/Reels/Shorts.
-${personaBlock}
+
 Voici la transcription complète d'une vidéo :
 ${transcription}
 
-Segments avec timestamps :
-${segmentsPreview}
+Segments avec timestamps (en secondes) :
+${segmentsJson}
 
-Ta mission : Identifier les 5-8 meilleurs moments à transformer en clips de 30-60s.
+Ta mission : Identifier les ${filters.clipCount} meilleurs moments à transformer en clips de ${filters.minDuration}-${filters.maxDuration} secondes.
+
+RÈGLES OBLIGATOIRES pour les timestamps :
+- Chaque clip DOIT commencer au début d'une phrase (au timestamp "start" d'un segment existant)
+- Chaque clip DOIT finir à la fin d'une phrase (au timestamp "end" d'un segment existant)
+- Ne coupe JAMAIS une phrase en cours
+- Chaque clip DOIT durer au minimum ${filters.minDuration} secondes et au maximum ${filters.maxDuration} secondes
 
 Critères pour un bon clip :
 - Hook fort dans les 3 premières secondes
 - Contenu autonome (compréhensible sans contexte)
 - Valeur claire (enseignement, divertissement, inspiration)
 - Potentiel viral (surprise, émotion, insight)
+
+PASSAGES À EXCLURE OBLIGATOIREMENT :
+- Les placements de produit et sponsors (ex: "cette vidéo est sponsorisée par...", "merci à ... pour le partenariat")
+- Les appels à l'action YouTube (ex: "abonnez-vous", "likez la vidéo", "activez la cloche", "laissez un commentaire", "partagez la vidéo")
+- Les intros/outros promotionnelles
+- Ne sélectionne JAMAIS un passage contenant ce type de contenu, même partiellement
 
 Pour chaque clip, réponds en JSON :
 {
@@ -181,14 +203,38 @@ export async function POST(request: Request) {
     )
   }
 
+  // 3b. Déterminer les filtres selon le plan
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user.id)
+    .single()
+
+  const plan = (profile?.plan as PlanType) ?? 'free'
+  const canUseFilters = hasFeatureAccess(plan, 'clipFilters')
+
+  const defaultFilters: ClipFilters = { minDuration: 60, maxDuration: 180, clipCount: 5 }
+  const filters: ClipFilters = canUseFilters
+    ? {
+        minDuration: (typeof body.minDuration === 'number' && body.minDuration >= 15) ? body.minDuration : defaultFilters.minDuration,
+        maxDuration: (typeof body.maxDuration === 'number' && body.maxDuration >= 30) ? body.maxDuration : defaultFilters.maxDuration,
+        clipCount: ([3, 5, 8, 10].includes(body.clipCount ?? 0)) ? body.clipCount! : defaultFilters.clipCount,
+      }
+    : defaultFilters
+
+  // S'assurer que max >= min
+  if (filters.maxDuration < filters.minDuration) {
+    filters.maxDuration = filters.minDuration
+  }
+
   try {
     // 4. Appeler Claude
-    const persona = await fetchPersonaForUser(supabase, user.id)
-    const prompt = buildPrompt(fullText, segments, persona)
+    // const persona = await fetchPersonaForUser(supabase, user.id, plan)
+    const prompt = buildPrompt(fullText, segments, null, filters)
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
+      max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -204,6 +250,7 @@ export async function POST(request: Request) {
 
     // 5. Parser et valider la réponse
     const suggestions = parseClaudeResponse(responseText)
+      .filter((s) => (s.end - s.start) >= filters.minDuration)
 
     return NextResponse.json({
       success: true,

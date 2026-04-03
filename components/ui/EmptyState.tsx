@@ -20,7 +20,7 @@ export function EmptyState({ icon: Icon, title, description, actionLabel, action
       {actionLabel && actionHref && (
         <Link
           href={actionHref}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105"
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-6 py-3 font-semibold text-white transition-transform hover:scale-105"
         >
           {ActionIcon && <ActionIcon className="h-5 w-5" />}
           {actionLabel}

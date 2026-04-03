@@ -44,6 +44,10 @@ CLAUDE.md
 *.tsbuildinfo
 next-env.d.ts
 
-# docs
-/docs
+
 /supabase
+/docs
+
+
+/supabase
+/docs

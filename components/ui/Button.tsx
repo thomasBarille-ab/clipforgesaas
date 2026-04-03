@@ -15,7 +15,7 @@ interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25',
+  primary: 'bg-gradient-to-r from-orange-600 to-amber-600 text-white hover:scale-105 hover:shadow-lg hover:shadow-orange-500/25',
   secondary: 'border border-white/20 bg-white/5 text-white hover:bg-white/10',
   danger: 'bg-red-600 text-white hover:bg-red-700',
   ghost: 'text-white/50 hover:bg-white/10 hover:text-white',

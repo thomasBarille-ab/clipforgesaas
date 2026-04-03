@@ -10,15 +10,20 @@ import {
   Search,
   MessageSquare,
   Send,
+  SlidersHorizontal,
+  RefreshCw,
+  Minus,
+  Plus,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createClient } from '@/lib/supabase/client'
-import { formatTime, formatFileSize } from '@/lib/utils'
+import { formatTime } from '@/lib/utils'
 import { hasFeatureAccess } from '@/lib/plans'
 import { AlertBanner, Button, Input, Badge } from '@/components/ui'
 import { SuggestionCard } from '@/components/SuggestionCard'
 import { VideoEditor } from '@/components/editor/VideoEditor'
-import type { Video, TranscriptionSegment, ClipSuggestion, PlanType } from '@/types/database'
+import { DashboardHeader } from '@/components/DashboardHeader'
+import type { Video, TranscriptionSegment, ClipSuggestion, PlanType, BrandingConfig } from '@/types/database'
 
 export default function CreateClipsPage() {
   const { t } = useTranslation()
@@ -35,6 +40,8 @@ export default function CreateClipsPage() {
 
   // Plan utilisateur — re-fetch au focus pour capter les changements depuis les settings
   const [userPlan, setUserPlan] = useState<PlanType>('free')
+  const [brandingConfig, setBrandingConfig] = useState<BrandingConfig | null>(null)
+  const [brandingLogoUrl, setBrandingLogoUrl] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchPlan() {
@@ -48,7 +55,29 @@ export default function CreateClipsPage() {
         .eq('id', session.user.id)
         .single()
 
-      if (data?.plan) setUserPlan(data.plan as PlanType)
+      if (data?.plan) {
+        setUserPlan(data.plan as PlanType)
+
+        // Fetch branding config for business plan
+        if (data.plan === 'business') {
+          try {
+            const brandingRes = await fetch('/api/account/branding')
+            if (brandingRes.ok) {
+              const brandingData = await brandingRes.json()
+              setBrandingConfig(brandingData.brandingConfig ?? null)
+
+              if (brandingData.brandingConfig?.logoPath) {
+                const { data: logoUrlData } = await supabase.storage
+                  .from('videos')
+                  .createSignedUrl(brandingData.brandingConfig.logoPath, 3600)
+                setBrandingLogoUrl(logoUrlData?.signedUrl ?? null)
+              }
+            }
+          } catch {
+            // non-blocking
+          }
+        }
+      }
     }
 
     fetchPlan()
@@ -57,6 +86,13 @@ export default function CreateClipsPage() {
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [])
+
+  // Filtres de suggestions
+  const [filterMinDuration, setFilterMinDuration] = useState(60)
+  const [filterMaxDuration, setFilterMaxDuration] = useState(180)
+  const [filterClipCount, setFilterClipCount] = useState(5)
+  const [regenerating, setRegenerating] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   // Recherche par prompt
   const [searchPrompt, setSearchPrompt] = useState('')
@@ -95,7 +131,12 @@ export default function CreateClipsPage() {
         fetch('/api/clips/suggest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ videoId }),
+          body: JSON.stringify({
+            videoId,
+            minDuration: filterMinDuration,
+            maxDuration: filterMaxDuration,
+            clipCount: filterClipCount,
+          }),
         }).then((r) => r.json()),
         supabase
           .from('transcriptions')
@@ -151,7 +192,12 @@ export default function CreateClipsPage() {
       const res = await fetch('/api/clips/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId, prompt: searchPrompt.trim() }),
+        body: JSON.stringify({
+          videoId,
+          prompt: searchPrompt.trim(),
+          minDuration: filterMinDuration,
+          maxDuration: filterMaxDuration,
+        }),
       })
       const data = await res.json()
 
@@ -169,6 +215,37 @@ export default function CreateClipsPage() {
     }
   }
 
+  async function handleRegenerate() {
+    if (regenerating || loading) return
+    setRegenerating(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/clips/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId,
+          minDuration: filterMinDuration,
+          maxDuration: filterMaxDuration,
+          clipCount: filterClipCount,
+        }),
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        setError(data.error)
+      } else {
+        setSuggestions(data.data?.suggestions ?? [])
+        setCreatedIndices(new Set())
+      }
+    } catch {
+      setError(t('common.genericError'))
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
   // ──────────────────────────────────────────────
   // VUE : Éditeur vidéo plein écran
   // ──────────────────────────────────────────────
@@ -182,6 +259,8 @@ export default function CreateClipsPage() {
         segments={segments}
         videoId={videoId}
         userPlan={userPlan}
+        brandingConfig={brandingConfig}
+        brandingLogoUrl={brandingLogoUrl}
         onClose={closeCustomizer}
         onGenerated={() => {
           setCreatedIndices((prev) => new Set(prev).add(index))
@@ -197,9 +276,12 @@ export default function CreateClipsPage() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white md:text-4xl">
-          {t('createClips.title')}
-        </h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-3xl font-bold text-white md:text-4xl">
+            {t('createClips.title')}
+          </h1>
+          <DashboardHeader />
+        </div>
 
         {video && (
           <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-white/50">
@@ -213,20 +295,19 @@ export default function CreateClipsPage() {
                 {formatTime(video.duration_seconds)}
               </span>
             )}
-            <span>{formatFileSize(video.file_size_bytes)}</span>
           </div>
         )}
       </div>
 
       {error && <AlertBanner message={error} className="mb-6" />}
 
-      {/* Recherche par prompt */}
+      {/* Recherche par prompt + Filtres */}
       <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/70">
-          <MessageSquare className="h-4 w-4 text-pink-400" />
+          <MessageSquare className="h-4 w-4 text-amber-400" />
           {t('createClips.searchTitle')}
           {!hasFeatureAccess(userPlan, 'searchByPrompt') && (
-            <Badge variant="purple" className="ml-1 px-2 py-0.5 text-[10px]">Pro</Badge>
+            <Badge variant="orange" className="ml-1 px-2 py-0.5 text-[10px]">Pro</Badge>
           )}
         </div>
         {!hasFeatureAccess(userPlan, 'searchByPrompt') ? (
@@ -249,10 +330,133 @@ export default function CreateClipsPage() {
               loading={searching}
               icon={Send}
               size="md"
-              className="rounded-xl bg-gradient-to-r from-pink-600 to-purple-600"
+              className="rounded-xl bg-gradient-to-r from-amber-600 to-orange-600"
             >
               <span className="hidden sm:inline">{t('common.search')}</span>
             </Button>
+          </div>
+        )}
+
+        {/* Bouton toggle filtres + panneau */}
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              showFilters
+                ? 'bg-purple-600/20 text-purple-300'
+                : 'text-white/40 hover:bg-white/5 hover:text-white/60'
+            }`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {t('createClips.filters')}
+            {!hasFeatureAccess(userPlan, 'clipFilters') && (
+              <Badge variant="orange" className="ml-0.5 px-1.5 py-0 text-[9px]">Pro</Badge>
+            )}
+          </button>
+        </div>
+
+        {showFilters && (
+          <div className="mt-3 border-t border-white/10 pt-4">
+            {!hasFeatureAccess(userPlan, 'clipFilters') ? (
+              <p className="text-sm text-white/40">
+                {t('createClips.filtersProOnly')}
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-end gap-5">
+                {/* Durée min */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/50">
+                    {t('createClips.minDuration')}
+                  </label>
+                  <div className="flex items-center gap-0 rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFilterMinDuration((v) => Math.max(15, v - 15))}
+                      disabled={loading || regenerating || filterMinDuration <= 15}
+                      className="flex h-10 w-10 items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="flex h-10 w-16 items-center justify-center text-sm font-semibold text-white tabular-nums border-x border-white/10">
+                      {formatTime(filterMinDuration)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterMinDuration((v) => Math.min(filterMaxDuration, v + 15))}
+                      disabled={loading || regenerating || filterMinDuration >= filterMaxDuration}
+                      className="flex h-10 w-10 items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Durée max */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/50">
+                    {t('createClips.maxDuration')}
+                  </label>
+                  <div className="flex items-center gap-0 rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFilterMaxDuration((v) => Math.max(filterMinDuration, v - 15))}
+                      disabled={loading || regenerating || filterMaxDuration <= filterMinDuration}
+                      className="flex h-10 w-10 items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="flex h-10 w-16 items-center justify-center text-sm font-semibold text-white tabular-nums border-x border-white/10">
+                      {formatTime(filterMaxDuration)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterMaxDuration((v) => v + 15)}
+                      disabled={loading || regenerating}
+                      className="flex h-10 w-10 items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Nombre de clips */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/50">
+                    {t('createClips.clipCount')}
+                  </label>
+                  <div className="flex items-center gap-0 rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                    {[3, 5, 8, 10].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setFilterClipCount(n)}
+                        disabled={loading || regenerating}
+                        className={`flex h-10 w-10 items-center justify-center text-sm font-semibold transition-colors ${
+                          filterClipCount === n
+                            ? 'bg-purple-600 text-white'
+                            : 'text-white/40 hover:bg-white/10 hover:text-white'
+                        } disabled:opacity-50`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Régénérer */}
+                <Button
+                  onClick={handleRegenerate}
+                  disabled={loading}
+                  loading={regenerating}
+                  icon={RefreshCw}
+                  size="md"
+                  className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600"
+                >
+                  {t('createClips.regenerate')}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -261,8 +465,8 @@ export default function CreateClipsPage() {
       {searchResults.length > 0 && (
         <div className="mb-8">
           <div className="mb-4 flex items-center gap-3">
-            <div className="rounded-xl bg-pink-500/20 p-2.5">
-              <Search className="h-5 w-5 text-pink-400" />
+            <div className="rounded-xl bg-amber-500/20 p-2.5">
+              <Search className="h-5 w-5 text-amber-400" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-white">{t('createClips.searchResults')}</h2>
@@ -291,8 +495,8 @@ export default function CreateClipsPage() {
 
       {/* Section Suggestions IA */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="rounded-xl bg-purple-500/20 p-2.5">
-          <Sparkles className="h-5 w-5 text-purple-400" />
+        <div className="rounded-xl bg-orange-500/20 p-2.5">
+          <Sparkles className="h-5 w-5 text-orange-400" />
         </div>
         <div>
           <h2 className="text-xl font-semibold text-white">{t('createClips.suggestionsTitle')}</h2>

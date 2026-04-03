@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const { error: emailError } = await resend.emails.send({
       from: FROM_EMAIL,
       to: normalizedEmail,
-      subject: 'Bienvenue sur la waitlist CreaClip !',
+      subject: 'Welcome to the CreaClip waitlist!',
       react: WaitlistConfirmEmail({ email: normalizedEmail }),
     })
 

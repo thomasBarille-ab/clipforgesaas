@@ -19,7 +19,7 @@ export function Textarea({ label, icon: Icon, className, id, ...props }: Props) 
       <textarea
         id={id}
         className={cn(
-          'w-full resize-none rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none transition-colors',
+          'w-full resize-none rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white placeholder:text-white/30 focus:border-orange-500 focus:outline-none transition-colors',
           'disabled:opacity-50',
           className
         )}

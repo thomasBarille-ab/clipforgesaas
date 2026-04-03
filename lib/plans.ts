@@ -2,16 +2,18 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PlanType } from '@/types/database'
 
 interface PlanFeatures {
-  clipsPerMonth: number // -1 = unlimited
+  clipsPerMonth: number
   watermark: boolean
   searchByPrompt: boolean
   persona: boolean
+  clipFilters: boolean
+  customBranding: boolean
 }
 
 export const PLAN_FEATURES: Record<PlanType, PlanFeatures> = {
-  free:     { clipsPerMonth: 3,  watermark: true,  searchByPrompt: false, persona: false },
-  pro:      { clipsPerMonth: -1,  watermark: false, searchByPrompt: true,  persona: false },
-  business: { clipsPerMonth: -1,  watermark: false, searchByPrompt: true,  persona: true  },
+  free:     { clipsPerMonth: 3,   watermark: true,  searchByPrompt: false, persona: false, clipFilters: false, customBranding: false },
+  pro:      { clipsPerMonth: 40,  watermark: false, searchByPrompt: true,  persona: false, clipFilters: true,  customBranding: false },
+  business: { clipsPerMonth: 150, watermark: false, searchByPrompt: true,  persona: false, clipFilters: true,  customBranding: true  },
 }
 
 export type PlanFeature = keyof PlanFeatures
@@ -24,8 +26,7 @@ export function hasFeatureAccess(plan: PlanType, feature: PlanFeature): boolean 
   const limits = getPlanLimits(plan)
   const value = limits[feature]
   if (typeof value === 'boolean') return value
-  // For numeric features (clipsPerMonth), "has access" means unlimited (-1) or > 0
-  return value === -1 || value > 0
+  return value > 0
 }
 
 export async function getMonthlyClipsUsed(supabase: SupabaseClient, userId: string): Promise<number> {
@@ -52,11 +53,6 @@ export async function canCreateClip(
   plan: PlanType
 ): Promise<{ allowed: boolean; used: number; limit: number }> {
   const limits = getPlanLimits(plan)
-
-  if (limits.clipsPerMonth === -1) {
-    return { allowed: true, used: 0, limit: -1 }
-  }
-
   const used = await getMonthlyClipsUsed(supabase, userId)
   return {
     allowed: used < limits.clipsPerMonth,

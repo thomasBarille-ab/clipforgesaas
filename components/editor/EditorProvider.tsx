@@ -10,6 +10,16 @@ import type {
 } from './types'
 
 const MIN_SEGMENT_DURATION = 1 // secondes
+const MAX_HISTORY = 50
+
+/** Actions qui modifient les segments et doivent être trackées dans l'historique */
+const TRACKED_ACTIONS = new Set([
+  'SPLIT_AT_PLAYHEAD',
+  'DELETE_SEGMENT',
+  'UPDATE_SEGMENT',
+  'TRIM_SEGMENT_START',
+  'TRIM_SEGMENT_END',
+])
 
 function computeSegmentOffsets(segments: TimelineSegment[]): SegmentOffset[] {
   const offsets: SegmentOffset[] = []
@@ -110,12 +120,16 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         sourceStart: seg.sourceStart,
         sourceEnd: splitTime,
         cropX: seg.cropX,
+        zoomLevel: seg.zoomLevel,
+        splitScreen: seg.splitScreen ? { ...seg.splitScreen } : undefined,
       }
       const seg2: TimelineSegment = {
         id: crypto.randomUUID(),
         sourceStart: splitTime,
         sourceEnd: seg.sourceEnd,
         cropX: seg.cropX,
+        zoomLevel: seg.zoomLevel,
+        splitScreen: seg.splitScreen ? { ...seg.splitScreen } : undefined,
       }
 
       const newSegments = [...state.segments]
@@ -138,9 +152,57 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       }
     }
 
+    case 'UNDO':
+    case 'REDO':
+      // Handled by wrapping reducer
+      return state
+
     default:
       return state
   }
+}
+
+/** Wrapper qui gère l'historique undo/redo autour du reducer de base */
+function editorReducerWithHistory(state: EditorState, action: EditorAction): EditorState {
+  if (action.type === 'UNDO') {
+    if (state.historyIndex <= 0) return state
+    const newIndex = state.historyIndex - 1
+    return {
+      ...state,
+      segments: state.history[newIndex].map((s) => ({ ...s })),
+      historyIndex: newIndex,
+    }
+  }
+
+  if (action.type === 'REDO') {
+    if (state.historyIndex >= state.history.length - 1) return state
+    const newIndex = state.historyIndex + 1
+    return {
+      ...state,
+      segments: state.history[newIndex].map((s) => ({ ...s })),
+      historyIndex: newIndex,
+    }
+  }
+
+  const newState = editorReducer(state, action)
+
+  // Si l'action modifie les segments, enregistrer dans l'historique
+  if (TRACKED_ACTIONS.has(action.type) && newState.segments !== state.segments) {
+    // Tronquer le futur si on a fait undo avant
+    const history = state.history.slice(0, state.historyIndex + 1)
+    history.push(newState.segments.map((s) => ({ ...s })))
+    // Limiter la taille de l'historique
+    if (history.length > MAX_HISTORY) {
+      history.splice(0, history.length - MAX_HISTORY)
+    }
+    return {
+      ...newState,
+      history,
+      historyIndex: history.length - 1,
+    }
+  }
+
+  return newState
 }
 
 interface EditorContextValue {
@@ -149,6 +211,8 @@ interface EditorContextValue {
   totalDuration: number
   segmentOffsets: SegmentOffset[]
   timelineToSource: (time: number) => TimelineToSourceResult | null
+  canUndo: boolean
+  canRedo: boolean
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null)
@@ -165,12 +229,14 @@ interface EditorProviderProps {
 }
 
 export function EditorProvider({ initialSegments, children }: EditorProviderProps) {
-  const [state, dispatch] = useReducer(editorReducer, {
+  const [state, dispatch] = useReducer(editorReducerWithHistory, {
     segments: initialSegments,
     selectedSegmentId: initialSegments[0]?.id ?? null,
     playheadTime: 0,
     playing: false,
     zoom: { pixelsPerSecond: 60, scrollLeft: 0 },
+    history: [initialSegments.map((s) => ({ ...s }))],
+    historyIndex: 0,
   })
 
   const segmentOffsets = useMemo(() => computeSegmentOffsets(state.segments), [state.segments])
@@ -185,6 +251,9 @@ export function EditorProvider({ initialSegments, children }: EditorProviderProp
     [state.segments, segmentOffsets]
   )
 
+  const canUndo = state.historyIndex > 0
+  const canRedo = state.historyIndex < state.history.length - 1
+
   const value = useMemo<EditorContextValue>(
     () => ({
       state,
@@ -192,8 +261,10 @@ export function EditorProvider({ initialSegments, children }: EditorProviderProp
       totalDuration,
       segmentOffsets,
       timelineToSource: timelineToSourceFn,
+      canUndo,
+      canRedo,
     }),
-    [state, dispatch, totalDuration, segmentOffsets, timelineToSourceFn]
+    [state, dispatch, totalDuration, segmentOffsets, timelineToSourceFn, canUndo, canRedo]
   )
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>

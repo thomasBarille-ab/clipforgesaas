@@ -221,6 +221,17 @@ function terminateFFmpeg(): void {
   }
 }
 
+export interface BrandingOverlayOptions {
+  enabled: boolean
+  text: string
+  logoImageData: Uint8Array | null
+  position: import('@/types/database').BrandingPosition
+  showLogo: boolean
+  showText: boolean
+  textColor: string
+  textOpacity: number
+}
+
 export interface TrimResult {
   videoBlob: Blob
   thumbnailBlob: Blob
@@ -238,7 +249,10 @@ export interface TrimOptions {
   srtContent?: string | null
   subtitleStyle?: import('@/types/subtitles').SubtitleStyle
   cropSegments?: CropSegmentOption[]
+  zoomLevel?: number
+  splitScreen?: { enabled: boolean; cropX: number; cropY: number; cropSize: number }
   watermark?: boolean
+  branding?: BrandingOverlayOptions
   onProgress?: (progress: number) => void
 }
 
@@ -296,6 +310,13 @@ async function renderSubtitlePng(
   const showBackground = style?.background === 'box'
   const bgColor = style?.backgroundColor ?? 'rgba(0,0,0,0.6)'
   const isUppercase = style?.textTransform === 'uppercase'
+  const fontWeight = style?.fontWeight ?? 'bold'
+  const fontStyle = style?.fontStyle ?? 'normal'
+  const hasShadow = style?.shadow ?? false
+  const shadowColor = style?.shadowColor ?? '#000000'
+  const shadowBlur = style?.shadowBlur ?? 4
+  const shadowOffsetX = style?.shadowOffsetX ?? 2
+  const shadowOffsetY = style?.shadowOffsetY ?? 2
 
   const displayText = isUppercase ? text.toUpperCase() : text
 
@@ -306,7 +327,9 @@ async function renderSubtitlePng(
 
   ctx.clearRect(0, 0, width, height)
 
-  ctx.font = `bold ${fontSize}px '${fontFamily}', sans-serif`
+  const fontStyleStr = fontStyle === 'italic' ? 'italic' : ''
+  const fontWeightStr = fontWeight === 'bold' ? 'bold' : 'normal'
+  ctx.font = `${fontStyleStr} ${fontWeightStr} ${fontSize}px '${fontFamily}', sans-serif`.trim()
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
@@ -347,22 +370,39 @@ async function renderSubtitlePng(
     ctx.fill()
   }
 
+  // Configure shadow if enabled
+  if (hasShadow) {
+    ctx.shadowColor = shadowColor
+    ctx.shadowBlur = shadowBlur
+    ctx.shadowOffsetX = shadowOffsetX
+    ctx.shadowOffsetY = shadowOffsetY
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const y = startY + i * lineHeight
     const x = width / 2
 
-    // Contour
+    // Contour (draw without shadow, shadow applies to fill only)
     if (strokeWidth > 0 && strokeColor !== 'transparent') {
+      const savedShadowColor = ctx.shadowColor
+      ctx.shadowColor = 'transparent'
       ctx.strokeStyle = strokeColor
       ctx.lineWidth = strokeWidth
       ctx.lineJoin = 'round'
       ctx.strokeText(lines[i], x, y)
+      ctx.shadowColor = savedShadowColor
     }
 
     // Remplissage
     ctx.fillStyle = textColor
     ctx.fillText(lines[i], x, y)
   }
+
+  // Reset shadow
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
@@ -401,6 +441,135 @@ async function renderWatermarkPng(
     canvas.toBlob((b) => {
       if (b) resolve(b)
       else reject(new Error('Canvas toBlob a retourné null (watermark)'))
+    }, 'image/png')
+  })
+  return new Uint8Array(await blob.arrayBuffer())
+}
+
+/**
+ * Rend un PNG transparent plein écran (1080x1920) avec le branding personnalisé
+ * (logo + texte) positionné selon les préférences Business.
+ */
+async function renderBrandingPng(
+  options: BrandingOverlayOptions,
+  width: number = 1080,
+  height: number = 1920
+): Promise<Uint8Array> {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+
+  ctx.clearRect(0, 0, width, height)
+
+  const padding = 60
+  const { position, textColor, textOpacity } = options
+
+  // Calculate anchor point based on position
+  let anchorX: number
+  let anchorY: number
+  let textAlign: CanvasTextAlign = 'left'
+
+  switch (position) {
+    case 'top-left':
+      anchorX = padding
+      anchorY = padding
+      textAlign = 'left'
+      break
+    case 'top-right':
+      anchorX = width - padding
+      anchorY = padding
+      textAlign = 'right'
+      break
+    case 'center':
+      anchorX = width / 2
+      anchorY = height / 2
+      textAlign = 'center'
+      break
+    case 'bottom-left':
+      anchorX = padding
+      anchorY = height - padding
+      textAlign = 'left'
+      break
+    case 'bottom-right':
+    default:
+      anchorX = width - padding
+      anchorY = height - padding
+      textAlign = 'right'
+      break
+  }
+
+  // Load and draw logo
+  let logoHeight = 0
+  if (options.showLogo && options.logoImageData) {
+    try {
+      const logoBlob = new Blob([options.logoImageData.buffer as ArrayBuffer], { type: 'image/png' })
+      const logoUrl = URL.createObjectURL(logoBlob)
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new window.Image()
+        i.onload = () => resolve(i)
+        i.onerror = reject
+        i.src = logoUrl
+      })
+      URL.revokeObjectURL(logoUrl)
+
+      // Scale logo to max 200x100
+      const maxW = 200
+      const maxH = 100
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1)
+      const drawW = img.width * scale
+      const drawH = img.height * scale
+      logoHeight = drawH
+
+      let logoX: number
+      let logoY: number
+
+      if (position === 'center') {
+        logoX = anchorX - drawW / 2
+        logoY = anchorY - drawH - 10
+      } else if (textAlign === 'right') {
+        logoX = anchorX - drawW
+        logoY = position.startsWith('top') ? anchorY : anchorY - drawH - (options.showText ? 40 : 0)
+      } else {
+        logoX = anchorX
+        logoY = position.startsWith('top') ? anchorY : anchorY - drawH - (options.showText ? 40 : 0)
+      }
+
+      ctx.globalAlpha = textOpacity
+      ctx.drawImage(img, logoX, logoY, drawW, drawH)
+      ctx.globalAlpha = 1.0
+    } catch {
+      // Skip logo on error
+    }
+  }
+
+  // Draw text
+  if (options.showText && options.text) {
+    const fontSize = 32
+    ctx.font = `bold ${fontSize}px 'Arial', sans-serif`
+    ctx.textAlign = textAlign
+    ctx.textBaseline = 'middle'
+
+    ctx.globalAlpha = textOpacity
+    ctx.fillStyle = textColor
+
+    let textY: number
+    if (position === 'center') {
+      textY = anchorY + (logoHeight > 0 ? 10 : 0)
+    } else if (position.startsWith('top')) {
+      textY = anchorY + (logoHeight > 0 ? logoHeight + 15 : fontSize / 2)
+    } else {
+      textY = anchorY - fontSize / 2
+    }
+
+    ctx.fillText(options.text, anchorX, textY)
+    ctx.globalAlpha = 1.0
+  }
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (b) resolve(b)
+      else reject(new Error('Canvas toBlob a retourné null (branding)'))
     }, 'image/png')
   })
   return new Uint8Array(await blob.arrayBuffer())
@@ -502,6 +671,13 @@ export interface ConcatSegment {
   sourceStart: number
   sourceEnd: number
   cropX: number // 0=gauche, 0.5=centre, 1=droite
+  zoomLevel?: number // 1 = normal, max 3
+  splitScreen?: {
+    enabled: boolean
+    cropX: number
+    cropY: number
+    cropSize: number
+  }
 }
 
 export interface ConcatOptions {
@@ -510,6 +686,7 @@ export interface ConcatOptions {
   srtContent?: string | null
   subtitleStyle?: import('@/types/subtitles').SubtitleStyle
   watermark?: boolean
+  branding?: BrandingOverlayOptions
   onProgress?: (progress: number) => void
 }
 
@@ -523,6 +700,7 @@ export async function trimAndConcatSegments({
   srtContent,
   subtitleStyle,
   watermark,
+  branding,
   onProgress,
 }: ConcatOptions): Promise<TrimResult> {
   // Cas simple : 1 segment → réutiliser trimAndCropVideo
@@ -535,7 +713,10 @@ export async function trimAndConcatSegments({
       srtContent,
       subtitleStyle,
       cropSegments: [{ startTime: 0, cropX: seg.cropX }],
+      zoomLevel: seg.zoomLevel,
+      splitScreen: seg.splitScreen,
       watermark,
+      branding,
       onProgress,
     })
   }
@@ -576,11 +757,14 @@ export async function trimAndConcatSegments({
       }
     }
 
-    // Watermark PNG (free plan)
+    // Overlay PNG: watermark (free) OR branding (business) OR none (pro)
+    const hasOverlay = watermark || (branding?.enabled && !watermark)
     if (watermark) {
       const wmPng = await renderWatermarkPng()
-      await ffmpeg.writeFile('watermark.png', wmPng)
-
+      await ffmpeg.writeFile('overlay.png', wmPng)
+    } else if (branding?.enabled) {
+      const brandPng = await renderBrandingPng(branding)
+      await ffmpeg.writeFile('overlay.png', brandPng)
     }
 
     const args: string[] = []
@@ -591,10 +775,10 @@ export async function trimAndConcatSegments({
       args.push('-i', `sub_${i}.png`)
     }
 
-    // Watermark is the last input
-    const wmInputIdx = watermark ? 1 + subtitleEntries.length : -1
-    if (watermark) {
-      args.push('-i', 'watermark.png')
+    // Overlay is the last input
+    const overlayInputIdx = hasOverlay ? 1 + subtitleEntries.length : -1
+    if (hasOverlay) {
+      args.push('-i', 'overlay.png')
     }
 
     // filter_complex : chaque segment a trim+setpts+crop+scale, puis concat
@@ -606,10 +790,45 @@ export async function trimAndConcatSegments({
       // Timestamps relatifs à -ss (earliest)
       const start = (seg.sourceStart - earliest).toFixed(3)
       const end = (seg.sourceEnd - earliest).toFixed(3)
-      const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+      const zoom = seg.zoomLevel ?? 1
+      const ss = seg.splitScreen
 
       if (i > 0) fc += ';'
-      fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[v${i}]`
+
+      if (ss?.enabled) {
+        // Split-screen: top = normal 9:16 crop, bottom = zoomed area, vstack
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+        const zoomCropW = ss.cropSize // fraction of iw
+        const zoomCropH = zoomCropW * (16 / 9) // fraction of iw, scaled for 16:9 ratio of each half
+        // Zoom source positions (pixel expressions)
+        const zoomX = `${ss.cropX.toFixed(4)}*(iw-iw*${zoomCropW.toFixed(4)})`
+        const zoomY = `${ss.cropY.toFixed(4)}*(ih-iw*${zoomCropH.toFixed(4)})`
+
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,split[top_${i}][bot_${i}]`
+        fc += `;[top_${i}]crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:960[vtop_${i}]`
+        fc += `;[bot_${i}]crop=iw*${zoomCropW.toFixed(4)}:iw*${zoomCropH.toFixed(4)}:${zoomX}:${zoomY},scale=1080:960[vbot_${i}]`
+        fc += `;[vtop_${i}][vbot_${i}]vstack[v${i}]`
+      } else if (zoom > 1) {
+        // Zoom in: smaller crop area + scale = zoom effect
+        const cropW = `ih*9/16/${zoom.toFixed(2)}`
+        const cropH = `ih/${zoom.toFixed(2)}`
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-${cropW})`
+        const cropYExpr = `(ih-${cropH})/2`
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:${cropXExpr}:${cropYExpr},scale=1080:1920[v${i}]`
+      } else if (zoom < 1) {
+        // Zoom out: normal 9:16 crop, scale smaller, pad with black to 1080x1920
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+        const scaledW = Math.round(1080 * zoom / 2) * 2
+        const scaledH = Math.round(1920 * zoom / 2) * 2
+        const padX = (1080 - scaledW) / 2
+        const padY = (1920 - scaledH) / 2
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=${scaledW}:${scaledH},pad=1080:1920:${padX}:${padY}:black[v${i}]`
+      } else {
+        // Normal crop (zoom === 1)
+        const cropXExpr = `${seg.cropX.toFixed(4)}*(iw-ih*9/16)`
+        fc += `[0:v]trim=start=${start}:end=${end},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[v${i}]`
+      }
+
       fc += `;[0:a]atrim=start=${start}:end=${end},asetpts=PTS-STARTPTS[a${i}]`
     }
 
@@ -642,9 +861,9 @@ export async function trimAndConcatSegments({
       lastVideoLabel = 'subout'
     }
 
-    // Watermark overlay (après sous-titres, visible toute la durée)
-    if (watermark) {
-      fc += `;[${wmInputIdx}:v]format=rgba[wm];[${lastVideoLabel}][wm]overlay=0:0[vout]`
+    // Overlay (watermark ou branding, après sous-titres, visible toute la durée)
+    if (hasOverlay) {
+      fc += `;[${overlayInputIdx}:v]format=rgba[ovl];[${lastVideoLabel}][ovl]overlay=0:0[vout]`
     } else {
       fc += `;[${lastVideoLabel}]null[vout]`
     }
@@ -674,8 +893,8 @@ export async function trimAndConcatSegments({
     for (let i = 0; i < subtitleEntries.length; i++) {
       try { await ffmpeg.deleteFile(`sub_${i}.png`) } catch { /* ignore */ }
     }
-    if (watermark) {
-      try { await ffmpeg.deleteFile('watermark.png') } catch { /* ignore */ }
+    if (hasOverlay) {
+      try { await ffmpeg.deleteFile('overlay.png') } catch { /* ignore */ }
     }
 
 
@@ -714,7 +933,10 @@ export async function trimAndCropVideo({
   srtContent,
   subtitleStyle,
   cropSegments,
+  zoomLevel,
+  splitScreen,
   watermark,
+  branding,
   onProgress,
 }: TrimOptions): Promise<TrimResult> {
 
@@ -757,11 +979,14 @@ export async function trimAndCropVideo({
 
     }
 
-    // Watermark PNG (free plan)
+    // Overlay PNG: watermark (free) OR branding (business) OR none (pro)
+    const hasOverlay = watermark || (branding?.enabled && !watermark)
     if (watermark) {
       const wmPng = await renderWatermarkPng()
-      await ffmpeg.writeFile('watermark.png', wmPng)
-
+      await ffmpeg.writeFile('overlay.png', wmPng)
+    } else if (branding?.enabled) {
+      const brandPng = await renderBrandingPng(branding)
+      await ffmpeg.writeFile('overlay.png', brandPng)
     }
 
     // Construire les arguments FFmpeg
@@ -777,17 +1002,49 @@ export async function trimAndCropVideo({
       args.push('-i', `sub_${i}.png`)
     }
 
-    // Watermark is the last input
-    const wmInputIdx = watermark ? 1 + subtitleEntries.length : -1
-    if (watermark) {
-      args.push('-i', 'watermark.png')
+    // Overlay is the last input
+    const overlayInputIdx = hasOverlay ? 1 + subtitleEntries.length : -1
+    if (hasOverlay) {
+      args.push('-i', 'overlay.png')
     }
 
     // filter_complex : trim relatif (timestamps commencent à ~0 grâce au -ss input)
     let fc: string
 
-    if (cropSegments && cropSegments.length > 0) {
-      // Cadrage dynamique : crop 9:16 avec position X variable dans le temps
+    const zoom = zoomLevel ?? 1
+    const ss = splitScreen
+
+    if (ss?.enabled && cropSegments && cropSegments.length > 0) {
+      // Split-screen: top = normal 9:16 crop, bottom = zoomed area
+      const cropXExpr = buildCropXExpression(cropSegments, duration)
+      const zoomCropW = ss.cropSize
+      const zoomCropH = zoomCropW * (16 / 9)
+      const zoomX = `${ss.cropX.toFixed(4)}*(iw-iw*${zoomCropW.toFixed(4)})`
+      const zoomY = `${ss.cropY.toFixed(4)}*(ih-iw*${zoomCropH.toFixed(4)})`
+
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,split[top_0][bot_0]`
+      fc += `;[top_0]crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:960[vtop]`
+      fc += `;[bot_0]crop=iw*${zoomCropW.toFixed(4)}:iw*${zoomCropH.toFixed(4)}:${zoomX}:${zoomY},scale=1080:960[vbot]`
+      fc += `;[vtop][vbot]vstack[base]`
+    } else if (zoom > 1 && cropSegments && cropSegments.length > 0) {
+      // Zoom in: smaller crop area → scale up = zoom effect
+      const cropW = `ih*9/16/${zoom.toFixed(2)}`
+      const cropH = `ih/${zoom.toFixed(2)}`
+      const cropYExpr = `(ih-${cropH})/2`
+      const zoomCropXExpr = cropSegments.length === 1
+        ? `${cropSegments[0].cropX.toFixed(4)}*(iw-${cropW})`
+        : buildCropXExpression(cropSegments, duration)
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:${zoomCropXExpr}:${cropYExpr},scale=1080:1920[base]`
+    } else if (zoom < 1 && cropSegments && cropSegments.length > 0) {
+      // Zoom out: normal 9:16 crop, scale smaller, pad with black to 1080x1920
+      const cropXExpr = buildCropXExpression(cropSegments, duration)
+      const scaledW = Math.round(1080 * zoom / 2) * 2
+      const scaledH = Math.round(1920 * zoom / 2) * 2
+      const padX = (1080 - scaledW) / 2
+      const padY = (1920 - scaledH) / 2
+      fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=${scaledW}:${scaledH},pad=1080:1920:${padX}:${padY}:black[base]`
+    } else if (cropSegments && cropSegments.length > 0) {
+      // Normal cadrage dynamique
       const cropXExpr = buildCropXExpression(cropSegments, duration)
       fc = `[0:v]trim=end=${duration},setpts=PTS-STARTPTS,crop=ih*9/16:ih:${cropXExpr}:0,scale=1080:1920[base]`
     } else {
@@ -820,9 +1077,9 @@ export async function trimAndCropVideo({
       lastVideoLabel = 'subout'
     }
 
-    // Watermark overlay (après sous-titres, visible toute la durée)
-    if (watermark) {
-      fc += `;[${wmInputIdx}:v]format=rgba[wm];[${lastVideoLabel}][wm]overlay=0:0[vout]`
+    // Overlay (watermark ou branding, après sous-titres, visible toute la durée)
+    if (hasOverlay) {
+      fc += `;[${overlayInputIdx}:v]format=rgba[ovl];[${lastVideoLabel}][ovl]overlay=0:0[vout]`
     } else {
       fc += `;[${lastVideoLabel}]null[vout]`
     }
@@ -852,8 +1109,8 @@ export async function trimAndCropVideo({
     for (let i = 0; i < subtitleEntries.length; i++) {
       try { await ffmpeg.deleteFile(`sub_${i}.png`) } catch { /* ignore */ }
     }
-    if (watermark) {
-      try { await ffmpeg.deleteFile('watermark.png') } catch { /* ignore */ }
+    if (hasOverlay) {
+      try { await ffmpeg.deleteFile('overlay.png') } catch { /* ignore */ }
     }
 
     // Lire l'output

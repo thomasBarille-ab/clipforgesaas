@@ -7,15 +7,27 @@ import { cn } from '@/lib/utils'
 
 interface VideoThumbnailProps {
   storagePath: string
+  /** Pre-fetched signed URL (from useBatchSignedUrls). Skips individual fetch when provided. */
+  signedUrl?: string
   className?: string
 }
 
-export function VideoThumbnail({ storagePath, className }: VideoThumbnailProps) {
-  const [url, setUrl] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+export function VideoThumbnail({ storagePath, signedUrl: preSignedUrl, className }: VideoThumbnailProps) {
+  const [url, setUrl] = useState<string | null>(preSignedUrl ?? null)
+  const [loading, setLoading] = useState(!preSignedUrl)
   const [error, setError] = useState(false)
 
+  // Sync when preSignedUrl arrives asynchronously
+  useEffect(() => {
+    if (preSignedUrl) {
+      setUrl(preSignedUrl)
+      setLoading(false)
+      setError(false)
+    }
+  }, [preSignedUrl])
+
   const loadThumbnail = useCallback(async () => {
+    if (preSignedUrl) return // Skip if pre-fetched
     try {
       const supabase = createClient()
       const { data, error: urlError } = await supabase.storage
@@ -34,16 +46,18 @@ export function VideoThumbnail({ storagePath, className }: VideoThumbnailProps) 
       setError(true)
       setLoading(false)
     }
-  }, [storagePath])
+  }, [storagePath, preSignedUrl])
 
   useEffect(() => {
-    loadThumbnail()
-  }, [loadThumbnail])
+    if (!preSignedUrl) {
+      loadThumbnail()
+    }
+  }, [loadThumbnail, preSignedUrl])
 
   if (error || (!loading && !url)) {
     return (
-      <div className={cn('flex items-center justify-center bg-purple-500/20', className)}>
-        <Film className="h-6 w-6 text-purple-400" />
+      <div className={cn('flex items-center justify-center bg-orange-500/20', className)}>
+        <Film className="h-6 w-6 text-orange-400" />
       </div>
     )
   }

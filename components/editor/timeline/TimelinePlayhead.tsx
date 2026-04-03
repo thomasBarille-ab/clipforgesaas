@@ -4,6 +4,13 @@ import { useCallback } from 'react'
 import { useEditor } from '../EditorProvider'
 import { useTimelineDrag } from '@/hooks/useTimelineDrag'
 
+function formatTimeTenths(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  const tenths = Math.floor((seconds % 1) * 10)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${tenths}`
+}
+
 export function TimelinePlayhead() {
   const { state, dispatch, totalDuration } = useEditor()
   const { playheadTime, zoom } = state
@@ -28,6 +35,10 @@ export function TimelinePlayhead() {
       className="absolute top-0 bottom-0 z-20 pointer-events-none"
       style={{ left }}
     >
+      {/* Timecode au-dessus de la flèche */}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-0.5 whitespace-nowrap rounded bg-white/90 px-1 py-px text-[10px] font-medium text-slate-900 tabular-nums shadow-sm">
+        {formatTimeTenths(playheadTime)}
+      </div>
       {/* Triangle en haut (draggable) */}
       <div
         className="pointer-events-auto -ml-2 cursor-grab active:cursor-grabbing"
@@ -37,8 +48,8 @@ export function TimelinePlayhead() {
           <path d="M0 0 L16 0 L8 10 Z" />
         </svg>
       </div>
-      {/* Ligne verticale */}
-      <div className="absolute left-[7px] top-[10px] bottom-0 w-[2px] bg-white shadow-sm shadow-white/30" />
+      {/* Ligne verticale — centrée sur la pointe du triangle */}
+      <div className="absolute left-[-1px] top-[10px] bottom-0 w-[2px] bg-white shadow-sm shadow-white/30" />
     </div>
   )
 }

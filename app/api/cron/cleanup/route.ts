@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// ═══════════════════════════════════════════════════════════════
+// CRON: Cleanup des fichiers expirés
+// Schedule: tous les jours à 9h UTC (1h après les expiry-warnings)
+// URL: GET /api/cron/cleanup
+// Header: Authorization: Bearer <CRON_SECRET>
+// Service externe recommandé: Upstash QStash, EasyCron, ou cron-job.org
+// ═══════════════════════════════════════════════════════════════
+
 const VIDEOS_RETENTION_DAYS = 7
-const CLIPS_RETENTION_DAYS = 15
+const CLIPS_RETENTION_DAYS = 7
 
 function createAdminClient() {
   return createClient(
@@ -80,7 +88,7 @@ export async function GET(request: Request) {
     }
 
     // ========================================
-    // 2. Supprimer les clips > 15 jours
+    // 2. Supprimer les clips > 7 jours
     // ========================================
     const clipCutoff = new Date()
     clipCutoff.setDate(clipCutoff.getDate() - CLIPS_RETENTION_DAYS)
@@ -89,7 +97,7 @@ export async function GET(request: Request) {
       .from('clips')
       .select('id, user_id, storage_path, thumbnail_path')
       .eq('status', 'ready')
-      .lt('updated_at', clipCutoff.toISOString())
+      .lt('created_at', clipCutoff.toISOString())
 
     if (clipsError) {
       console.error('Erreur récupération clips:', clipsError)
